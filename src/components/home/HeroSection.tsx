@@ -17,14 +17,16 @@ declare global {
             onReady: (event: { target: { playVideo: () => void } }) => void
           }
         }
-      ) => any
+      ) => {
+        destroy: () => void
+      }
     }
     onYouTubeIframeAPIReady: () => void
   }
 }
 
 export function HeroSection() {
-  const playerRef = useRef<any>(null)
+  const playerRef = useRef<{ destroy: () => void } | null>(null)
   const { t } = useLanguage()
 
   useEffect(() => {
