@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
@@ -14,21 +14,140 @@ import { User as UserIcon } from 'lucide-react'
 const FALLBACK_ARTISTS: User[] = [
   {
     id: 'fallback-1',
-    name: '아티스트 정보 없음',
-    name_en: 'No Artist',
-    email: '',
+    name: '김댄서',
+    name_en: 'Kim Dancer',
+    email: 'kim@example.com',
     phone: '',
     profile_image: '',
-    slug: 'no-artist',
+    slug: 'kim-dancer',
     type: 'dancer',
     pending_type: undefined,
     display_order: undefined,
-    introduction: '아티스트 정보를 불러올 수 없습니다.',
+    introduction: '프로페셔널 댄서',
     instagram_url: '',
     twitter_url: '',
     youtube_url: '',
-    created_at: '',
-  }
+    created_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'fallback-2',
+    name: '이안무가',
+    name_en: 'Lee Choreographer',
+    email: 'lee@example.com',
+    phone: '',
+    profile_image: '',
+    slug: 'lee-choreographer',
+    type: 'dancer',
+    pending_type: undefined,
+    display_order: undefined,
+    introduction: '크리에이티브 안무가',
+    instagram_url: '',
+    twitter_url: '',
+    youtube_url: '',
+    created_at: '2024-01-02T00:00:00Z',
+  },
+  {
+    id: 'fallback-3',
+    name: '박퍼포머',
+    name_en: 'Park Performer',
+    email: 'park@example.com',
+    phone: '',
+    profile_image: '',
+    slug: 'park-performer',
+    type: 'dancer',
+    pending_type: undefined,
+    display_order: undefined,
+    introduction: '스테이지 퍼포머',
+    instagram_url: '',
+    twitter_url: '',
+    youtube_url: '',
+    created_at: '2024-01-03T00:00:00Z',
+  },
+  {
+    id: 'fallback-4',
+    name: '최아티스트',
+    name_en: 'Choi Artist',
+    email: 'choi@example.com',
+    phone: '',
+    profile_image: '',
+    slug: 'choi-artist',
+    type: 'dancer',
+    pending_type: undefined,
+    display_order: undefined,
+    introduction: '컨템포러리 아티스트',
+    instagram_url: '',
+    twitter_url: '',
+    youtube_url: '',
+    created_at: '2024-01-04T00:00:00Z',
+  },
+  {
+    id: 'fallback-5',
+    name: '정크루',
+    name_en: 'Jung Crew',
+    email: 'jung@example.com',
+    phone: '',
+    profile_image: '',
+    slug: 'jung-crew',
+    type: 'dancer',
+    pending_type: undefined,
+    display_order: undefined,
+    introduction: '스트릿 댄스 크루',
+    instagram_url: '',
+    twitter_url: '',
+    youtube_url: '',
+    created_at: '2024-01-05T00:00:00Z',
+  },
+  {
+    id: 'fallback-6',
+    name: '한스타',
+    name_en: 'Han Star',
+    email: 'han@example.com',
+    phone: '',
+    profile_image: '',
+    slug: 'han-star',
+    type: 'dancer',
+    pending_type: undefined,
+    display_order: undefined,
+    introduction: 'K-POP 댄서',
+    instagram_url: '',
+    twitter_url: '',
+    youtube_url: '',
+    created_at: '2024-01-06T00:00:00Z',
+  },
+  {
+    id: 'fallback-7',
+    name: '윤마스터',
+    name_en: 'Yoon Master',
+    email: 'yoon@example.com',
+    phone: '',
+    profile_image: '',
+    slug: 'yoon-master',
+    type: 'dancer',
+    pending_type: undefined,
+    display_order: undefined,
+    introduction: '댄스 마스터',
+    instagram_url: '',
+    twitter_url: '',
+    youtube_url: '',
+    created_at: '2024-01-07T00:00:00Z',
+  },
+  {
+    id: 'fallback-8',
+    name: '강프로',
+    name_en: 'Kang Pro',
+    email: 'kang@example.com',
+    phone: '',
+    profile_image: '',
+    slug: 'kang-pro',
+    type: 'dancer',
+    pending_type: undefined,
+    display_order: undefined,
+    introduction: '프로페셔널 댄서',
+    instagram_url: '',
+    twitter_url: '',
+    youtube_url: '',
+    created_at: '2024-01-08T00:00:00Z',
+  },
 ]
 
 export function ArtistsSection() {
@@ -38,7 +157,11 @@ export function ArtistsSection() {
   const [useFallback, setUseFallback] = useState(false)
   const { t, language } = useLanguage()
 
-  const fetchArtistsWithTimeout = useCallback(async () => {
+  useEffect(() => {
+    fetchArtistsWithTimeout()
+  }, [])
+
+  const fetchArtistsWithTimeout = async () => {
     if (retryCount >= 3) {
       console.log('3회 시도 후 폴백 데이터 사용')
       setArtists(FALLBACK_ARTISTS)
@@ -84,18 +207,14 @@ export function ArtistsSection() {
         setLoading(false)
         setUseFallback(true)
       } else {
-        // 무한 루프 방지: setTimeout 대신 상태 업데이트로 재시도
-        console.log(`${retryCount + 1}회 시도 실패, 1.5초 후 재시도`)
+        // 1.5초 후 강제 리프레시
+        console.log(`${retryCount + 1}회 시도 실패, 1.5초 후 페이지 리프레시`)
         setTimeout(() => {
-          fetchArtistsWithTimeout()
+          window.location.reload()
         }, 1500)
       }
     }
-  }, [retryCount])
-
-  useEffect(() => {
-    fetchArtistsWithTimeout()
-  }, [fetchArtistsWithTimeout])
+  }
 
   const getArtistName = (artist: User) => {
     if (language === 'en' && artist.name_en) {
