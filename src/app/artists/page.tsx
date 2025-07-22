@@ -51,9 +51,14 @@ export default function ArtistsPage() {
   }
 
   const fetchArtistsWithTimeout = async () => {
+    if (retryCount >= 3) {
+      setLoading(false);
+      return;
+    }
+
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout')), 1500) // 1.5초 타임아웃
-    })
+      setTimeout(() => reject(new Error('Timeout')), 1500); // 1.5초 타임아웃
+    });
 
     try {
       const dataPromise = supabase
@@ -61,35 +66,24 @@ export default function ArtistsPage() {
         .select('*')
         .eq('type', 'dancer')
         .order('display_order', { ascending: true })
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: true });
 
-      const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any
+      const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any;
 
       if (error) {
-        console.error('아티스트 로드 오류:', error)
-        throw error
+        throw error;
       }
 
       if (data && data.length > 0) {
-        setAllArtists(data)
-        setFilteredArtists(data)
-        setLoading(false)
-        console.log('아티스트 로드 성공')
+        setAllArtists(data);
+        setFilteredArtists(data);
+        setLoading(false);
       } else {
-        throw new Error('No data')
+        throw new Error('No data');
       }
     } catch (error) {
-      console.error(`아티스트 로드 실패 (시도 ${retryCount + 1}/3):`, error)
-      setRetryCount(prev => prev + 1)
-      // 더미 데이터 없이, 1.5초 후 강제 리프레시만 유지
-      if (retryCount + 1 < 3) {
-        console.log(`${retryCount + 1}회 시도 실패, 1.5초 후 페이지 리프레시`)
-        setTimeout(() => {
-          window.location.reload()
-        }, 1500)
-      } else {
-        setLoading(false)
-      }
+      setRetryCount(prev => prev + 1);
+      // 더 이상 새로고침 없이 3번까지만 시도
     }
   }
 
