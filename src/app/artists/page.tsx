@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { User } from '@/lib/types'
 import { Header } from '@/components/layout/Header'
@@ -14,208 +14,21 @@ import Link from 'next/link'
 const FALLBACK_ARTISTS: User[] = [
   {
     id: 'fallback-1',
-    name: '김댄서',
-    name_en: 'Kim Dancer',
-    email: 'kim@example.com',
+    name: '아티스트 정보 없음',
+    name_en: 'No Artist',
+    email: '',
     phone: '',
     profile_image: '',
-    slug: 'kim-dancer',
+    slug: 'no-artist',
     type: 'dancer',
     pending_type: undefined,
     display_order: undefined,
-    introduction: '프로페셔널 댄서',
+    introduction: '아티스트 정보를 불러올 수 없습니다.',
     instagram_url: '',
     twitter_url: '',
     youtube_url: '',
-    created_at: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: 'fallback-2',
-    name: '이안무가',
-    name_en: 'Lee Choreographer',
-    email: 'lee@example.com',
-    phone: '',
-    profile_image: '',
-    slug: 'lee-choreographer',
-    type: 'dancer',
-    pending_type: undefined,
-    display_order: undefined,
-    introduction: '크리에이티브 안무가',
-    instagram_url: '',
-    twitter_url: '',
-    youtube_url: '',
-    created_at: '2024-01-02T00:00:00Z',
-  },
-  {
-    id: 'fallback-3',
-    name: '박퍼포머',
-    name_en: 'Park Performer',
-    email: 'park@example.com',
-    phone: '',
-    profile_image: '',
-    slug: 'park-performer',
-    type: 'dancer',
-    pending_type: undefined,
-    display_order: undefined,
-    introduction: '스테이지 퍼포머',
-    instagram_url: '',
-    twitter_url: '',
-    youtube_url: '',
-    created_at: '2024-01-03T00:00:00Z',
-  },
-  {
-    id: 'fallback-4',
-    name: '최아티스트',
-    name_en: 'Choi Artist',
-    email: 'choi@example.com',
-    phone: '',
-    profile_image: '',
-    slug: 'choi-artist',
-    type: 'dancer',
-    pending_type: undefined,
-    display_order: undefined,
-    introduction: '컨템포러리 아티스트',
-    instagram_url: '',
-    twitter_url: '',
-    youtube_url: '',
-    created_at: '2024-01-04T00:00:00Z',
-  },
-  {
-    id: 'fallback-5',
-    name: '정크루',
-    name_en: 'Jung Crew',
-    email: 'jung@example.com',
-    phone: '',
-    profile_image: '',
-    slug: 'jung-crew',
-    type: 'dancer',
-    pending_type: undefined,
-    display_order: undefined,
-    introduction: '스트릿 댄스 크루',
-    instagram_url: '',
-    twitter_url: '',
-    youtube_url: '',
-    created_at: '2024-01-05T00:00:00Z',
-  },
-  {
-    id: 'fallback-6',
-    name: '한스타',
-    name_en: 'Han Star',
-    email: 'han@example.com',
-    phone: '',
-    profile_image: '',
-    slug: 'han-star',
-    type: 'dancer',
-    pending_type: undefined,
-    display_order: undefined,
-    introduction: 'K-POP 댄서',
-    instagram_url: '',
-    twitter_url: '',
-    youtube_url: '',
-    created_at: '2024-01-06T00:00:00Z',
-  },
-  {
-    id: 'fallback-7',
-    name: '윤마스터',
-    name_en: 'Yoon Master',
-    email: 'yoon@example.com',
-    phone: '',
-    profile_image: '',
-    slug: 'yoon-master',
-    type: 'dancer',
-    pending_type: undefined,
-    display_order: undefined,
-    introduction: '댄스 마스터',
-    instagram_url: '',
-    twitter_url: '',
-    youtube_url: '',
-    created_at: '2024-01-07T00:00:00Z',
-  },
-  {
-    id: 'fallback-8',
-    name: '강프로',
-    name_en: 'Kang Pro',
-    email: 'kang@example.com',
-    phone: '',
-    profile_image: '',
-    slug: 'kang-pro',
-    type: 'dancer',
-    pending_type: undefined,
-    display_order: undefined,
-    introduction: '프로페셔널 댄서',
-    instagram_url: '',
-    twitter_url: '',
-    youtube_url: '',
-    created_at: '2024-01-08T00:00:00Z',
-  },
-  {
-    id: 'fallback-9',
-    name: '서울댄서',
-    name_en: 'Seoul Dancer',
-    email: 'seoul@example.com',
-    phone: '',
-    profile_image: '',
-    slug: 'seoul-dancer',
-    type: 'dancer',
-    pending_type: undefined,
-    display_order: undefined,
-    introduction: '서울 스타일 댄서',
-    instagram_url: '',
-    twitter_url: '',
-    youtube_url: '',
-    created_at: '2024-01-09T00:00:00Z',
-  },
-  {
-    id: 'fallback-10',
-    name: '부산크루',
-    name_en: 'Busan Crew',
-    email: 'busan@example.com',
-    phone: '',
-    profile_image: '',
-    slug: 'busan-crew',
-    type: 'dancer',
-    pending_type: undefined,
-    display_order: undefined,
-    introduction: '부산 스트릿 크루',
-    instagram_url: '',
-    twitter_url: '',
-    youtube_url: '',
-    created_at: '2024-01-10T00:00:00Z',
-  },
-  {
-    id: 'fallback-11',
-    name: '대구퍼포머',
-    name_en: 'Daegu Performer',
-    email: 'daegu@example.com',
-    phone: '',
-    profile_image: '',
-    slug: 'daegu-performer',
-    type: 'dancer',
-    pending_type: undefined,
-    display_order: undefined,
-    introduction: '대구 퍼포먼스 아티스트',
-    instagram_url: '',
-    twitter_url: '',
-    youtube_url: '',
-    created_at: '2024-01-11T00:00:00Z',
-  },
-  {
-    id: 'fallback-12',
-    name: '인천스타',
-    name_en: 'Incheon Star',
-    email: 'incheon@example.com',
-    phone: '',
-    profile_image: '',
-    slug: 'incheon-star',
-    type: 'dancer',
-    pending_type: undefined,
-    display_order: undefined,
-    introduction: '인천 댄스 스타',
-    instagram_url: '',
-    twitter_url: '',
-    youtube_url: '',
-    created_at: '2024-01-12T00:00:00Z',
-  },
+    created_at: '',
+  }
 ]
 
 export default function ArtistsPage() {
@@ -225,46 +38,15 @@ export default function ArtistsPage() {
   const [retryCount, setRetryCount] = useState(0)
   const [useFallback, setUseFallback] = useState(false)
 
-  useEffect(() => {
-    fetchArtistsWithTimeout()
-  }, [])
-
-  // 검색 및 필터링 함수
-  const handleSearch = (query: string, category: string) => {
-    let filtered = allArtists
-
-    // 텍스트 검색
-    if (query.trim()) {
-      const searchTerm = query.toLowerCase()
-      filtered = filtered.filter(artist => 
-        artist.name.toLowerCase().includes(searchTerm) ||
-        artist.name_en.toLowerCase().includes(searchTerm) ||
-        (artist.introduction && artist.introduction.toLowerCase().includes(searchTerm))
-      )
+  const fetchArtistsWithTimeout = useCallback(async () => {
+    if (retryCount >= 3) {
+      console.log('3회 시도 후 폴백 데이터 사용')
+      setAllArtists(FALLBACK_ARTISTS)
+      setFilteredArtists(FALLBACK_ARTISTS)
+      setLoading(false)
+      setUseFallback(true)
+      return
     }
-
-    // 카테고리 필터링 (실제로는 경력 데이터를 확인해야 하지만, 여기서는 간단히 처리)
-    if (category !== 'all') {
-      // 실제 구현에서는 경력 데이터를 조인해서 필터링해야 함
-      // 현재는 모든 아티스트를 표시
-    }
-
-    setFilteredArtists(filtered)
-  }
-
-  const handleClearSearch = () => {
-    setFilteredArtists(allArtists)
-  }
-
-  const fetchArtistsWithTimeout = async () => {
-          if (retryCount >= 3) {
-        console.log('3회 시도 후 폴백 데이터 사용')
-        setAllArtists(FALLBACK_ARTISTS)
-        setFilteredArtists(FALLBACK_ARTISTS)
-        setLoading(false)
-        setUseFallback(true)
-        return
-      }
 
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('Timeout')), 1500) // 1.5초 타임아웃
@@ -304,13 +86,44 @@ export default function ArtistsPage() {
         setLoading(false)
         setUseFallback(true)
       } else {
-        // 1.5초 후 강제 리프레시
-        console.log(`${retryCount + 1}회 시도 실패, 1.5초 후 페이지 리프레시`)
+        // 무한 루프 방지: setTimeout 대신 상태 업데이트로 재시도
+        console.log(`${retryCount + 1}회 시도 실패, 1.5초 후 재시도`)
         setTimeout(() => {
-          window.location.reload()
+          fetchArtistsWithTimeout()
         }, 1500)
       }
     }
+  }, [retryCount])
+
+  useEffect(() => {
+    fetchArtistsWithTimeout()
+  }, [fetchArtistsWithTimeout])
+
+  // 검색 및 필터링 함수
+  const handleSearch = (query: string, category: string) => {
+    let filtered = allArtists
+
+    // 텍스트 검색
+    if (query.trim()) {
+      const searchTerm = query.toLowerCase()
+      filtered = filtered.filter(artist => 
+        artist.name.toLowerCase().includes(searchTerm) ||
+        artist.name_en.toLowerCase().includes(searchTerm) ||
+        (artist.introduction && artist.introduction.toLowerCase().includes(searchTerm))
+      )
+    }
+
+    // 카테고리 필터링 (실제로는 경력 데이터를 확인해야 하지만, 여기서는 간단히 처리)
+    if (category !== 'all') {
+      // 실제 구현에서는 경력 데이터를 조인해서 필터링해야 함
+      // 현재는 모든 아티스트를 표시
+    }
+
+    setFilteredArtists(filtered)
+  }
+
+  const handleClearSearch = () => {
+    setFilteredArtists(allArtists)
   }
 
   if (loading) {
