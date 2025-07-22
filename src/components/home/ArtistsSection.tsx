@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
@@ -10,40 +10,20 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { User as UserIcon } from 'lucide-react'
 
-// 하드코딩된 폴백 데이터
-const FALLBACK_ARTISTS: User[] = [
-  {
-    id: 'fallback-1',
-    name: '아티스트 정보 없음',
-    name_en: 'No Artist',
-    email: '',
-    phone: '',
-    profile_image: '',
-    slug: 'no-artist',
-    type: 'dancer',
-    pending_type: undefined,
-    display_order: undefined,
-    introduction: '아티스트 정보를 불러올 수 없습니다.',
-    instagram_url: '',
-    twitter_url: '',
-    youtube_url: '',
-    created_at: '',
-  }
-]
-
 export function ArtistsSection() {
   const [artists, setArtists] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [retryCount, setRetryCount] = useState(0)
-  const [useFallback, setUseFallback] = useState(false)
+  // 더미 데이터 사용 여부 제거
   const { t, language } = useLanguage()
 
-  const fetchArtistsWithTimeout = useCallback(async () => {
+  useEffect(() => {
+    fetchArtistsWithTimeout()
+  }, [])
+
+  const fetchArtistsWithTimeout = async () => {
     if (retryCount >= 3) {
-      console.log('3회 시도 후 폴백 데이터 사용')
-      setArtists(FALLBACK_ARTISTS)
       setLoading(false)
-      setUseFallback(true)
       return
     }
 
@@ -77,25 +57,9 @@ export function ArtistsSection() {
     } catch (error) {
       console.error(`아티스트 로드 실패 (시도 ${retryCount + 1}/3):`, error)
       setRetryCount(prev => prev + 1)
-      
-      if (retryCount + 1 >= 3) {
-        console.log('3회 시도 후 폴백 데이터 사용')
-        setArtists(FALLBACK_ARTISTS)
-        setLoading(false)
-        setUseFallback(true)
-      } else {
-        // 무한 루프 방지: setTimeout 대신 상태 업데이트로 재시도
-        console.log(`${retryCount + 1}회 시도 실패, 1.5초 후 재시도`)
-        setTimeout(() => {
-          fetchArtistsWithTimeout()
-        }, 1500)
-      }
+      // 더 이상 새로고침 없이 3번까지만 시도
     }
-  }, [retryCount])
-
-  useEffect(() => {
-    fetchArtistsWithTimeout()
-  }, [fetchArtistsWithTimeout])
+  }
 
   const getArtistName = (artist: User) => {
     if (language === 'en' && artist.name_en) {
@@ -146,9 +110,10 @@ export function ArtistsSection() {
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             {t('artists.description')}
           </p>
-          {useFallback && (
-            <p className="text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-lg inline-block mt-4">
-              📡 캐싱된 데이터를 표시하고 있습니다
+          {/* 아티스트가 없을 때 안내 메시지 */}
+          {(!loading && artists.length === 0) && (
+            <p className="text-sm text-gray-500 mt-4">
+              {t('artists.empty') || '등록된 댄서가 없습니다.'}
             </p>
           )}
         </div>

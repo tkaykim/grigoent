@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { User } from '@/lib/types'
 import { Header } from '@/components/layout/Header'
@@ -11,93 +11,17 @@ import { ArtistSearch } from '@/components/artists/ArtistSearch'
 import Link from 'next/link'
 
 // 하드코딩된 폴백 데이터 (더 많은 아티스트)
-const FALLBACK_ARTISTS: User[] = [
-  {
-    id: 'fallback-1',
-    name: '아티스트 정보 없음',
-    name_en: 'No Artist',
-    email: '',
-    phone: '',
-    profile_image: '',
-    slug: 'no-artist',
-    type: 'dancer',
-    pending_type: undefined,
-    display_order: undefined,
-    introduction: '아티스트 정보를 불러올 수 없습니다.',
-    instagram_url: '',
-    twitter_url: '',
-    youtube_url: '',
-    created_at: '',
-  }
-]
 
 export default function ArtistsPage() {
   const [allArtists, setAllArtists] = useState<User[]>([])
   const [filteredArtists, setFilteredArtists] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [retryCount, setRetryCount] = useState(0)
-  const [useFallback, setUseFallback] = useState(false)
-
-  const fetchArtistsWithTimeout = useCallback(async () => {
-    if (retryCount >= 3) {
-      console.log('3회 시도 후 폴백 데이터 사용')
-      setAllArtists(FALLBACK_ARTISTS)
-      setFilteredArtists(FALLBACK_ARTISTS)
-      setLoading(false)
-      setUseFallback(true)
-      return
-    }
-
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout')), 1500) // 1.5초 타임아웃
-    })
-
-    try {
-      const dataPromise = supabase
-        .from('users')
-        .select('*')
-        .eq('type', 'dancer')
-        .order('display_order', { ascending: true })
-        .order('created_at', { ascending: true })
-
-      const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any
-
-      if (error) {
-        console.error('아티스트 로드 오류:', error)
-        throw error
-      }
-
-      if (data && data.length > 0) {
-        setAllArtists(data)
-        setFilteredArtists(data)
-        setLoading(false)
-        console.log('아티스트 로드 성공')
-      } else {
-        throw new Error('No data')
-      }
-    } catch (error) {
-      console.error(`아티스트 로드 실패 (시도 ${retryCount + 1}/3):`, error)
-      setRetryCount(prev => prev + 1)
-      
-      if (retryCount + 1 >= 3) {
-        console.log('3회 시도 후 폴백 데이터 사용')
-        setAllArtists(FALLBACK_ARTISTS)
-        setFilteredArtists(FALLBACK_ARTISTS)
-        setLoading(false)
-        setUseFallback(true)
-      } else {
-        // 무한 루프 방지: setTimeout 대신 상태 업데이트로 재시도
-        console.log(`${retryCount + 1}회 시도 실패, 1.5초 후 재시도`)
-        setTimeout(() => {
-          fetchArtistsWithTimeout()
-        }, 1500)
-      }
-    }
-  }, [retryCount])
+  // 더미 데이터 사용 여부 제거
 
   useEffect(() => {
     fetchArtistsWithTimeout()
-  }, [fetchArtistsWithTimeout])
+  }, [])
 
   // 검색 및 필터링 함수
   const handleSearch = (query: string, category: string) => {
@@ -124,6 +48,43 @@ export default function ArtistsPage() {
 
   const handleClearSearch = () => {
     setFilteredArtists(allArtists)
+  }
+
+  const fetchArtistsWithTimeout = async () => {
+    if (retryCount >= 3) {
+      setLoading(false);
+      return;
+    }
+
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout')), 1500); // 1.5초 타임아웃
+    });
+
+    try {
+      const dataPromise = supabase
+        .from('users')
+        .select('*')
+        .eq('type', 'dancer')
+        .order('display_order', { ascending: true })
+        .order('created_at', { ascending: true });
+
+      const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any;
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        setAllArtists(data);
+        setFilteredArtists(data);
+        setLoading(false);
+      } else {
+        throw new Error('No data');
+      }
+    } catch (error) {
+      setRetryCount(prev => prev + 1);
+      // 더 이상 새로고침 없이 3번까지만 시도
+    }
   }
 
   if (loading) {
@@ -174,11 +135,7 @@ export default function ArtistsPage() {
               <p className="text-xl text-white/60">
                 최고의 댄서들을 만나보세요
               </p>
-              {useFallback && (
-                <p className="text-sm text-white/40 bg-white/10 px-4 py-2 rounded-lg inline-block">
-                  📡 캐싱된 데이터를 표시하고 있습니다
-                </p>
-              )}
+              {/* 더미 데이터 없이, 1.5초 후 강제 리프레시만 유지 */}
             </div>
 
             {/* 검색 컴포넌트 */}
