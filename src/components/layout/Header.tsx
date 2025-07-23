@@ -65,11 +65,11 @@ export function Header() {
                   </Link>
                 )}
                 <div className="flex items-center space-x-2">
-                  <Link href="/mypage">
-                    <Button variant="ghost" size="sm">
-                      {t('header.mypage')}
-                    </Button>
-                  </Link>
+                <Link href="/mypage">
+                  <Button variant="ghost" size="sm">
+                    {t('header.mypage')}
+                  </Button>
+                </Link>
                   {isDancerPending && (
                     <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
                       <Clock className="w-3 h-3 mr-1" />
@@ -132,10 +132,10 @@ export function Header() {
                   )}
                   <div className="flex items-center space-x-2">
                     <Link href="/mypage" className="flex-1">
-                      <Button variant="ghost" className="w-full justify-start" onClick={() => setIsMenuOpen(false)}>
-                        {t('header.mypage')}
-                      </Button>
-                    </Link>
+                    <Button variant="ghost" className="w-full justify-start" onClick={() => setIsMenuOpen(false)}>
+                      {t('header.mypage')}
+                    </Button>
+                  </Link>
                     {isDancerPending && (
                       <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
                         <Clock className="w-3 h-3 mr-1" />

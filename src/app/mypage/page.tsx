@@ -10,10 +10,31 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { User, Calendar, Award, Activity, Clock, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { supabase } from '@/lib/supabase'
+import { Team, TeamMember } from '@/lib/types'
+import { TeamCard } from '@/components/artists/TeamCard'
 
 export default function MyPage() {
   const { user, profile, loading } = useAuth()
   const [activeTab, setActiveTab] = useState('profile')
+  const [myTeams, setMyTeams] = useState<{ team: Team; role: string }[]>([])
+
+  useEffect(() => {
+    if (user && user.id) fetchMyTeams()
+    // eslint-disable-next-line
+  }, [user])
+
+  const fetchMyTeams = async () => {
+    if (!user?.id) return;
+    // team_members에서 내 user_id로 소속팀 목록 조회
+    const { data: members } = await supabase
+      .from('team_members')
+      .select('role, team:teams(*)')
+      .eq('user_id', user.id)
+    if (members) setMyTeams(members.map(t => ({ team: Array.isArray(t.team) ? t.team[0] : t.team, role: t.role })))
+  }
 
   // 댄서 승인 대기 상태 확인
   const isDancerPending = profile?.pending_type === 'dancer' && profile?.type === 'general'
@@ -97,13 +118,18 @@ export default function MyPage() {
       <main className="pt-16 min-h-screen bg-zinc-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* 페이지 헤더 */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-zinc-900 mb-2">
-              마이페이지
-            </h1>
-            <p className="text-zinc-600">
-              프로필과 활동을 관리하세요
-            </p>
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-zinc-900 mb-2">
+                마이페이지
+              </h1>
+              <p className="text-zinc-600">
+                프로필과 활동을 관리하세요
+              </p>
+            </div>
+            <Link href="/teams/create">
+              <Button className="bg-white text-black rounded-lg font-semibold hover:bg-zinc-100 border border-zinc-300 shadow-sm transition-all">팀 생성</Button>
+            </Link>
           </div>
 
           {/* 댄서 승인 대기 상태 알림 */}
@@ -147,6 +173,21 @@ export default function MyPage() {
             </CardHeader>
             <CardContent>
               <UserDashboard profile={profile} />
+              {/* 소속팀 버튼형 표시 */}
+              {myTeams.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2 items-center">
+                  <span className="text-sm text-zinc-600 font-medium">소속팀:</span>
+                  {myTeams.map(t => (
+                    <a
+                      key={t.team.id}
+                      href={`/teams/${t.team.slug}`}
+                      className="inline-block px-3 py-1 rounded-lg bg-zinc-100 text-zinc-800 text-sm font-semibold hover:bg-zinc-200 transition-all border border-zinc-200"
+                    >
+                      {t.team.name} ({t.team.name_en})
+                    </a>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 

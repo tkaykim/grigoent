@@ -11,11 +11,12 @@ import { ArtistSearch } from '@/components/artists/ArtistSearch'
 import Link from 'next/link'
 import { TeamCard } from '@/components/artists/TeamCard'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
 
 export default function ArtistsPage() {
   const [allArtists, setAllArtists] = useState<User[]>([])
   const [allTeams, setAllTeams] = useState<Team[]>([])
-  const [teamMembersMap, setTeamMembersMap] = useState<Record<string, TeamMember[]>>({})
+  const [artistTeamsMap, setArtistTeamsMap] = useState<Record<string, { name: string; name_en: string }[]>>({})
   const [loading, setLoading] = useState(true)
   const [retryCount, setRetryCount] = useState(0)
   const [tab, setTab] = useState<'all' | 'artist' | 'team'>('all')
@@ -43,29 +44,34 @@ export default function ArtistsPage() {
         .select('*')
         .eq('status', 'active')
         .order('created_at', { ascending: false })
-      // 팀 멤버(최대 4명씩만 미리 불러오기)
-      let teamMembersMap: Record<string, TeamMember[]> = {}
+      // 팀 멤버(아티스트별 소속팀 맵만 사용)
+      let artistTeamsMap: Record<string, { name: string; name_en: string }[]> = {}
       if (teams && teams.length > 0) {
         const teamIds = teams.map(t => t.id)
         const { data: members } = await supabase
           .from('team_members')
-          .select('*,user:users(id,name,name_en,profile_image)')
-          .in('team_id', teamIds)
+          .select('user_id, team:teams(id, name, name_en)')
+          .in('team_id', teamIds) as { data: any[] }
         if (members) {
           for (const m of members) {
-            if (!teamMembersMap[m.team_id]) teamMembersMap[m.team_id] = []
-            teamMembersMap[m.team_id].push(m)
+            // 아티스트별 소속팀 맵
+            if (!artistTeamsMap[m.user_id]) artistTeamsMap[m.user_id] = []
+            if (Array.isArray(m.team)) {
+              artistTeamsMap[m.user_id].push(...(m.team.map(t => ({ name: t.name, name_en: t.name_en })) as { name: string; name_en: string }[]))
+            } else if (m.team) {
+              artistTeamsMap[m.user_id].push({ name: m.team.name, name_en: m.team.name_en } as { name: string; name_en: string })
+            }
           }
         }
       }
       setAllArtists(artists || [])
       setAllTeams(teams || [])
-      setTeamMembersMap(teamMembersMap)
+      setArtistTeamsMap(artistTeamsMap)
     } catch (e) {
       setRetryCount(prev => prev + 1)
       if (retryCount < 3) setTimeout(fetchAll, 1000)
     } finally {
-      setLoading(false)
+        setLoading(false)
     }
   }
 
@@ -123,26 +129,46 @@ export default function ArtistsPage() {
   return (
     <div>
       <Header />
-      <main className="pt-16 min-h-screen bg-black">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              Our Artists
-            </h1>
-            <p className="text-xl text-white/60">
+              <main className="pt-16 min-h-screen bg-black">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="text-center mb-12">
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                Our Artists
+              </h1>
+              <p className="text-xl text-white/60">
               최고의 댄서들과 팀을 만나보세요
-            </p>
+              </p>
           </div>
 
           {/* 탭/필터 */}
           <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <Tabs value={tab} onValueChange={v => setTab(v as any)}>
-              <TabsList className="bg-white/10 border-white/20">
-                <TabsTrigger value="all">전체</TabsTrigger>
-                <TabsTrigger value="artist">개인</TabsTrigger>
-                <TabsTrigger value="team">팀</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="flex items-center gap-2">
+              <Tabs value={tab} onValueChange={v => setTab(v as any)}>
+                <TabsList className="bg-white/10 border-white/20">
+                  <TabsTrigger
+                    value="all"
+                    className="data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:bg-transparent data-[state=inactive]:text-white/60"
+                  >
+                    전체
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="artist"
+                    className="data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:bg-transparent data-[state=inactive]:text-white/60"
+                  >
+                    개인
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="team"
+                    className="data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:bg-transparent data-[state=inactive]:text-white/60"
+                  >
+                    팀
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <Link href="/teams/create">
+                <Button className="ml-2 bg-white text-black rounded-lg font-semibold hover:bg-zinc-100 border border-white/30 shadow-sm transition-all">팀 생성</Button>
+              </Link>
+            </div>
             <input
               type="text"
               placeholder="이름, 설명 등으로 검색..."
@@ -188,11 +214,17 @@ export default function ArtistsPage() {
                       {artist.introduction}
                     </p>
                   )}
+                  {/* 소속팀 간소화 표시 */}
+                  {artistTeamsMap[artist.id] && artistTeamsMap[artist.id].length > 0 && (
+                    <p className="text-xs text-white/60 mt-2">
+                      <span className="font-medium">소속팀:</span> {artistTeamsMap[artist.id].map(t => `${t.name} (${t.name_en})`).join(', ')}
+                    </p>
+                  )}
                 </Link>
               </div>
             ))}
             {(tab === 'all' || tab === 'team') && filteredTeams.map(team => (
-              <TeamCard key={team.id} team={team} members={teamMembersMap[team.id] || []} />
+              <TeamCard key={team.id} team={team} members={[]} />
             ))}
           </div>
 
