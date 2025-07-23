@@ -51,6 +51,74 @@ export interface Proposal {
   dancer?: User
 }
 
+// 팀 관련 타입 정의
+export interface Team {
+  id: string
+  name: string
+  name_en: string
+  slug: string
+  description?: string
+  logo_url?: string
+  cover_image?: string
+  leader_id?: string
+  status: 'active' | 'inactive' | 'pending'
+  created_at: string
+  updated_at: string
+  leader?: User
+  member_count?: number
+}
+
+export interface TeamMember {
+  id: string
+  team_id: string
+  user_id: string
+  role: 'leader' | 'member' | 'invited'
+  joined_at: string
+  user?: User
+  team?: Team
+}
+
+export interface TeamProject {
+  id: string
+  team_id: string
+  title: string
+  description?: string
+  project_type: 'choreography' | 'performance' | 'advertisement' | 'tv' | 'workshop'
+  status: 'planning' | 'in_progress' | 'completed' | 'cancelled'
+  start_date?: string
+  end_date?: string
+  budget_min?: number
+  budget_max?: number
+  created_at: string
+  updated_at: string
+  team?: Team
+}
+
+export interface TeamInvitation {
+  id: string
+  team_id: string
+  inviter_id: string
+  invitee_email: string
+  role: 'member' | 'leader'
+  status: 'pending' | 'accepted' | 'declined' | 'expired'
+  expires_at: string
+  created_at: string
+  team?: Team
+  inviter?: User
+}
+
+export interface TeamActivity {
+  id: string
+  team_id: string
+  user_id?: string
+  activity_type: 'member_joined' | 'member_left' | 'project_created' | 'project_updated' | 'invitation_sent' | 'invitation_accepted' | 'invitation_declined'
+  description?: string
+  metadata?: Record<string, any>
+  created_at: string
+  team?: Team
+  user?: User
+}
+
 export interface ProposalMessage {
   id: string
   proposal_id: string
