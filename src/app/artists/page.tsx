@@ -2,97 +2,92 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { User } from '@/lib/types'
+import { User, Team, TeamMember } from '@/lib/types'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ArtistSearch } from '@/components/artists/ArtistSearch'
 import Link from 'next/link'
-
-// 하드코딩된 폴백 데이터 (더 많은 아티스트)
+import { TeamCard } from '@/components/artists/TeamCard'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function ArtistsPage() {
   const [allArtists, setAllArtists] = useState<User[]>([])
-  const [filteredArtists, setFilteredArtists] = useState<User[]>([])
+  const [allTeams, setAllTeams] = useState<Team[]>([])
+  const [teamMembersMap, setTeamMembersMap] = useState<Record<string, TeamMember[]>>({})
   const [loading, setLoading] = useState(true)
   const [retryCount, setRetryCount] = useState(0)
-  // 더미 데이터 사용 여부 제거
+  const [tab, setTab] = useState<'all' | 'artist' | 'team'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
-    fetchArtistsWithTimeout()
+    fetchAll()
+    // eslint-disable-next-line
   }, [])
 
-  // 검색 및 필터링 함수
-  const handleSearch = (query: string, category: string) => {
-    let filtered = allArtists
-
-    // 텍스트 검색
-    if (query.trim()) {
-      const searchTerm = query.toLowerCase()
-      filtered = filtered.filter(artist => 
-        artist.name.toLowerCase().includes(searchTerm) ||
-        artist.name_en.toLowerCase().includes(searchTerm) ||
-        (artist.introduction && artist.introduction.toLowerCase().includes(searchTerm))
-      )
-    }
-
-    // 카테고리 필터링 (실제로는 경력 데이터를 확인해야 하지만, 여기서는 간단히 처리)
-    if (category !== 'all') {
-      // 실제 구현에서는 경력 데이터를 조인해서 필터링해야 함
-      // 현재는 모든 아티스트를 표시
-    }
-
-    setFilteredArtists(filtered)
-  }
-
-  const handleClearSearch = () => {
-    setFilteredArtists(allArtists)
-  }
-
-  const fetchArtistsWithTimeout = async () => {
-    if (retryCount >= 3) {
-      setLoading(false);
-      return;
-    }
-
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout')), 1000); // 1초 타임아웃으로 변경
-    });
-
+  const fetchAll = async () => {
+    setLoading(true)
+    setRetryCount(0)
     try {
-      const dataPromise = supabase
+      // 아티스트(개인)
+      const { data: artists } = await supabase
         .from('users')
         .select('*')
         .eq('type', 'dancer')
         .order('display_order', { ascending: true })
-        .order('created_at', { ascending: true });
-
-      const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any;
-
-      if (error) {
-        throw error;
+        .order('created_at', { ascending: true })
+      // 팀
+      const { data: teams } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+      // 팀 멤버(최대 4명씩만 미리 불러오기)
+      let teamMembersMap: Record<string, TeamMember[]> = {}
+      if (teams && teams.length > 0) {
+        const teamIds = teams.map(t => t.id)
+        const { data: members } = await supabase
+          .from('team_members')
+          .select('*,user:users(id,name,name_en,profile_image)')
+          .in('team_id', teamIds)
+        if (members) {
+          for (const m of members) {
+            if (!teamMembersMap[m.team_id]) teamMembersMap[m.team_id] = []
+            teamMembersMap[m.team_id].push(m)
+          }
+        }
       }
-
-      if (data && data.length > 0) {
-        setAllArtists(data);
-        setFilteredArtists(data);
-        setLoading(false);
-      } else {
-        throw new Error('No data');
-      }
-    } catch (error) {
-      setRetryCount(prev => prev + 1);
-      
-      // 1초 타임아웃 시 첫 번째 시도에서만 강제 리로드
-      if (retryCount === 0) {
-        console.log('1초 타임아웃 - 강제 리로드 실행');
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
-      }
+      setAllArtists(artists || [])
+      setAllTeams(teams || [])
+      setTeamMembersMap(teamMembersMap)
+    } catch (e) {
+      setRetryCount(prev => prev + 1)
+      if (retryCount < 3) setTimeout(fetchAll, 1000)
+    } finally {
+      setLoading(false)
     }
   }
+
+  // 검색/필터
+  const filteredArtists = allArtists.filter(artist => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase()
+    return (
+      artist.name.toLowerCase().includes(q) ||
+      artist.name_en.toLowerCase().includes(q) ||
+      (artist.introduction && artist.introduction.toLowerCase().includes(q))
+    )
+  })
+  const filteredTeams = allTeams.filter(team => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase()
+    return (
+      team.name.toLowerCase().includes(q) ||
+      team.name_en.toLowerCase().includes(q) ||
+      (team.description && team.description.toLowerCase().includes(q))
+    )
+  })
 
   if (loading) {
     return (
@@ -105,13 +100,8 @@ export default function ArtistsPage() {
                 Our Artists
               </h1>
               <p className="text-xl text-white/60">
-                최고의 댄서들을 만나보세요
+                최고의 댄서들과 팀을 만나보세요
               </p>
-              {retryCount > 0 && (
-                <p className="text-sm text-white/40 mt-2">
-                  로딩 중... (시도 {retryCount}/3) - 1.5초 후 페이지 새로고침
-                </p>
-              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[...Array(8)].map((_, i) => (
@@ -133,27 +123,38 @@ export default function ArtistsPage() {
   return (
     <div>
       <Header />
-              <main className="pt-16 min-h-screen bg-black">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="text-center mb-12">
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                Our Artists
-              </h1>
-              <p className="text-xl text-white/60">
-                최고의 댄서들을 만나보세요
-              </p>
-              {/* 더미 데이터 없이, 1.5초 후 강제 리프레시만 유지 */}
-            </div>
+      <main className="pt-16 min-h-screen bg-black">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              Our Artists
+            </h1>
+            <p className="text-xl text-white/60">
+              최고의 댄서들과 팀을 만나보세요
+            </p>
+          </div>
 
-            {/* 검색 컴포넌트 */}
-            <ArtistSearch 
-              onSearch={handleSearch}
-              onClear={handleClearSearch}
-              className="bg-white/10 border-white/20"
+          {/* 탭/필터 */}
+          <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <Tabs value={tab} onValueChange={v => setTab(v as any)}>
+              <TabsList className="bg-white/10 border-white/20">
+                <TabsTrigger value="all">전체</TabsTrigger>
+                <TabsTrigger value="artist">개인</TabsTrigger>
+                <TabsTrigger value="team">팀</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <input
+              type="text"
+              placeholder="이름, 설명 등으로 검색..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full md:w-64 px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
             />
+          </div>
 
+          {/* 리스트 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredArtists.map((artist) => (
+            {(tab === 'all' || tab === 'artist') && filteredArtists.map(artist => (
               <div key={artist.id} className="group bg-white/5 rounded-lg p-4 md:p-6 hover:bg-white/10 transition-all duration-300 transform hover:scale-105">
                 <Link href={`/${artist.slug}`} className="block">
                   <div className="relative mb-4">
@@ -164,7 +165,6 @@ export default function ArtistsPage() {
                         className="w-full h-48 md:h-56 object-cover rounded-lg"
                         loading="lazy"
                         onError={(e) => {
-                          console.error('아티스트 이미지 로드 실패:', e)
                           e.currentTarget.style.display = 'none'
                         }}
                       />
@@ -191,13 +191,25 @@ export default function ArtistsPage() {
                 </Link>
               </div>
             ))}
+            {(tab === 'all' || tab === 'team') && filteredTeams.map(team => (
+              <TeamCard key={team.id} team={team} members={teamMembersMap[team.id] || []} />
+            ))}
           </div>
 
-          {filteredArtists.length === 0 && (
+          {/* 결과 없음 */}
+          {tab === 'artist' && filteredArtists.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-white/60 text-lg">
-                {allArtists.length === 0 ? '등록된 댄서가 없습니다.' : '검색 결과가 없습니다.'}
-              </p>
+              <p className="text-white/60 text-lg">등록된 댄서가 없습니다.</p>
+            </div>
+          )}
+          {tab === 'team' && filteredTeams.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-white/60 text-lg">등록된 팀이 없습니다.</p>
+            </div>
+          )}
+          {tab === 'all' && filteredArtists.length === 0 && filteredTeams.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-white/60 text-lg">등록된 아티스트와 팀이 없습니다.</p>
             </div>
           )}
         </div>
