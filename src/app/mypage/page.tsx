@@ -9,11 +9,14 @@ import { DancerDashboard } from '@/components/dashboard/DancerDashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { User, Calendar, Award, Activity } from 'lucide-react'
+import { User, Calendar, Award, Activity, Clock, AlertCircle } from 'lucide-react'
 
 export default function MyPage() {
   const { user, profile, loading } = useAuth()
   const [activeTab, setActiveTab] = useState('profile')
+
+  // 댄서 승인 대기 상태 확인
+  const isDancerPending = profile?.pending_type === 'dancer' && profile?.type === 'general'
 
   if (loading) {
     return (
@@ -103,7 +106,25 @@ export default function MyPage() {
             </p>
           </div>
 
-                    {/* 통합된 프로필 관리 */}
+          {/* 댄서 승인 대기 상태 알림 */}
+          {isDancerPending && (
+            <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-center space-x-3">
+                <Clock className="w-5 h-5 text-yellow-600" />
+                <div>
+                  <h3 className="text-sm font-medium text-yellow-800">
+                    댄서 계정 승인 대기 중
+                  </h3>
+                  <p className="text-xs text-yellow-700 mt-1">
+                    댄서 계정으로 권한신청이 되었고 승인 대기중입니다. 
+                    승인 완료 시 댄서 전용 기능을 이용할 수 있습니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 통합된 프로필 관리 */}
           <Card className="mb-8">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -111,9 +132,17 @@ export default function MyPage() {
                   <User className="w-5 h-5" />
                   <CardTitle>프로필 관리</CardTitle>
                 </div>
-                <Badge className={getRoleColor(profile.type)}>
-                  {getRoleLabel(profile.type)}
-                </Badge>
+                <div className="flex items-center space-x-2">
+                  <Badge className={getRoleColor(profile.type)}>
+                    {getRoleLabel(profile.type)}
+                  </Badge>
+                  {isDancerPending && (
+                    <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                      <Clock className="w-3 h-3 mr-1" />
+                      승인 대기
+                    </Badge>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -137,6 +166,23 @@ export default function MyPage() {
             <TabsContent value="career" className="space-y-6">
               {profile.type === 'dancer' ? (
                 <DancerDashboard profile={profile} />
+              ) : isDancerPending ? (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <Clock className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-zinc-900 mb-2">
+                      승인 대기 중
+                    </h3>
+                    <p className="text-zinc-600 mb-4">
+                      댄서 계정 승인 후 경력 관리 기능을 이용할 수 있습니다.
+                    </p>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                      <p className="text-sm text-yellow-700">
+                        댄서 계정으로 권한신청이 되었고 승인 대기중입니다.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
               ) : (
                 <Card>
                   <CardContent className="p-6 text-center">

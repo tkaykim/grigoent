@@ -5,13 +5,17 @@ import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { Button } from '@/components/ui/button'
-import { Menu, X } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Menu, X, Clock } from 'lucide-react'
 import { LanguageToggle } from '@/components/ui/LanguageToggle'
 
 export function Header() {
   const { user, profile, signOut } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { t } = useLanguage()
+  
+  // 댄서 승인 대기 상태 확인
+  const isDancerPending = profile?.pending_type === 'dancer' && profile?.type === 'general'
   
   const navigation = [
     { name: t('nav.home'), href: '/' },
@@ -60,11 +64,19 @@ export function Header() {
                     </Button>
                   </Link>
                 )}
-                <Link href="/mypage">
-                  <Button variant="ghost" size="sm">
-                    {t('header.mypage')}
-                  </Button>
-                </Link>
+                <div className="flex items-center space-x-2">
+                  <Link href="/mypage">
+                    <Button variant="ghost" size="sm">
+                      {t('header.mypage')}
+                    </Button>
+                  </Link>
+                  {isDancerPending && (
+                    <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
+                      <Clock className="w-3 h-3 mr-1" />
+                      승인 대기
+                    </Badge>
+                  )}
+                </div>
                 <Button variant="outline" size="sm" onClick={handleSignOut}>
                   {t('header.signout')}
                 </Button>
@@ -118,11 +130,19 @@ export function Header() {
                       </Button>
                     </Link>
                   )}
-                  <Link href="/mypage">
-                    <Button variant="ghost" className="w-full justify-start" onClick={() => setIsMenuOpen(false)}>
-                      {t('header.mypage')}
-                    </Button>
-                  </Link>
+                  <div className="flex items-center space-x-2">
+                    <Link href="/mypage" className="flex-1">
+                      <Button variant="ghost" className="w-full justify-start" onClick={() => setIsMenuOpen(false)}>
+                        {t('header.mypage')}
+                      </Button>
+                    </Link>
+                    {isDancerPending && (
+                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
+                        <Clock className="w-3 h-3 mr-1" />
+                        승인 대기
+                      </Badge>
+                    )}
+                  </div>
                   <Button variant="outline" className="w-full justify-start" onClick={handleSignOut}>
                     {t('header.signout')}
                   </Button>

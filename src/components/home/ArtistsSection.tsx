@@ -28,7 +28,7 @@ export function ArtistsSection() {
     }
 
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout')), 1500) // 1.5초 타임아웃
+      setTimeout(() => reject(new Error('Timeout')), 1000) // 1초 타임아웃으로 변경
     })
 
     try {
@@ -57,7 +57,14 @@ export function ArtistsSection() {
     } catch (error) {
       console.error(`아티스트 로드 실패 (시도 ${retryCount + 1}/3):`, error)
       setRetryCount(prev => prev + 1)
-      // 더 이상 새로고침 없이 3번까지만 시도
+      
+      // 1초 타임아웃 시 첫 번째 시도에서만 강제 리로드
+      if (retryCount === 0) {
+        console.log('1초 타임아웃 - 강제 리로드 실행')
+        setTimeout(() => {
+          window.location.reload()
+        }, 100)
+      }
     }
   }
 
