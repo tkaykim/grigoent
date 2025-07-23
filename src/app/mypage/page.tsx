@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Header } from '@/components/layout/Header'
@@ -12,6 +13,14 @@ import { Badge } from '@/components/ui/badge'
 import { User, Calendar, Award, Activity, Clock, AlertCircle } from 'lucide-react'
 
 export default function MyPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MyPageContent />
+    </Suspense>
+  )
+}
+
+function MyPageContent() {
   const { user, profile, loading } = useAuth()
   const [activeTab, setActiveTab] = useState('profile')
 
