@@ -148,3 +148,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* 날짜 input 달력 아이콘을 검정색으로 보이게 (크롬/사파리 등) */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.2);
+}

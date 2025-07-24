@@ -16,7 +16,11 @@ CREATE TABLE users (
   instagram_url TEXT,
   twitter_url TEXT,
   youtube_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  -- 가상 프로필 및 Claim 관련 필드 추가
+  is_virtual BOOLEAN DEFAULT false,
+  claim_user_id UUID,
+  claim_status TEXT CHECK (claim_status IN ('pending', 'approved', 'rejected'))
 );
 
 -- 2. career_entries 테이블

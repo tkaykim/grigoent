@@ -17,18 +17,22 @@ export interface User {
 }
 
 export interface CareerEntry {
-  id: string
-  user_id: string
-  category: 'choreography' | 'performance' | 'advertisement' | 'tv' | 'workshop'
-  title: string
-  video_url?: string
-  poster_url?: string
-  is_featured: boolean
-  description?: string
-  country: string
-  start_date?: string
-  end_date?: string
-  created_at: string
+  id: string;
+  user_id: string;
+  category: string;
+  title: string;
+  description?: string;
+  country?: string;
+  video_url?: string;
+  poster_url?: string;
+  start_date?: string;
+  end_date?: string;
+  is_featured?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  // 추가
+  date_type?: 'single' | 'range';
+  single_date?: string;
 }
 
 export interface Proposal {

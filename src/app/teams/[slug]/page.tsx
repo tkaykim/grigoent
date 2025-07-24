@@ -34,6 +34,19 @@ export default function TeamDetailPage() {
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [inviteError, setInviteError] = useState('');
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', name_en: '', description: '', logo_url: '' });
+  const [editLoading, setEditLoading] = useState(false);
+  // DB profile 상태
+  const [profile, setProfile] = useState<any>(null);
+  useEffect(() => {
+    if (user?.id) {
+      supabase.from('users').select('*').eq('id', user.id).single().then(({ data }) => setProfile(data));
+    }
+  }, [user]);
+
+  const isAdmin = profile?.type === 'admin';
+  const isLeader = team && profile && team.leader_id === profile.id;
 
   // 아티스트 자동완성 검색
   useEffect(() => {
@@ -57,6 +70,10 @@ export default function TeamDetailPage() {
     fetchTeamData();
     // eslint-disable-next-line
   }, [slug]);
+
+  useEffect(() => {
+    if (team) setEditForm({ name: team.name, name_en: team.name_en, description: team.description || '', logo_url: team.logo_url || '' });
+  }, [team]);
 
   const fetchTeamData = async () => {
     try {
@@ -119,38 +136,47 @@ export default function TeamDetailPage() {
     }
   };
 
-  const isLeader = user && team && team.leader && user.id === team.leader.id;
+  // 여러 명 선택 상태
+  const [inviteSelectedUsers, setInviteSelectedUsers] = useState<any[]>([]);
 
-  // 팀 멤버 추가
+  // 팀 멤버 여러 명 추가 (선택된 inviteSelectedUsers 기준)
   const handleInvite = async () => {
     setInviteError('');
-    if (!inviteInput.trim() || !team) return;
-    let userId = selectedUser?.id;
-    let inviteName = inviteInput.trim();
-    // 등록된 유저가 아니면, 임시로 이메일/이름을 user_id로 사용 (실제 서비스에서는 별도 처리 필요)
-    if (!userId) {
-      userId = inviteName;
+    if (!team || inviteSelectedUsers.length === 0) return;
+    let successCount = 0;
+    let failCount = 0;
+    let lastError = '';
+    for (const userObj of inviteSelectedUsers) {
+      const userId = userObj.id || userObj.name || userObj.email;
+      try {
+        const token = (await supabase.auth.getSession()).data.session?.access_token;
+        const res = await fetch(`/api/teams/${team.id}/members`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ user_id: userId, role: 'member' })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '초대 실패');
+        successCount++;
+      } catch (e: any) {
+        failCount++;
+        lastError = e.message || '초대 실패';
+      }
     }
-    try {
-      const token = (await supabase.auth.getSession()).data.session?.access_token;
-      const res = await fetch(`/api/teams/${team.id}/members`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ user_id: userId, role: 'member' })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '초대 실패');
-      toast.success('팀원 초대 완료!');
+    if (successCount > 0) {
+      toast.success(`${successCount}명 초대 완료!`);
       setInviteModalOpen(false);
       setInviteInput('');
       setSelectedUser(null);
       setSearchResults([]);
+      setInviteSelectedUsers([]);
       fetchTeamData();
-    } catch (e: any) {
-      setInviteError(e.message || '초대 실패');
+    }
+    if (failCount > 0) {
+      setInviteError(`${failCount}명 초대 실패: ${lastError}`);
     }
   };
 
@@ -250,12 +276,19 @@ export default function TeamDetailPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  {isLeader && (
+                  {(isLeader || isAdmin) && (
                     <>
                       <Button variant="default" onClick={() => setInviteModalOpen(true)}>
                         팀원 초대하기
                       </Button>
-                      <Button variant="outline" className="ml-2">팀 정보 수정</Button>
+                      <Button variant="outline" className="ml-2" onClick={() => setEditModalOpen(true)}>팀 정보 수정</Button>
+                      <Button variant="destructive" className="ml-2" onClick={async () => {
+                        if (window.confirm('정말 팀을 삭제하시겠습니까? 복구할 수 없습니다.')) {
+                          await supabase.from('teams').delete().eq('id', team.id);
+                          toast.success('팀이 삭제되었습니다.');
+                          window.location.href = '/teams';
+                        }
+                      }}>팀 삭제</Button>
                     </>
                   )}
                 </div>
@@ -307,12 +340,30 @@ export default function TeamDetailPage() {
                           )}
                           {member.role !== "leader" && <Badge variant="secondary">멤버</Badge>}
                           <span className="text-xs text-zinc-400">{new Date(member.joined_at).toLocaleDateString("ko-KR")}</span>
-                         {/* 리더만 삭제 가능, 리더 자신은 삭제 불가 */}
-                         {isLeader && member.role !== 'leader' && (
-                           <Button size="sm" variant="destructive" onClick={() => handleRemoveMember(member.user_id)}>
-                             삭제
-                           </Button>
-                         )}
+                          {/* 관리자/리더: 멤버 삭제, 역할변경, 리더 임명 */}
+                          {(isLeader || isAdmin) && member.role !== 'leader' && (
+                            <>
+                              <Button size="sm" variant="outline" onClick={async () => {
+                                // 역할변경: 멤버 <-> 리더
+                                if (!team) return;
+                                if (!window.confirm('이 멤버를 리더로 임명하시겠습니까? (기존 리더는 멤버로 변경)')) return;
+                                // 1. 기존 리더를 멤버로 변경
+                                const leaderMember = members.find(m => m.role === 'leader');
+                                if (leaderMember) {
+                                  await supabase.from('team_members').update({ role: 'member' }).eq('id', leaderMember.id);
+                                }
+                                // 2. 선택 멤버를 리더로 변경
+                                await supabase.from('team_members').update({ role: 'leader' }).eq('id', member.id);
+                                // 3. teams 테이블의 leader_id도 변경
+                                await supabase.from('teams').update({ leader_id: member.user_id }).eq('id', team.id);
+                                toast.success('리더가 변경되었습니다.');
+                                fetchTeamData();
+                              }}>리더 임명</Button>
+                              <Button size="sm" variant="destructive" onClick={() => handleRemoveMember(member.user_id)}>
+                                삭제
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -353,22 +404,54 @@ export default function TeamDetailPage() {
                 {searchLoading && <div className="text-xs text-zinc-500">검색 중...</div>}
                 {!searchLoading && searchResults.length > 0 && (
                   <div className="border rounded bg-zinc-50 max-h-40 overflow-y-auto shadow-sm">
-                    {searchResults.map(user => (
-                      <div
-                        key={user.id}
-                        className={`px-3 py-2 cursor-pointer hover:bg-zinc-100 ${selectedUser?.id === user.id ? 'bg-zinc-200' : ''}`}
-                        onClick={() => { setSelectedUser(user); setInviteInput(user.name); setInviteError(''); }}
-                      >
-                        <span className="font-semibold">{user.name}</span>
-                        {user.name_en && <span className="ml-2 text-xs text-zinc-500">{user.name_en}</span>}
-                        <span className="ml-2 text-xs text-zinc-400">{user.email}</span>
-                      </div>
-                    ))}
+                    {searchResults.map(user => {
+                      const alreadySelected = inviteSelectedUsers.some(u => u.id === user.id);
+                      return (
+                        <div
+                          key={user.id}
+                          className={`px-3 py-2 cursor-pointer hover:bg-zinc-100 flex items-center justify-between ${alreadySelected ? 'bg-green-100' : ''}`}
+                          onClick={() => {
+                            if (!alreadySelected) setInviteSelectedUsers(prev => [...prev, user]);
+                          }}
+                        >
+                          <div>
+                            <span className="font-semibold">{user.name}</span>
+                            {user.name_en && <span className="ml-2 text-xs text-zinc-500">{user.name_en}</span>}
+                            <span className="ml-2 text-xs text-zinc-400">{user.email}</span>
+                          </div>
+                          {alreadySelected && <span className="text-green-600 font-bold ml-2">✔</span>}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
                 {/* 직접입력 안내 */}
                 {inviteInput && searchResults.length === 0 && !searchLoading && (
-                  <div className="text-xs text-zinc-400 mt-2">등록되지 않은 계정은 입력한 정보로 초대됩니다.</div>
+                  <div className="text-xs text-zinc-400 mt-2">등록되지 않은 계정은 입력한 정보로 초대됩니다. (직접 입력 후 아래 + 버튼 클릭)</div>
+                )}
+                {/* 직접 입력 추가 버튼 */}
+                {inviteInput && (
+                  <Button size="sm" className="mt-2" onClick={() => {
+                    // 쉼표, 세미콜론, 줄바꿈 등으로 여러 명 분리
+                    const rawList = inviteInput.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+                    for (const name of rawList) {
+                      if (!inviteSelectedUsers.some(u => u.name === name)) {
+                        setInviteSelectedUsers(prev => [...prev, { name }]);
+                      }
+                    }
+                    setInviteInput('');
+                  }}>+ 추가</Button>
+                )}
+                {/* 선택된 유저 리스트 */}
+                {inviteSelectedUsers.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {inviteSelectedUsers.map((u, idx) => (
+                      <div key={u.id || u.name || idx} className="flex items-center bg-green-50 border border-green-200 rounded px-2 py-1 text-sm">
+                        <span>{u.name || u.email || u.id}</span>
+                        <button className="ml-1 text-red-500" onClick={() => setInviteSelectedUsers(prev => prev.filter(x => x !== u))}>×</button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
               {inviteError && <div className="text-red-500 text-sm mb-2">{inviteError}</div>}
@@ -385,6 +468,36 @@ export default function TeamDetailPage() {
             </div>
           </div>
         )}
+      {/* 팀 정보 수정 모달 */}
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg p-8 min-w-[340px] max-w-[90vw] w-full sm:w-[400px]">
+            <h2 className="text-xl font-bold mb-4">팀 정보 수정</h2>
+            <div className="space-y-3">
+              <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} placeholder="팀명" />
+              <Input value={editForm.name_en} onChange={e => setEditForm(f => ({ ...f, name_en: e.target.value }))} placeholder="영문팀명" />
+              <Input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} placeholder="설명" />
+              <Input value={editForm.logo_url} onChange={e => setEditForm(f => ({ ...f, logo_url: e.target.value }))} placeholder="로고 이미지 URL" />
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setEditModalOpen(false)}>닫기</Button>
+              <Button variant="default" loading={editLoading} onClick={async () => {
+                setEditLoading(true);
+                await supabase.from('teams').update({
+                  name: editForm.name,
+                  name_en: editForm.name_en,
+                  description: editForm.description,
+                  logo_url: editForm.logo_url
+                }).eq('id', team.id);
+                setEditLoading(false);
+                setEditModalOpen(false);
+                toast.success('팀 정보가 수정되었습니다.');
+                fetchTeamData();
+              }}>저장</Button>
+            </div>
+          </div>
+        </div>
+      )}
       </main>
       <Footer />
     </div>

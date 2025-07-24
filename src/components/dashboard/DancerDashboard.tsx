@@ -24,6 +24,7 @@ import {
   Upload,
   FileText
 } from 'lucide-react'
+import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger } from '@/components/ui/tabs';
 
 interface DancerDashboardProps {
   profile: User
@@ -48,6 +49,8 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
     country: 'Korea',
     start_date: '',
     end_date: '',
+    single_date: '',
+    date_type: 'single',
     is_featured: false
   })
 
@@ -88,6 +91,13 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
         setFormData(prev => ({ ...prev, poster_url: thumbnailUrl }))
       }
     }
+    if (field === 'date_type') {
+      if (value === 'single') {
+        setFormData(prev => ({ ...prev, start_date: '', end_date: '' }))
+      } else {
+        setFormData(prev => ({ ...prev, single_date: '' }))
+      }
+    }
   }
 
   const resetForm = () => {
@@ -100,6 +110,8 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
       country: 'Korea',
       start_date: '',
       end_date: '',
+      single_date: '',
+      date_type: 'range',
       is_featured: false
     })
   }
@@ -118,8 +130,10 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
         poster_url: formData.poster_url || null,
         description: formData.description || null,
         country: formData.country,
-        start_date: formData.start_date || null,
-        end_date: formData.end_date || null,
+        date_type: formData.date_type,
+        single_date: formData.date_type === 'single' ? (formData.single_date || null) : null,
+        start_date: formData.date_type === 'range' ? (formData.start_date || null) : null,
+        end_date: formData.date_type === 'range' ? (formData.end_date || null) : null,
         is_featured: formData.is_featured
       }
 
@@ -190,6 +204,8 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
       country: career.country,
       start_date: career.start_date || '',
       end_date: career.end_date || '',
+      single_date: career.single_date || '',
+      date_type: career.date_type || (career.single_date ? 'single' : 'range'),
       is_featured: career.is_featured
     })
   }
@@ -485,25 +501,51 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
                     placeholder="Korea"
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="start_date">시작일</Label>
-                  <Input
-                    id="start_date"
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => handleInputChange('start_date', e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="end_date">종료일</Label>
-                  <Input
-                    id="end_date"
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) => handleInputChange('end_date', e.target.value)}
-                  />
+                {/* 날짜/기간 토글 + 날짜 입력 */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Label className="mb-0">날짜</Label>
+                    <UITabs value={formData.date_type} onValueChange={v => handleInputChange('date_type', v)} className="w-fit">
+                      <UITabsList className="inline-flex h-8 w-fit items-center justify-center rounded-lg p-[2px] bg-zinc-900 border border-zinc-800">
+                        <UITabsTrigger value="single" className="inline-flex h-[calc(100%-1px)] items-center justify-center rounded-md border border-transparent px-3 py-0.5 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:bg-transparent data-[state=inactive]:text-zinc-400">
+                          날짜
+                        </UITabsTrigger>
+                        <UITabsTrigger value="range" className="inline-flex h-[calc(100%-1px)] items-center justify-center rounded-md border border-transparent px-3 py-0.5 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:bg-transparent data-[state=inactive]:text-zinc-400">
+                          기간
+                        </UITabsTrigger>
+                      </UITabsList>
+                    </UITabs>
+                  </div>
+                  {formData.date_type === 'range' ? (
+                    <div className="flex items-center gap-3">
+                      <input
+                        id="start_date"
+                        type="date"
+                        value={formData.start_date || ''}
+                        onChange={(e) => handleInputChange('start_date', e.target.value)}
+                        placeholder="시작일"
+                        className="min-w-[140px] w-full border rounded px-3 py-2 appearance-auto"
+                      />
+                      <span className="mx-1 text-lg text-zinc-400">~</span>
+                      <input
+                        id="end_date"
+                        type="date"
+                        value={formData.end_date || ''}
+                        onChange={(e) => handleInputChange('end_date', e.target.value)}
+                        placeholder="종료일"
+                        className="min-w-[140px] w-full border rounded px-3 py-2 appearance-auto"
+                      />
+                    </div>
+                  ) : (
+                    <input
+                      id="single_date"
+                      type="date"
+                      value={formData.single_date || ''}
+                      onChange={(e) => handleInputChange('single_date', e.target.value)}
+                      placeholder="연도-월-일"
+                      className="min-w-[140px] w-full border rounded pl-3 pr-2 py-2 appearance-auto bg-white"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -665,7 +707,13 @@ choreo,"New is Now - NouerA","안무 제작",,https://www.youtube.com/watch?v=nf
                           {career.country}
                         </span>
                       )}
-                      {career.start_date && (
+                      {career.date_type === 'single' && career.single_date && (
+                        <span className="flex items-center">
+                          <Calendar className="w-4 h-4 mr-1" />
+                          {formatDate(career.single_date)}
+                        </span>
+                      )}
+                      {career.date_type !== 'single' && career.start_date && (
                         <span className="flex items-center">
                           <Calendar className="w-4 h-4 mr-1" />
                           {formatDate(career.start_date)}

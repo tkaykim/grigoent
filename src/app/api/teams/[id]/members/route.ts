@@ -56,17 +56,25 @@ export async function POST(
       return NextResponse.json({ error: '유효하지 않은 인증 토큰입니다.' }, { status: 401 })
     }
 
-    // 팀 리더 권한 확인
+    // 팀 리더 또는 관리자 권한 확인
+    // 1. 팀 리더 체크
     const { data: teamMember, error: memberError } = await supabase
       .from('team_members')
       .select('role')
       .eq('team_id', params.id)
       .eq('user_id', user.id)
       .eq('role', 'leader')
-      .single()
-
-    if (memberError || !teamMember) {
-      return NextResponse.json({ error: '팀 멤버 관리 권한이 없습니다.' }, { status: 403 })
+      .single();
+    // 2. 관리자 체크 (users.type === 'admin')
+    const { data: profile, error: profileError } = await supabase.from('users').select('type').eq('id', user.id).single();
+    if (profileError || !profile) {
+      console.error('관리자 profile 조회 실패', profileError, profile, user.id);
+      return NextResponse.json({ error: '관리자 profile 조회 실패', detail: profileError, userId: user.id }, { status: 500 });
+    }
+    const isAdmin = profile?.type === 'admin';
+    if ((!teamMember || memberError) && !isAdmin) {
+      console.error('팀 멤버 관리 권한 없음', { teamMember, memberError, isAdmin, userId: user.id });
+      return NextResponse.json({ error: '팀 멤버 관리 권한이 없습니다.' }, { status: 403 });
     }
 
     const body = await request.json()
@@ -77,7 +85,8 @@ export async function POST(
 
     // 필수 필드 검증
     if (!user_id) {
-      return NextResponse.json({ error: '사용자 ID를 입력해주세요.' }, { status: 400 })
+      console.error('user_id 누락', { user_id });
+      return NextResponse.json({ error: '사용자 ID를 입력해주세요.' }, { status: 400 });
     }
 
     // 이미 팀 멤버인지 확인
@@ -89,6 +98,7 @@ export async function POST(
       .single()
 
     if (existingMember) {
+      console.error('이미 팀 멤버', { user_id, team_id: params.id });
       return NextResponse.json({ error: '이미 팀 멤버입니다.' }, { status: 400 })
     }
 
@@ -108,7 +118,7 @@ export async function POST(
       .single()
 
     if (insertError) {
-      console.error('Team member insert error:', insertError)
+      console.error('Team member insert error:', insertError, { user_id, team_id: params.id });
       return NextResponse.json({ error: '팀 멤버 추가에 실패했습니다.' }, { status: 500 })
     }
 

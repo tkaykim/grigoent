@@ -11,9 +11,13 @@ interface CareerCardProps {
   career: CareerEntry
   showDetails?: boolean
   className?: string
+  isAdmin?: boolean;
+  onEdit?: (career: CareerEntry) => void;
+  onDelete?: (career: CareerEntry) => void;
+  disableActions?: boolean;
 }
 
-export function CareerCard({ career, showDetails = true, className = '' }: CareerCardProps) {
+export function CareerCard({ career, showDetails = true, className = '', isAdmin = false, onEdit, onDelete, disableActions = false }: CareerCardProps) {
   const getCareerThumbnail = (career: CareerEntry) => {
     // 1. 포스터 URL이 있으면 우선 사용
     if (career.poster_url) {
@@ -121,7 +125,7 @@ export function CareerCard({ career, showDetails = true, className = '' }: Caree
         </div>
 
         {/* 액션 버튼들 */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {career.video_url && (
             <Button
               variant="outline"
@@ -143,6 +147,13 @@ export function CareerCard({ career, showDetails = true, className = '' }: Caree
               <ExternalLink className="w-3 h-3 mr-1" />
               포스터
             </Button>
+          )}
+          {/* 관리자용 수정/삭제 버튼 */}
+          {isAdmin && !disableActions && (
+            <>
+              <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => onEdit?.(career)}>수정</Button>
+              <Button variant="destructive" size="sm" className="flex-1 text-xs" onClick={() => onDelete?.(career)}>삭제</Button>
+            </>
           )}
         </div>
       </CardContent>

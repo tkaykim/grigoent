@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { User, CareerEntry } from '@/lib/types'
@@ -17,7 +17,14 @@ import { CareerSearch } from '@/components/artists/CareerSearch'
 import { ProposalButton } from '@/components/proposals/ProposalButton'
 import { LoginStatus } from '@/components/auth/LoginStatus'
 import { ProposalTypeInfo } from '@/components/proposals/ProposalTypeInfo'
-import { ExternalLink, Instagram, Twitter, Youtube, MapPin, Calendar } from 'lucide-react'
+import { ExternalLink, Instagram, Twitter, Youtube, MapPin, Calendar, Upload, X as CloseIcon, Plus } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { toast } from 'sonner'
+import { useRef } from 'react'
+import { Textarea } from '@/components/ui/textarea'
+import { Select } from '@/components/ui/select'
 
 export default function ArtistDetailPage() {
   const params = useParams()
@@ -137,6 +144,242 @@ export default function ArtistDetailPage() {
   const handleFilteredCareers = (filtered: CareerEntry[]) => {
     setFilteredCareers(filtered)
   }
+
+  // 관리자 권한 체크
+  const { profile, loading: loadingProfile } = useAuth();
+  const isAdmin = profile?.type === 'admin';
+
+  // 프로필 수정 모달 상태
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    profile_image: '',
+    name: '',
+    name_en: '',
+    introduction: '',
+    instagram_url: '',
+    twitter_url: '',
+    youtube_url: '',
+    phone: '',
+  });
+  const [editLoading, setEditLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [softDeleteLoading, setSoftDeleteLoading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSoftDeleteModal, setShowSoftDeleteModal] = useState(false);
+
+  // 아티스트 정보가 바뀌면 폼에 반영
+  useEffect(() => {
+    if (artist) {
+      setEditForm({
+        profile_image: artist.profile_image || '',
+        name: artist.name || '',
+        name_en: artist.name_en || '',
+        introduction: artist.introduction || '',
+        instagram_url: artist.instagram_url || '',
+        twitter_url: artist.twitter_url || '',
+        youtube_url: artist.youtube_url || '',
+        phone: artist.phone || '',
+      });
+    }
+  }, [artist]);
+
+  // 프로필 수정
+  const handleEditProfile = async () => {
+    if (!artist) return;
+    setEditLoading(true);
+    try {
+      const { error } = await supabase.from('users').update(editForm).eq('id', artist.id);
+      if (error) throw error;
+      toast.success('프로필이 수정되었습니다.');
+      setEditModalOpen(false);
+      fetchArtistData();
+    } catch (e) {
+      const err = e as any;
+      toast.error('수정 실패: ' + (err.message || err));
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // soft delete (숨기기)
+  const handleSoftDelete = async () => {
+    if (!artist) return;
+    setSoftDeleteLoading(true);
+    try {
+      const { error } = await supabase.from('users').update({ type: 'general' }).eq('id', artist.id);
+      if (error) throw error;
+      toast.success('계정이 숨김 처리되었습니다.');
+      setShowSoftDeleteModal(false);
+      fetchArtistData();
+    } catch (e) {
+      const err = e as any;
+      toast.error('숨기기 실패: ' + (err.message || err));
+    } finally {
+      setSoftDeleteLoading(false);
+    }
+  };
+
+  // 복원
+  const handleRestore = async () => {
+    if (!artist) return;
+    setSoftDeleteLoading(true);
+    try {
+      const { error } = await supabase.from('users').update({ type: 'dancer' }).eq('id', artist.id);
+      if (error) throw error;
+      toast.success('계정이 복원되었습니다.');
+      fetchArtistData();
+    } catch (e) {
+      const err = e as any;
+      toast.error('복원 실패: ' + (err.message || err));
+    } finally {
+      setSoftDeleteLoading(false);
+    }
+  };
+
+  // 완전 삭제
+  const handleDelete = async () => {
+    if (!artist) return;
+    setDeleteLoading(true);
+    try {
+      const { error } = await supabase.from('users').delete().eq('id', artist.id);
+      if (error) throw error;
+      toast.success('계정이 완전히 삭제되었습니다.');
+      setShowDeleteModal(false);
+      window.location.href = '/artists';
+    } catch (e) {
+      const err = e as any;
+      toast.error('삭제 실패: ' + (err.message || err));
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('파일 크기는 5MB 이하여야 합니다.');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('이미지 파일만 업로드 가능합니다.');
+      return;
+    }
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${artist?.id || 'profile'}-${Date.now()}.${fileExt}`;
+      const filePath = fileName;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      setEditForm(prev => ({ ...prev, profile_image: publicUrl }));
+      toast.success('이미지가 성공적으로 업로드되었습니다.');
+    } catch (error) {
+      const err = error as any;
+      toast.error('이미지 업로드 실패: ' + (err.message || err));
+    } finally {
+      setUploading(false);
+    }
+  };
+  const removeImage = () => {
+    setEditForm(prev => ({ ...prev, profile_image: '' }));
+  };
+
+  // 경력 추가/수정 모달 상태
+  const [careerModalOpen, setCareerModalOpen] = useState(false);
+  const [editingCareer, setEditingCareer] = useState<CareerEntry | null>(null);
+  const [careerForm, setCareerForm] = useState<any>({
+    title: '',
+    description: '',
+    category: '',
+    country: '',
+    video_url: '',
+    poster_url: '',
+    start_date: '',
+    end_date: '',
+    is_featured: false,
+  });
+  const [careerLoading, setCareerLoading] = useState(false);
+  const [careerDeleteLoading, setCareerDeleteLoading] = useState(false);
+
+  // 경력 폼 초기화
+  const openCareerModal = (career?: CareerEntry) => {
+    if (career) {
+      setEditingCareer(career);
+      setCareerForm({ ...career });
+    } else {
+      setEditingCareer(null);
+      setCareerForm({
+        title: '', description: '', category: '', country: '', video_url: '', poster_url: '', start_date: '', end_date: '', is_featured: false,
+      });
+    }
+    setCareerModalOpen(true);
+  };
+  const closeCareerModal = () => {
+    setCareerModalOpen(false);
+    setEditingCareer(null);
+  };
+
+  // 경력 추가/수정
+  const handleCareerSave = async () => {
+    if (!artist) return;
+    setCareerLoading(true);
+    try {
+      if (editingCareer) {
+        // 수정
+        const { error } = await supabase.from('career_entries').update(careerForm).eq('id', editingCareer.id);
+        if (error) throw error;
+        toast.success('경력이 수정되었습니다.');
+      } else {
+        // 추가
+        const { error } = await supabase.from('career_entries').insert({ ...careerForm, user_id: artist.id });
+        if (error) throw error;
+        toast.success('경력이 추가되었습니다.');
+      }
+      closeCareerModal();
+      fetchArtistData();
+    } catch (e) {
+      const err = e as any;
+      toast.error('저장 실패: ' + (err.message || err));
+    } finally {
+      setCareerLoading(false);
+    }
+  };
+
+  // 경력 삭제
+  const handleCareerDelete = async (career: CareerEntry) => {
+    if (!window.confirm('정말로 삭제하시겠습니까?')) return;
+    setCareerDeleteLoading(true);
+    try {
+      const { error } = await supabase.from('career_entries').delete().eq('id', career.id);
+      if (error) throw error;
+      toast.success('경력이 삭제되었습니다.');
+      fetchArtistData();
+    } catch (e) {
+      const err = e as any;
+      toast.error('삭제 실패: ' + (err.message || err));
+    } finally {
+      setCareerDeleteLoading(false);
+    }
+  };
+
+  // 카테고리 옵션
+  const careerCategories = useMemo(() => [
+    { value: 'choreography', label: '안무' },
+    { value: 'performance', label: '공연' },
+    { value: 'advertisement', label: '광고' },
+    { value: 'tv', label: '방송' },
+    { value: 'workshop', label: '워크샵' },
+  ], []);
 
   if (loading) {
     return (
@@ -324,6 +567,123 @@ export default function ArtistDetailPage() {
             </div>
           </div>
 
+          {/* 관리자만 보이는 프로필 관리 버튼 */}
+          {isAdmin && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Button variant="outline" onClick={() => setEditModalOpen(true)}>프로필 수정</Button>
+              {artist?.type === 'dancer' ? (
+                <Button variant="destructive" onClick={() => setShowSoftDeleteModal(true)}>숨기기(soft delete)</Button>
+              ) : (
+                <Button variant="default" onClick={handleRestore}>복원</Button>
+              )}
+              <Button variant="destructive" onClick={() => setShowDeleteModal(true)}>완전 삭제</Button>
+            </div>
+          )}
+
+          {/* 프로필 수정 모달 */}
+          {editModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+              <div className="bg-white rounded-lg shadow-lg p-8 min-w-[340px] max-w-[90vw] w-full sm:w-[400px]">
+                <h2 className="text-xl font-bold mb-4">프로필 수정</h2>
+                <div className="space-y-3">
+                  <Label>프로필 이미지</Label>
+                  <div className="flex items-center gap-4 mb-2">
+                    <div className="relative">
+                      {editForm.profile_image ? (
+                        <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
+                          <img
+                            src={editForm.profile_image}
+                            alt={editForm.name}
+                            className="w-full h-full object-cover object-center"
+                            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300">
+                          <span className="text-2xl text-gray-400 font-semibold">?</span>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file);
+                      }}
+                      className="hidden"
+                    />
+                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                      <Upload className="w-4 h-4 mr-2" />
+                      {uploading ? '업로드 중...' : '이미지 선택'}
+                    </Button>
+                    {editForm.profile_image && (
+                      <Button type="button" variant="outline" size="sm" onClick={removeImage}>
+                        <CloseIcon className="w-4 h-4 mr-2" />
+                        이미지 제거
+                      </Button>
+                    )}
+                  </div>
+                  <Label>프로필 이미지 URL</Label>
+                  <Input value={editForm.profile_image} onChange={e => setEditForm(f => ({ ...f, profile_image: e.target.value }))} placeholder="프로필 이미지 URL" />
+                  <Label>이름</Label>
+                  <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} placeholder="이름" />
+                  <Label>영문 이름</Label>
+                  <Input value={editForm.name_en} onChange={e => setEditForm(f => ({ ...f, name_en: e.target.value }))} placeholder="영문 이름" />
+                  <Label>소개</Label>
+                  <Input value={editForm.introduction} onChange={e => setEditForm(f => ({ ...f, introduction: e.target.value }))} placeholder="소개" />
+                  <Label>Instagram</Label>
+                  <Input value={editForm.instagram_url} onChange={e => setEditForm(f => ({ ...f, instagram_url: e.target.value }))} placeholder="Instagram URL" />
+                  <Label>Twitter</Label>
+                  <Input value={editForm.twitter_url} onChange={e => setEditForm(f => ({ ...f, twitter_url: e.target.value }))} placeholder="Twitter URL" />
+                  <Label>YouTube</Label>
+                  <Input value={editForm.youtube_url} onChange={e => setEditForm(f => ({ ...f, youtube_url: e.target.value }))} placeholder="YouTube URL" />
+                  <Label>연락처</Label>
+                  <Input value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} placeholder="연락처" />
+                </div>
+                <div className="flex justify-end gap-2 mt-6">
+                  <Button variant="outline" onClick={() => setEditModalOpen(false)}>닫기</Button>
+                  <Button variant="default" onClick={handleEditProfile} disabled={editLoading}>
+                    {editLoading ? '저장 중...' : '저장'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* soft delete(숨기기) 모달 */}
+          {showSoftDeleteModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+              <div className="bg-white rounded-lg shadow-lg p-8 min-w-[340px] max-w-[90vw] w-full sm:w-[400px]">
+                <h2 className="text-xl font-bold mb-4">정말로 숨기시겠습니까?</h2>
+                <p className="mb-4 text-zinc-700">이 댄서 계정은 일반회원으로 전환되어 사이트에 노출되지 않습니다.<br/>복원은 언제든 가능합니다.</p>
+                <div className="flex justify-end gap-2 mt-6">
+                  <Button variant="outline" onClick={() => setShowSoftDeleteModal(false)}>취소</Button>
+                  <Button variant="destructive" onClick={handleSoftDelete} disabled={softDeleteLoading}>
+                    {softDeleteLoading ? '숨기는 중...' : '숨기기'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 완전 삭제 모달 */}
+          {showDeleteModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+              <div className="bg-white rounded-lg shadow-lg p-8 min-w-[340px] max-w-[90vw] w-full sm:w-[400px]">
+                <h2 className="text-xl font-bold mb-4">정말로 완전 삭제하시겠습니까?</h2>
+                <p className="mb-4 text-zinc-700">이 댄서 계정은 복구할 수 없습니다.<br/>경력 등 모든 데이터가 삭제됩니다.</p>
+                <div className="flex justify-end gap-2 mt-6">
+                  <Button variant="outline" onClick={() => setShowDeleteModal(false)}>취소</Button>
+                  <Button variant="destructive" onClick={handleDelete} disabled={deleteLoading}>
+                    {deleteLoading ? '삭제 중...' : '완전 삭제'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 대표작 */}
           {featuredCareers.length > 0 && (
             <div className="mb-12">
@@ -332,10 +692,21 @@ export default function ArtistDetailPage() {
                 <div className="text-sm text-zinc-600">
                   {featuredCareers.length}개의 대표작
                 </div>
+                {isAdmin && (
+                  <Button size="sm" variant="outline" onClick={() => openCareerModal()}><Plus className="w-4 h-4 mr-1" /> 경력 추가</Button>
+                )}
               </div>
               <Carousel className="mb-8">
                 {featuredCareers.map((career) => (
-                  <CareerCard key={career.id} career={career} showDetails={false} />
+                  <CareerCard
+                    key={career.id}
+                    career={career}
+                    showDetails={false}
+                    isAdmin={isAdmin}
+                    onEdit={openCareerModal}
+                    onDelete={handleCareerDelete}
+                    disableActions={careerDeleteLoading}
+                  />
                 ))}
               </Carousel>
             </div>
@@ -362,6 +733,9 @@ export default function ArtistDetailPage() {
                     </span>
                   )}
                 </div>
+                {isAdmin && (
+                  <Button size="sm" variant="outline" onClick={() => openCareerModal()}><Plus className="w-4 h-4 mr-1" /> 경력 추가</Button>
+                )}
               </div>
               
               {Object.entries(careersByCategory).map(([category, categoryCareers]) => (
@@ -377,7 +751,14 @@ export default function ArtistDetailPage() {
                   
                   <Carousel>
                     {categoryCareers.map((career) => (
-                      <CareerCard key={career.id} career={career} />
+                      <CareerCard
+                        key={career.id}
+                        career={career}
+                        isAdmin={isAdmin}
+                        onEdit={openCareerModal}
+                        onDelete={handleCareerDelete}
+                        disableActions={careerDeleteLoading}
+                      />
                     ))}
                   </Carousel>
                 </div>
@@ -395,6 +776,44 @@ export default function ArtistDetailPage() {
         </div>
       </main>
       <Footer />
+
+      {/* 경력 추가/수정 모달 */}
+      {careerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg p-8 min-w-[340px] max-w-[90vw] w-full sm:w-[400px]">
+            <h2 className="text-xl font-bold mb-4">{editingCareer ? '경력 수정' : '경력 추가'}</h2>
+            <div className="space-y-3">
+              <Label>제목</Label>
+              <Input value={careerForm.title} onChange={e => setCareerForm(f => ({ ...f, title: e.target.value }))} placeholder="제목" />
+              <Label>설명</Label>
+              <Textarea value={careerForm.description} onChange={e => setCareerForm(f => ({ ...f, description: e.target.value }))} placeholder="설명" />
+              <Label>카테고리</Label>
+              <select className="w-full border rounded p-2" value={careerForm.category} onChange={e => setCareerForm(f => ({ ...f, category: e.target.value }))}>
+                <option value="">카테고리 선택</option>
+                {careerCategories.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+              </select>
+              <Label>국가</Label>
+              <Input value={careerForm.country} onChange={e => setCareerForm(f => ({ ...f, country: e.target.value }))} placeholder="국가" />
+              <Label>시작일</Label>
+              <Input type="date" value={careerForm.start_date || ''} onChange={e => setCareerForm(f => ({ ...f, start_date: e.target.value }))} />
+              <Label>종료일</Label>
+              <Input type="date" value={careerForm.end_date || ''} onChange={e => setCareerForm(f => ({ ...f, end_date: e.target.value }))} />
+              <Label>영상 URL</Label>
+              <Input value={careerForm.video_url} onChange={e => setCareerForm(f => ({ ...f, video_url: e.target.value }))} placeholder="YouTube 등" />
+              <Label>포스터 이미지 URL</Label>
+              <Input value={careerForm.poster_url} onChange={e => setCareerForm(f => ({ ...f, poster_url: e.target.value }))} placeholder="포스터 이미지 URL" />
+              <div className="flex items-center gap-2 mt-2">
+                <input type="checkbox" id="is_featured" checked={!!careerForm.is_featured} onChange={e => setCareerForm(f => ({ ...f, is_featured: e.target.checked }))} />
+                <Label htmlFor="is_featured">대표작</Label>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={closeCareerModal}>취소</Button>
+              <Button variant="default" onClick={handleCareerSave} disabled={careerLoading}>{careerLoading ? '저장 중...' : '저장'}</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 
