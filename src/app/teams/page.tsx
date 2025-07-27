@@ -8,7 +8,7 @@ import { Footer } from '@/components/layout/Footer'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+
 import { LoginStatus } from '@/components/auth/LoginStatus'
 import { Users, Plus, Search } from 'lucide-react'
 import Link from 'next/link'
@@ -168,12 +168,24 @@ export default function TeamsPage() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={team.logo_url} alt={team.name} />
-                        <AvatarFallback className="bg-zinc-100 text-zinc-900">
-                          {team.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="h-12 w-12 border border-zinc-200 rounded-lg overflow-hidden">
+                        {team.logo_url ? (
+                          <img
+                            src={team.logo_url}
+                            alt={team.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-zinc-100 flex items-center justify-center">
+                            <span className="text-zinc-600 text-lg font-medium">
+                              {team.name.charAt(0)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                       <div>
                         <CardTitle className="text-lg">{team.name}</CardTitle>
                         <p className="text-sm text-zinc-500">{team.name_en}</p>
@@ -193,12 +205,24 @@ export default function TeamsPage() {
                   
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={team.leader?.profile_image} alt={team.leader?.name} />
-                        <AvatarFallback className="text-xs bg-zinc-100">
-                          {team.leader?.name?.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="h-6 w-6 border border-zinc-200 rounded overflow-hidden">
+                        {team.leader?.profile_image ? (
+                          <img
+                            src={team.leader.profile_image}
+                            alt={team.leader.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-zinc-100 flex items-center justify-center">
+                            <span className="text-zinc-600 text-xs font-medium">
+                              {team.leader?.name?.charAt(0)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                       <span className="text-xs text-zinc-500">
                         리더: {team.leader?.name}
                       </span>

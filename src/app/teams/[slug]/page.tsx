@@ -9,13 +9,16 @@ import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Users, Crown, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from '@/components/ui/input';
+import { ProfileImageUpload } from '@/components/ui/profile-image-upload';
 import { toast } from 'sonner';
+import { useRef } from 'react';
+import { X as CloseIcon } from 'lucide-react';
 
 export default function TeamDetailPage() {
   const params = useParams();
@@ -201,6 +204,41 @@ export default function TeamDetailPage() {
     }
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const handleLogoUpload = async (imageUrl: string) => {
+    setUploading(true);
+    try {
+      // Blob URL을 File로 변환
+      const response = await fetch(imageUrl)
+      const blob = await response.blob()
+      
+      const fileExt = 'jpg';
+      const fileName = `${team?.id || 'team-logo'}-${Date.now()}.${fileExt}`;
+      const filePath = fileName;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, blob, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      setEditForm(prev => ({ ...prev, logo_url: publicUrl }));
+      toast.success('이미지가 성공적으로 업로드되었습니다.');
+    } catch (error) {
+      const err = error as any;
+      toast.error('이미지 업로드 실패: ' + (err.message || err));
+    } finally {
+      setUploading(false);
+    }
+  };
+  const removeLogo = () => {
+    setEditForm(prev => ({ ...prev, logo_url: '' }));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-50">
@@ -251,12 +289,24 @@ export default function TeamDetailPage() {
         <div className="bg-white rounded-lg shadow-sm border border-zinc-200 p-6 mb-8">
           <div className="flex flex-col md:flex-row md:items-start gap-6">
             {/* 팀 로고 */}
-            <Avatar className="h-24 w-24">
-              <AvatarImage src={team.logo_url} alt={team.name} />
-              <AvatarFallback className="bg-zinc-100 text-zinc-900 text-2xl">
-                {team.name.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
+            <div className="h-24 w-24 border border-zinc-200 rounded-lg overflow-hidden">
+              {team.logo_url ? (
+                <img
+                  src={team.logo_url}
+                  alt={team.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full bg-zinc-100 flex items-center justify-center">
+                  <span className="text-zinc-600 text-2xl font-medium">
+                    {team.name.charAt(0)}
+                  </span>
+                </div>
+              )}
+            </div>
             {/* 팀 정보 */}
             <div className="flex-1">
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -323,10 +373,24 @@ export default function TeamDetailPage() {
                     {members.map((member) => (
                       <div key={member.id} className="flex items-center justify-between p-3 border border-zinc-100 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src={member.user?.profile_image} alt={member.user?.name} />
-                            <AvatarFallback>{member.user?.name?.charAt(0)}</AvatarFallback>
-                          </Avatar>
+                          <div className="h-10 w-10 border border-zinc-200 rounded-lg overflow-hidden">
+                            {member.user?.profile_image ? (
+                              <img
+                                src={member.user.profile_image}
+                                alt={member.user.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none'
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-zinc-100 flex items-center justify-center">
+                                <span className="text-zinc-600 text-sm font-medium">
+                                  {member.user?.name?.charAt(0)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                           <div>
                             <p className="font-medium">{member.user?.name || member.user_id}</p>
                             <p className="text-sm text-zinc-500">{member.user?.name_en}</p>
@@ -474,6 +538,16 @@ export default function TeamDetailPage() {
           <div className="bg-white rounded-lg shadow-lg p-8 min-w-[340px] max-w-[90vw] w-full sm:w-[400px]">
             <h2 className="text-xl font-bold mb-4">팀 정보 수정</h2>
             <div className="space-y-3">
+              <label className="font-medium">로고 이미지</label>
+                             <ProfileImageUpload
+                 currentImage={editForm.logo_url}
+                 onImageChange={handleLogoUpload}
+                 onImageRemove={removeLogo}
+                 size="sm"
+                 cropShape="square"
+                 disabled={editLoading}
+                 uploading={uploading}
+               />
               <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} placeholder="팀명" />
               <Input value={editForm.name_en} onChange={e => setEditForm(f => ({ ...f, name_en: e.target.value }))} placeholder="영문팀명" />
               <Input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} placeholder="설명" />
@@ -481,7 +555,7 @@ export default function TeamDetailPage() {
             </div>
             <div className="flex justify-end gap-2 mt-4">
               <Button variant="outline" onClick={() => setEditModalOpen(false)}>닫기</Button>
-              <Button variant="default" loading={editLoading} onClick={async () => {
+              <Button variant="default" disabled={editLoading} onClick={async () => {
                 setEditLoading(true);
                 await supabase.from('teams').update({
                   name: editForm.name,
@@ -493,7 +567,7 @@ export default function TeamDetailPage() {
                 setEditModalOpen(false);
                 toast.success('팀 정보가 수정되었습니다.');
                 fetchTeamData();
-              }}>저장</Button>
+              }}>{editLoading ? '저장 중...' : '저장'}</Button>
             </div>
           </div>
         </div>

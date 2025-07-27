@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { Team, TeamMember } from '@/lib/types'
 import { Card } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Users, Crown } from 'lucide-react'
 
 interface TeamCardProps {
@@ -50,12 +49,24 @@ export function TeamCard({ team, members = [] }: TeamCardProps) {
         {members.length > 0 && (
           <div className="flex items-center gap-2 mt-2">
             {members.slice(0, 3).map((member) => (
-              <Avatar key={member.id} className="h-8 w-8 border-2 border-white/20">
-                <AvatarImage src={member.user?.profile_image} alt={member.user?.name} />
-                <AvatarFallback className="bg-zinc-800 text-white text-xs">
-                  {member.user?.name?.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
+              <div key={member.id} className="h-8 w-8 border-2 border-white/20 rounded-lg overflow-hidden">
+                {member.user?.profile_image ? (
+                  <img
+                    src={member.user.profile_image}
+                    alt={member.user.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                    <span className="text-white text-xs">
+                      {member.user?.name?.charAt(0)}
+                    </span>
+                  </div>
+                )}
+              </div>
             ))}
             {members.length > 3 && (
               <span className="text-xs text-white/60 ml-1">+{members.length - 3}</span>

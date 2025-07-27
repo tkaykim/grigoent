@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Upload, X, User as UserIcon, Calendar, Mail, Edit, Save, X as CloseIcon } from 'lucide-react'
+import { ProfileImageUpload } from '@/components/ui/profile-image-upload'
+import { User as UserIcon, Calendar, Mail, Edit, Save, X as CloseIcon } from 'lucide-react'
 
 interface UserDashboardProps {
   profile: User
@@ -28,7 +29,6 @@ export function UserDashboard({ profile }: UserDashboardProps) {
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState('')
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,30 +73,22 @@ export function UserDashboard({ profile }: UserDashboardProps) {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleImageUpload = async (file: File) => {
-    if (!file) return
-
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage('파일 크기는 5MB 이하여야 합니다.')
-      return
-    }
-
-    if (!file.type.startsWith('image/')) {
-      setMessage('이미지 파일만 업로드 가능합니다.')
-      return
-    }
-
+  const handleImageUpload = async (imageUrl: string) => {
     setUploading(true)
     setMessage('')
     
     try {
-      const fileExt = file.name.split('.').pop()
+      // Blob URL을 File로 변환
+      const response = await fetch(imageUrl)
+      const blob = await response.blob()
+      
+      const fileExt = 'jpg'
       const fileName = `${profile.id}-${Date.now()}.${fileExt}`
       const filePath = fileName
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, {
+        .upload(filePath, blob, {
           cacheControl: '3600',
           upsert: false
         })
@@ -272,59 +264,15 @@ export function UserDashboard({ profile }: UserDashboardProps) {
             {/* 프로필 이미지 업로드 */}
             <div className="space-y-4">
               <Label>프로필 이미지</Label>
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  {formData.profile_image ? (
-                    <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
-                      <img
-                        src={formData.profile_image}
-                        alt={formData.name}
-                        className="w-full h-full object-cover object-center"
-                        onError={(e) => {
-                          console.error('이미지 로드 실패:', e)
-                          e.currentTarget.style.display = 'none'
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300">
-                      <UserIcon className="w-8 h-8 text-gray-400" />
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleImageUpload(file)
-                    }}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {uploading ? '업로드 중...' : '이미지 선택'}
-                  </Button>
-                  {formData.profile_image && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={removeImage}
-                    >
-                      <X className="w-4 h-4 mr-2" />
-                      이미지 제거
-                    </Button>
-                  )}
-                </div>
-              </div>
+                                  <ProfileImageUpload
+                      currentImage={formData.profile_image}
+                      onImageChange={handleImageUpload}
+                      onImageRemove={removeImage}
+                      size="md"
+                      cropShape="square"
+                      disabled={loading}
+                      uploading={uploading}
+                    />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

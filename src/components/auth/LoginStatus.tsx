@@ -4,26 +4,20 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { User, LogOut, LogIn, Clock, AlertCircle } from 'lucide-react'
+import { User, LogOut, LogIn } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 
 export function LoginStatus() {
   const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     checkUser()
     
     // 인증 상태 변경 감지
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null)
-      if (session?.user) {
-        await fetchProfile(session.user.id)
-      } else {
-        setProfile(null)
-      }
       setLoading(false)
     })
 
@@ -37,33 +31,10 @@ export function LoginStatus() {
         console.error('Auth check error:', error)
       }
       setUser(user)
-      
-      if (user) {
-        await fetchProfile(user.id)
-      }
     } catch (error) {
       console.error('User check error:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle()
-
-      if (error) {
-        console.error('프로필 로드 오류:', error)
-        return
-      }
-
-      setProfile(data)
-    } catch (error) {
-      console.error('프로필 로드 오류:', error)
     }
   }
 
@@ -75,7 +46,6 @@ export function LoginStatus() {
       } else {
         toast.success('로그아웃되었습니다.')
         setUser(null)
-        setProfile(null)
       }
     } catch (error) {
       console.error('Sign out error:', error)
@@ -86,9 +56,6 @@ export function LoginStatus() {
   const handleSignIn = () => {
     window.location.href = '/signin'
   }
-
-  // 댄서 승인 대기 상태 확인
-  const isDancerPending = profile?.pending_type === 'dancer' && profile?.type === 'general'
 
   if (loading) {
     return (
@@ -122,32 +89,10 @@ export function LoginStatus() {
               <span className="text-sm text-gray-600">사용자 ID:</span>
               <span className="text-xs font-mono text-gray-500">{user.id.slice(0, 8)}...</span>
             </div>
-            
-            {/* 댄서 승인 대기 상태 표시 */}
-            {isDancerPending && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Clock className="w-4 h-4 text-yellow-600" />
-                  <span className="text-sm font-medium text-yellow-800">승인 대기 중</span>
-                </div>
-                <p className="text-xs text-yellow-700">
-                  댄서 계정으로 권한신청이 되었고 승인 대기중입니다.
-                </p>
-              </div>
-            )}
-            
             <div className="flex items-center space-x-2">
               <Badge variant="default" className="bg-green-600">
                 로그인됨
               </Badge>
-              {profile && (
-                <Badge variant="outline" className="text-xs">
-                  {profile.type === 'general' ? '일반회원' : 
-                   profile.type === 'dancer' ? '댄서' :
-                   profile.type === 'client' ? '클라이언트' :
-                   profile.type === 'admin' ? '관리자' : profile.type}
-                </Badge>
-              )}
             </div>
             <Button
               onClick={handleSignOut}

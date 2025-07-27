@@ -17,10 +17,11 @@ import { CareerSearch } from '@/components/artists/CareerSearch'
 import { ProposalButton } from '@/components/proposals/ProposalButton'
 import { LoginStatus } from '@/components/auth/LoginStatus'
 import { ProposalTypeInfo } from '@/components/proposals/ProposalTypeInfo'
-import { ExternalLink, Instagram, Twitter, Youtube, MapPin, Calendar, Upload, X as CloseIcon, Plus } from 'lucide-react'
+import { ExternalLink, Instagram, Twitter, Youtube, MapPin, Calendar, X as CloseIcon, Plus } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ProfileImageUpload } from '@/components/ui/profile-image-upload'
 import { toast } from 'sonner'
 import { useRef } from 'react'
 import { Textarea } from '@/components/ui/textarea'
@@ -256,24 +257,19 @@ export default function ArtistDetailPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const handleImageUpload = async (file: File) => {
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('파일 크기는 5MB 이하여야 합니다.');
-      return;
-    }
-    if (!file.type.startsWith('image/')) {
-      toast.error('이미지 파일만 업로드 가능합니다.');
-      return;
-    }
+  const handleImageUpload = async (imageUrl: string) => {
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      // Blob URL을 File로 변환
+      const response = await fetch(imageUrl)
+      const blob = await response.blob()
+      
+      const fileExt = 'jpg';
       const fileName = `${artist?.id || 'profile'}-${Date.now()}.${fileExt}`;
       const filePath = fileName;
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, {
+        .upload(filePath, blob, {
           cacheControl: '3600',
           upsert: false
         });
@@ -587,44 +583,15 @@ export default function ArtistDetailPage() {
                 <h2 className="text-xl font-bold mb-4">프로필 수정</h2>
                 <div className="space-y-3">
                   <Label>프로필 이미지</Label>
-                  <div className="flex items-center gap-4 mb-2">
-                    <div className="relative">
-                      {editForm.profile_image ? (
-                        <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
-                          <img
-                            src={editForm.profile_image}
-                            alt={editForm.name}
-                            className="w-full h-full object-cover object-center"
-                            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300">
-                          <span className="text-2xl text-gray-400 font-semibold">?</span>
-                        </div>
-                      )}
-                    </div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={e => {
-                        const file = e.target.files?.[0];
-                        if (file) handleImageUpload(file);
-                      }}
-                      className="hidden"
-                    />
-                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                      <Upload className="w-4 h-4 mr-2" />
-                      {uploading ? '업로드 중...' : '이미지 선택'}
-                    </Button>
-                    {editForm.profile_image && (
-                      <Button type="button" variant="outline" size="sm" onClick={removeImage}>
-                        <CloseIcon className="w-4 h-4 mr-2" />
-                        이미지 제거
-                      </Button>
-                    )}
-                  </div>
+                  <ProfileImageUpload
+                    currentImage={editForm.profile_image}
+                    onImageChange={handleImageUpload}
+                    onImageRemove={removeImage}
+                    size="sm"
+                    cropShape="square"
+                    disabled={editLoading}
+                    uploading={uploading}
+                  />
                   <Label>프로필 이미지 URL</Label>
                   <Input value={editForm.profile_image} onChange={e => setEditForm(f => ({ ...f, profile_image: e.target.value }))} placeholder="프로필 이미지 URL" />
                   <Label>이름</Label>
