@@ -26,7 +26,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { GripVertical, Save, RotateCcw, Users, User } from 'lucide-react'
+import { GripVertical, Save, RotateCcw, Users, User as UserIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface SortableItem {
@@ -79,7 +79,7 @@ function SortableItemCard({ item }: SortableItemCardProps) {
                   <>
                     <AvatarImage src={artist?.profile_image} alt={artist?.name} />
                     <AvatarFallback className="bg-blue-100">
-                      <User className="w-6 h-6 text-blue-600" />
+                      <UserIcon className="w-6 h-6 text-blue-600" />
                     </AvatarFallback>
                   </>
                 ) : (
