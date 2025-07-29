@@ -15,8 +15,6 @@ import { Carousel } from '@/components/ui/carousel'
 import { CareerCard } from '@/components/artists/CareerCard'
 import { CareerSearch } from '@/components/artists/CareerSearch'
 import { ProposalButton } from '@/components/proposals/ProposalButton'
-import { LoginStatus } from '@/components/auth/LoginStatus'
-import { ProposalTypeInfo } from '@/components/proposals/ProposalTypeInfo'
 import { ExternalLink, Instagram, Twitter, Youtube, MapPin, Calendar, X as CloseIcon, Plus } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Input } from '@/components/ui/input'
@@ -293,7 +291,7 @@ export default function ArtistDetailPage() {
   // 경력 추가/수정 모달 상태
   const [careerModalOpen, setCareerModalOpen] = useState(false);
   const [editingCareer, setEditingCareer] = useState<CareerEntry | null>(null);
-  const [careerForm, setCareerForm] = useState<any>({
+  const [careerForm, setCareerForm] = useState({
     title: '',
     description: '',
     category: '',
@@ -303,19 +301,184 @@ export default function ArtistDetailPage() {
     start_date: '',
     end_date: '',
     is_featured: false,
+    date_type: 'range', // 'single' 또는 'range'
+    single_date: '',
   });
   const [careerLoading, setCareerLoading] = useState(false);
   const [careerDeleteLoading, setCareerDeleteLoading] = useState(false);
+
+  // 대량 경력 등록 모달 상태
+  const [bulkCareerModalOpen, setBulkCareerModalOpen] = useState(false);
+  const [bulkCareerLoading, setBulkCareerLoading] = useState(false);
+  const [csvData, setCsvData] = useState<string>('');
+  const [bulkPreview, setBulkPreview] = useState<any[]>([]);
+  const [bulkError, setBulkError] = useState<string>('');
+
+  // CSV 템플릿 다운로드
+  const downloadCsvTemplate = () => {
+    const csvContent = `제목,설명,카테고리,국가,일정유형,시작일,종료일,단일일자,영상URL,포스터URL,대표작
+예시 안무,댄스 영상 제작,choreography,한국,range,2024-01-01,2024-01-31,,https://youtube.com/watch?v=example,https://example.com/poster.jpg,true
+예시 공연,무대 공연,performance,미국,single,,,2024-02-01,https://youtube.com/watch?v=example2,https://example.com/poster2.jpg,false`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'career_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 카테고리 매핑 함수
+  const mapCategoryToDbValue = (category: string): string => {
+    const categoryMap: { [key: string]: string } = {
+      '안무': 'choreography',
+      '안무제작': 'choreography',
+      'choreography': 'choreography',
+      '공연': 'performance',
+      '댄서참여': 'performance',
+      'performance': 'performance',
+      '광고': 'advertisement',
+      '광고진행': 'advertisement',
+      'advertisement': 'advertisement',
+      '방송': 'tv',
+      'TV프로그램': 'tv',
+      'tv': 'tv',
+      '워크샵': 'workshop',
+      'workshop': 'workshop',
+      '뮤직비디오': 'performance', // 뮤직비디오는 performance로 매핑
+      'MV': 'performance',
+      '음악방송': 'tv',
+      '예능': 'tv'
+    };
+    
+    return categoryMap[category] || 'performance'; // 기본값은 performance
+  };
+
+  // CSV 데이터 파싱
+  const parseCsvData = (csvText: string) => {
+    const lines = csvText.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim());
+    const data = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim());
+      const row: any = {};
+      
+      headers.forEach((header, index) => {
+        row[header] = values[index] || '';
+      });
+      
+      data.push(row);
+    }
+    
+    return data;
+  };
+
+  // 대량 등록 미리보기
+  const handleBulkPreview = () => {
+    if (!csvData.trim()) return;
+    
+    setBulkCareerLoading(true);
+    try {
+      const parsedData = parseCsvData(csvData);
+      setBulkPreview(parsedData);
+      setBulkError('');
+    } catch (error) {
+      setBulkError('CSV 파싱 오류: ' + error);
+    } finally {
+      setBulkCareerLoading(false);
+    }
+  };
+
+  // 대량 경력 등록
+  const handleBulkCareerSave = async () => {
+    if (!artist || bulkPreview.length === 0) return;
+    
+    setBulkCareerLoading(true);
+    let successCount = 0;
+    let errorCount = 0;
+    
+    try {
+      for (const item of bulkPreview) {
+        try {
+          const careerData: any = {
+            title: item['제목'],
+            description: item['설명'],
+            category: mapCategoryToDbValue(item['카테고리']),
+            country: item['국가'],
+            video_url: item['영상URL'],
+            poster_url: item['포스터URL'],
+            is_featured: item['대표작'] === 'true',
+            user_id: artist.id
+          };
+          
+          // 일정 유형에 따른 처리
+          if (item['일정유형'] === 'single') {
+            careerData.date_type = 'single';
+            careerData.single_date = item['단일일자'];
+            careerData.start_date = null;
+            careerData.end_date = null;
+          } else {
+            careerData.date_type = 'range';
+            careerData.start_date = item['시작일'];
+            careerData.end_date = item['종료일'];
+            careerData.single_date = null;
+          }
+          
+          console.log('저장할 경력 데이터:', careerData);
+          
+          const { error } = await supabase.from('career_entries').insert(careerData);
+          if (error) {
+            console.error('Supabase 오류:', error);
+            throw error;
+          }
+          successCount++;
+        } catch (error) {
+          console.error('경력 등록 실패:', item, error);
+          errorCount++;
+        }
+      }
+      
+      if (successCount > 0) {
+        toast.success(`${successCount}개의 경력이 성공적으로 등록되었습니다.`);
+        if (errorCount > 0) {
+          toast.error(`${errorCount}개의 경력 등록에 실패했습니다.`);
+        }
+        setBulkCareerModalOpen(false);
+        setCsvData('');
+        setBulkPreview([]);
+        fetchArtistData();
+      } else {
+        toast.error('모든 경력 등록에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('대량 등록 오류:', error);
+      toast.error('대량 등록 중 오류가 발생했습니다.');
+    } finally {
+      setBulkCareerLoading(false);
+    }
+  };
 
   // 경력 폼 초기화
   const openCareerModal = (career?: CareerEntry) => {
     if (career) {
       setEditingCareer(career);
-      setCareerForm({ ...career });
+      // 기존 경력의 경우 date_type과 single_date 설정
+      const dateType = career.date_type || (career.end_date ? 'range' : 'single');
+      const singleDate = career.single_date || career.start_date || '';
+      setCareerForm({ 
+        ...career, 
+        date_type: dateType,
+        single_date: singleDate
+      });
     } else {
       setEditingCareer(null);
       setCareerForm({
-        title: '', description: '', category: '', country: '', video_url: '', poster_url: '', start_date: '', end_date: '', is_featured: false,
+        title: '', description: '', category: '', country: '', video_url: '', poster_url: '', 
+        start_date: '', end_date: '', is_featured: false, date_type: 'range', single_date: ''
       });
     }
     setCareerModalOpen(true);
@@ -330,22 +493,49 @@ export default function ArtistDetailPage() {
     if (!artist) return;
     setCareerLoading(true);
     try {
+      // DB 스키마에 맞게 데이터 준비
+      const careerData = { ...careerForm };
+      
+      // 카테고리 매핑 적용
+      careerData.category = mapCategoryToDbValue(careerData.category);
+      
+      if (careerData.date_type === 'single') {
+        // 단일 일정인 경우
+        careerData.single_date = careerData.single_date || careerData.start_date;
+        careerData.start_date = null;
+        careerData.end_date = null;
+      } else {
+        // 기간인 경우
+        careerData.single_date = null;
+      }
+      
+      // date_type은 DB에 저장해야 하므로 삭제하지 않음
+
+      console.log('저장할 경력 데이터:', careerData);
+
       if (editingCareer) {
         // 수정
-        const { error } = await supabase.from('career_entries').update(careerForm).eq('id', editingCareer.id);
-        if (error) throw error;
+        const { error } = await supabase.from('career_entries').update(careerData).eq('id', editingCareer.id);
+        if (error) {
+          console.error('경력 수정 오류:', error);
+          throw error;
+        }
         toast.success('경력이 수정되었습니다.');
       } else {
         // 추가
-        const { error } = await supabase.from('career_entries').insert({ ...careerForm, user_id: artist.id });
-        if (error) throw error;
+        const { error } = await supabase.from('career_entries').insert({ ...careerData, user_id: artist.id });
+        if (error) {
+          console.error('경력 추가 오류:', error);
+          throw error;
+        }
         toast.success('경력이 추가되었습니다.');
       }
-      closeCareerModal();
+      
+      setCareerModalOpen(false);
       fetchArtistData();
-    } catch (e) {
-      const err = e as any;
-      toast.error('저장 실패: ' + (err.message || err));
+    } catch (error) {
+      console.error('경력 저장 오류:', error);
+      toast.error('경력 저장에 실패했습니다.');
     } finally {
       setCareerLoading(false);
     }
@@ -554,11 +744,6 @@ export default function ArtistDetailPage() {
                     className="w-full sm:w-auto"
                   />
                 </div>
-
-                {/* 제안 유형 정보 */}
-                <div className="mt-4">
-                  <ProposalTypeInfo />
-                </div>
               </div>
             </div>
           </div>
@@ -660,7 +845,10 @@ export default function ArtistDetailPage() {
                   {featuredCareers.length}개의 대표작
                 </div>
                 {isAdmin && (
-                  <Button size="sm" variant="outline" onClick={() => openCareerModal()}><Plus className="w-4 h-4 mr-1" /> 경력 추가</Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => openCareerModal()}><Plus className="w-4 h-4 mr-1" /> 경력 추가</Button>
+                    <Button size="sm" variant="outline" onClick={() => setBulkCareerModalOpen(true)}>대량 등록</Button>
+                  </div>
                 )}
               </div>
               <Carousel className="mb-8">
@@ -701,7 +889,10 @@ export default function ArtistDetailPage() {
                   )}
                 </div>
                 {isAdmin && (
-                  <Button size="sm" variant="outline" onClick={() => openCareerModal()}><Plus className="w-4 h-4 mr-1" /> 경력 추가</Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => openCareerModal()}><Plus className="w-4 h-4 mr-1" /> 경력 추가</Button>
+                    <Button size="sm" variant="outline" onClick={() => setBulkCareerModalOpen(true)}>대량 등록</Button>
+                  </div>
                 )}
               </div>
               
@@ -735,9 +926,20 @@ export default function ArtistDetailPage() {
 
           {filteredCareers.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-zinc-600 text-lg">
+              <p className="text-zinc-600 text-lg mb-4">
                 {careers.length === 0 ? '등록된 경력이 없습니다.' : '검색 결과가 없습니다.'}
               </p>
+              {isAdmin && careers.length === 0 && (
+                <div className="flex justify-center gap-2">
+                  <Button variant="outline" onClick={() => openCareerModal()}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    경력 추가
+                  </Button>
+                  <Button variant="outline" onClick={() => setBulkCareerModalOpen(true)}>
+                    대량 등록
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -747,7 +949,7 @@ export default function ArtistDetailPage() {
       {/* 경력 추가/수정 모달 */}
       {careerModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg p-8 min-w-[340px] max-w-[90vw] w-full sm:w-[400px]">
+          <div className="bg-white rounded-lg shadow-lg p-8 min-w-[340px] max-w-[90vw] w-full sm:w-[500px]">
             <h2 className="text-xl font-bold mb-4">{editingCareer ? '경력 수정' : '경력 추가'}</h2>
             <div className="space-y-3">
               <Label>제목</Label>
@@ -761,10 +963,63 @@ export default function ArtistDetailPage() {
               </select>
               <Label>국가</Label>
               <Input value={careerForm.country} onChange={e => setCareerForm(f => ({ ...f, country: e.target.value }))} placeholder="국가" />
-              <Label>시작일</Label>
-              <Input type="date" value={careerForm.start_date || ''} onChange={e => setCareerForm(f => ({ ...f, start_date: e.target.value }))} />
-              <Label>종료일</Label>
-              <Input type="date" value={careerForm.end_date || ''} onChange={e => setCareerForm(f => ({ ...f, end_date: e.target.value }))} />
+              
+              {/* 일정 유형 선택 */}
+              <Label>일정 유형</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="date_type"
+                    value="single"
+                    checked={careerForm.date_type === 'single'}
+                    onChange={e => setCareerForm(f => ({ ...f, date_type: e.target.value }))}
+                  />
+                  <span>단일 일정</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="date_type"
+                    value="range"
+                    checked={careerForm.date_type === 'range'}
+                    onChange={e => setCareerForm(f => ({ ...f, date_type: e.target.value }))}
+                  />
+                  <span>기간</span>
+                </label>
+              </div>
+              
+              {/* 단일 일정인 경우 */}
+              {careerForm.date_type === 'single' && (
+                <>
+                  <Label>단일 일자</Label>
+                  <Input 
+                    type="date" 
+                    value={careerForm.single_date || ''} 
+                    onChange={e => setCareerForm(f => ({ ...f, single_date: e.target.value }))} 
+                  />
+                </>
+              )}
+
+              {/* 기간인 경우에만 시작일/종료일 표시 */}
+              {careerForm.date_type === 'range' && (
+                <>
+                  <Label>시작일</Label>
+                  <Input 
+                    type="date" 
+                    value={careerForm.start_date || ''} 
+                    onChange={e => setCareerForm(f => ({ ...f, start_date: e.target.value }))} 
+                  />
+                  
+                  <Label>종료일</Label>
+                  <Input 
+                    type="date" 
+                    value={careerForm.end_date || ''} 
+                    onChange={e => setCareerForm(f => ({ ...f, end_date: e.target.value }))} 
+                  />
+                </>
+              )}
+              
               <Label>영상 URL</Label>
               <Input value={careerForm.video_url} onChange={e => setCareerForm(f => ({ ...f, video_url: e.target.value }))} placeholder="YouTube 등" />
               <Label>포스터 이미지 URL</Label>
@@ -777,6 +1032,74 @@ export default function ArtistDetailPage() {
             <div className="flex justify-end gap-2 mt-6">
               <Button variant="outline" onClick={closeCareerModal}>취소</Button>
               <Button variant="default" onClick={handleCareerSave} disabled={careerLoading}>{careerLoading ? '저장 중...' : '저장'}</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 대량 경력 등록 모달 */}
+      {bulkCareerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg p-8 min-w-[340px] max-w-[90vw] w-full sm:w-[600px] max-h-[80vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">대량 경력 등록</h2>
+            <div className="space-y-3">
+              <Label>CSV 파일 업로드</Label>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      if (event.target?.result) {
+                        setCsvData(event.target.result as string);
+                      }
+                    };
+                    reader.readAsText(e.target.files[0]);
+                  }
+                }}
+                className="block w-full text-sm text-zinc-900 border border-zinc-300 rounded-lg cursor-pointer bg-zinc-50 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-zinc-200 file:text-zinc-700 hover:file:bg-zinc-300"
+              />
+              <Button variant="outline" onClick={downloadCsvTemplate} className="w-full">CSV 템플릿 다운로드</Button>
+              <Label>또는 직접 입력</Label>
+              <Textarea
+                value={csvData}
+                onChange={e => setCsvData(e.target.value)}
+                placeholder="CSV 데이터를 여기에 입력하세요 (템플릿 참고)"
+                rows={8}
+              />
+              {bulkError && (
+                <p className="text-red-500 text-sm mt-2">{bulkError}</p>
+              )}
+              
+              {/* 미리보기 결과 */}
+              {bulkPreview.length > 0 && (
+                <div className="mt-4">
+                  <Label>미리보기 ({bulkPreview.length}개)</Label>
+                  <div className="max-h-40 overflow-y-auto border rounded p-2 bg-zinc-50">
+                    {bulkPreview.map((item, index) => (
+                      <div key={index} className="text-sm p-2 border-b last:border-b-0">
+                        <strong>{item['제목']}</strong> - {item['카테고리']} ({item['국가']})
+                        {item['대표작'] === 'true' && <span className="text-blue-600 ml-2">★ 대표작</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => {
+                setBulkCareerModalOpen(false);
+                setCsvData('');
+                setBulkPreview([]);
+                setBulkError('');
+              }}>취소</Button>
+              <Button variant="outline" onClick={handleBulkPreview} disabled={!csvData.trim() || bulkCareerLoading}>
+                {bulkCareerLoading ? '미리보기 중...' : '미리보기'}
+              </Button>
+              <Button variant="default" onClick={handleBulkCareerSave} disabled={bulkPreview.length === 0 || bulkCareerLoading}>
+                {bulkCareerLoading ? '등록 중...' : '대량 등록'}
+              </Button>
             </div>
           </div>
         </div>
