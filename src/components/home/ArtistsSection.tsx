@@ -206,7 +206,7 @@ export function ArtistsSection() {
       return artist.slug
     } else {
       const team = item.data as Team
-      return team.slug
+      return `teams/${team.slug}`
     }
   }
 

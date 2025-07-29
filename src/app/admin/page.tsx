@@ -15,6 +15,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import Papa from 'papaparse';
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger, TabsContent as UITabsContent } from '@/components/ui/tabs';
+import { SEOSettingsManager } from '@/components/dashboard/SEOSettingsManager';
 
 export default function AdminPage() {
   const { user, profile, loading } = useAuth()
@@ -820,7 +821,7 @@ export default function AdminPage() {
           </div>
 
           <Tabs defaultValue="pending" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="pending">
                 승인 대기 ({pendingUsers.length})
               </TabsTrigger>
@@ -829,6 +830,9 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger value="teams">
                 전체 팀 ({allTeams.length})
+              </TabsTrigger>
+              <TabsTrigger value="seo">
+                SEO 설정
               </TabsTrigger>
             </TabsList>
 
@@ -1150,6 +1154,10 @@ export default function AdminPage() {
                  </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="seo">
+              <SEOSettingsManager />
             </TabsContent>
           </Tabs>
         </div>

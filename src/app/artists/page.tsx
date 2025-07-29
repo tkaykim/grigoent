@@ -337,7 +337,7 @@ export default function ArtistsPage() {
             {/* 전체 탭: 통합 순서 사용 */}
             {tab === 'all' && filteredOrderedItems.map((item, index) => (
               <div key={`${item.type}-${item.data.id}`} className="group bg-white/5 rounded-lg p-4 md:p-6 hover:bg-white/10 transition-all duration-300 transform hover:scale-105">
-                <Link href={`/${item.type === 'artist' ? (item.data as User).slug : (item.data as Team).slug}`} className="block">
+                <Link href={item.type === 'artist' ? `/${(item.data as User).slug}` : `/teams/${(item.data as Team).slug}`} className="block">
                   <div className="relative mb-4">
                     {item.type === 'artist' ? (
                       // 아티스트 카드

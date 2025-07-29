@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { supabase } from '@/lib/supabase'
-import { Check, X, Eye, ArrowRight } from 'lucide-react'
+import { Check, X, Eye, ArrowRight, Settings, Users, BarChart3 } from 'lucide-react'
 import { ArtistTeamOrderManager } from '@/components/artists/ArtistTeamOrderManager'
+import { SEOSettingsManager } from './SEOSettingsManager'
 
 interface AdminDashboardProps {
   pendingUsers: User[]
@@ -21,7 +23,7 @@ export function AdminDashboard({ pendingUsers, allUsers, onUserUpdate }: AdminDa
   const [loading, setLoading] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [displayOrder, setDisplayOrder] = useState<Record<string, number>>({})
-  const [showOrderManager, setShowOrderManager] = useState(false)
+  const [activeTab, setActiveTab] = useState('approval')
 
   const handleApprove = async (userId: string, pendingType: string) => {
     setLoading(userId)
@@ -99,23 +101,6 @@ export function AdminDashboard({ pendingUsers, allUsers, onUserUpdate }: AdminDa
     return labels[type] || type
   }
 
-  if (showOrderManager) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            onClick={() => setShowOrderManager(false)}
-          >
-            ← 대시보드로 돌아가기
-          </Button>
-          <h2 className="text-2xl font-bold">아티스트 순서 관리</h2>
-        </div>
-        <ArtistTeamOrderManager />
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {message && (
@@ -128,149 +113,88 @@ export function AdminDashboard({ pendingUsers, allUsers, onUserUpdate }: AdminDa
         </div>
       )}
 
-      {/* 승인 대기 사용자들 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>승인 대기 사용자</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {pendingUsers.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-zinc-600">승인 대기 중인 사용자가 없습니다.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {pendingUsers.map((user) => (
-                <div key={user.id} className="flex justify-between items-center p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{user.name}</h3>
-                    <p className="text-sm text-zinc-600">{user.email}</p>
-                    <p className="text-sm text-zinc-600">{user.name_en}</p>
-                    <div className="flex gap-2 mt-2">
-                      <Badge variant="outline">
-                        {getTypeLabel(user.type)}
-                      </Badge>
-                      <Badge variant="secondary">
-                        {user.pending_type === 'dancer' ? '댄서' : '클라이언트'} 승인 요청
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleApprove(user.id, user.pending_type!)}
-                      disabled={loading === user.id}
-                    >
-                      <Check className="h-4 w-4 mr-1" />
-                      승인
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleReject(user.id)}
-                      disabled={loading === user.id}
-                    >
-                      <X className="h-4 w-4 mr-1" />
-                      거절
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="approval" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            승인 관리
+          </TabsTrigger>
+          <TabsTrigger value="order" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            순서 관리
+          </TabsTrigger>
+          <TabsTrigger value="seo" className="flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            SEO 설정
+          </TabsTrigger>
+        </TabsList>
 
-      {/* 아티스트 순서 관리 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>아티스트 순서 관리</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-zinc-600">
-                드래그 앤 드롭으로 아티스트 순서를 변경할 수 있습니다.
-              </p>
-              <Button
-                onClick={() => setShowOrderManager(true)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                순서 관리하기
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
-            
-            {/* 간단한 순서 미리보기 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {allUsers
-                .filter(user => user.type === 'dancer')
-                .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
-                .slice(0, 6)
-                .map((user, index) => (
-                  <div key={user.id} className="p-3 border rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {user.display_order || index + 1}
-                      </Badge>
-                      <span className="font-medium">{user.name}</span>
-                    </div>
-                    <p className="text-sm text-zinc-600 mt-1">{user.name_en}</p>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 기존 수동 순서 관리 (간소화) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>수동 순서 관리</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {allUsers
-              .filter(user => user.type === 'dancer')
-              .map((user) => (
-                <div key={user.id} className="flex justify-between items-center p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{user.name}</h3>
-                    <p className="text-sm text-zinc-600">{user.name_en}</p>
-                    <div className="flex gap-2 mt-2">
-                      <Badge variant="outline">댄서</Badge>
-                      {user.display_order && (
-                        <Badge variant="secondary">
-                          순서: {user.display_order}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      placeholder="순서"
-                      value={displayOrder[user.id] || user.display_order || ''}
-                      onChange={(e) => setDisplayOrder(prev => ({
-                        ...prev,
-                        [user.id]: parseInt(e.target.value) || 0
-                      }))}
-                      className="w-20"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleUpdateDisplayOrder(user.id, displayOrder[user.id] || 0)}
-                    >
-                      업데이트
-                    </Button>
-                  </div>
+        {/* 승인 관리 탭 */}
+        <TabsContent value="approval" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>승인 대기 사용자</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {pendingUsers.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-zinc-600">승인 대기 중인 사용자가 없습니다.</p>
                 </div>
-              ))}
-          </div>
-        </CardContent>
-      </Card>
+              ) : (
+                <div className="space-y-4">
+                  {pendingUsers.map((user) => (
+                    <div key={user.id} className="flex justify-between items-center p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{user.name}</h3>
+                        <p className="text-sm text-zinc-600">{user.email}</p>
+                        <p className="text-sm text-zinc-600">{user.name_en}</p>
+                        <div className="flex gap-2 mt-2">
+                          <Badge variant="outline">
+                            {getTypeLabel(user.type)}
+                          </Badge>
+                          <Badge variant="secondary">
+                            {user.pending_type === 'dancer' ? '댄서' : '클라이언트'} 승인 요청
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleApprove(user.id, user.pending_type!)}
+                          disabled={loading === user.id}
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          승인
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleReject(user.id)}
+                          disabled={loading === user.id}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          거절
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 순서 관리 탭 */}
+        <TabsContent value="order" className="space-y-6">
+          <ArtistTeamOrderManager />
+        </TabsContent>
+
+        {/* SEO 설정 탭 */}
+        <TabsContent value="seo" className="space-y-6">
+          <SEOSettingsManager />
+        </TabsContent>
+      </Tabs>
 
       {/* 통계 정보 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
