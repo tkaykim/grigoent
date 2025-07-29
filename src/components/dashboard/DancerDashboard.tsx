@@ -1,84 +1,125 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { User, CareerEntry } from '@/lib/types'
-import { supabase } from '@/lib/supabase'
-import { getThumbnailFromUrl, isValidYouTubeUrl } from '@/lib/youtube'
+import React, { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
-  Plus, 
   Edit, 
-  Trash2, 
+  Plus, 
   Star, 
-  StarOff, 
-  Calendar, 
   MapPin, 
-  ExternalLink,
-  Save,
+  Calendar, 
+  ExternalLink, 
+  Trash2,
   X as CloseIcon,
   Upload,
-  FileText
+  FileText,
+  Trash
 } from 'lucide-react'
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger } from '@/components/ui/tabs';
 
 interface DancerDashboardProps {
-  profile: User
+  profile: any
+}
+
+interface CareerEntry {
+  id: string;
+  user_id: string;
+  linked_user_id?: string;
+  category: string;
+  title: string;
+  description?: string;
+  country?: string;
+  video_url?: string;
+  poster_url?: string;
+  start_date?: string;
+  end_date?: string;
+  is_featured?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  date_type?: 'single' | 'range';
+  single_date?: string;
+  is_linked?: boolean; // 연결된 데이터인지 여부
 }
 
 export function DancerDashboard({ profile }: DancerDashboardProps) {
   const [careers, setCareers] = useState<CareerEntry[]>([])
-  const [loading, setLoading] = useState(true)
-  const [isAddingCareer, setIsAddingCareer] = useState(false)
-  const [isBulkUpload, setIsBulkUpload] = useState(false)
-  const [editingCareer, setEditingCareer] = useState<CareerEntry | null>(null)
+  const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [showAddForm, setShowAddForm] = useState(false)
   const [bulkData, setBulkData] = useState('')
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [selectedCareer, setSelectedCareer] = useState<CareerEntry | null>(null);
+  const [showCareerModal, setShowCareerModal] = useState(false);
+  const [isAddingCareer, setIsAddingCareer] = useState(false);
+  const [isBulkUpload, setIsBulkUpload] = useState(false);
+  const [editingCareer, setEditingCareer] = useState<CareerEntry | null>(null);
   
   const [formData, setFormData] = useState({
-    category: 'choreography',
     title: '',
-    video_url: '',
-    poster_url: '',
+    category: '',
     description: '',
     country: 'Korea',
+    video_url: '',
+    poster_url: '',
     start_date: '',
     end_date: '',
-    single_date: '',
-    date_type: 'single',
-    is_featured: false
+    is_featured: false,
+    date_type: 'range' as 'single' | 'range',
+    single_date: ''
   })
 
   useEffect(() => {
-    fetchCareers()
-  }, [])
+    if (profile) {
+      fetchCareers()
+    }
+  }, [profile])
 
   const fetchCareers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('career_entries')
-        .select('*')
-        .eq('user_id', profile.id)
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('경력 로드 오류:', error)
-        setMessage('경력을 불러오는 중 오류가 발생했습니다.')
-        return
+      setLoading(true)
+      
+      // 새로운 연결 시스템으로 경력 데이터 조회
+      const response = await fetch(`/api/careers?userId=${profile.id}`)
+      const data = await response.json()
+      
+      if (response.ok) {
+        setCareers(data.careers || [])
+        console.log('Careers fetched:', {
+          total: data.total,
+          owned: data.owned,
+          linked: data.linked
+        })
+      } else {
+        console.error('Failed to fetch careers:', data.error)
+        setMessage('경력 데이터를 불러오는데 실패했습니다.')
       }
-
-      setCareers(data || [])
     } catch (error) {
-      console.error('경력 로드 오류:', error)
-      setMessage('경력을 불러오는 중 오류가 발생했습니다.')
+      console.error('Career fetch error:', error)
+      setMessage('경력 데이터를 불러오는데 실패했습니다.')
     } finally {
       setLoading(false)
     }
+  }
+
+  // YouTube URL 유효성 검사 함수
+  const isValidYouTubeUrl = (url: string): boolean => {
+    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+    return youtubeRegex.test(url)
+  }
+
+  // YouTube 썸네일 URL 생성 함수
+  const getThumbnailFromUrl = (url: string): string => {
+    const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1]
+    if (videoId) {
+      return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+    }
+    return ''
   }
 
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -138,26 +179,46 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
       }
 
       if (editingCareer) {
-        // 수정
-        const { error } = await supabase
-          .from('career_entries')
-          .update(careerData)
-          .eq('id', editingCareer.id)
+        // 수정 - 새로운 API 사용
+        const response = await fetch('/api/careers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: profile.id,
+            careerData: {
+              ...careerData,
+              id: editingCareer.id
+            }
+          })
+        })
 
-        if (error) {
-          throw error
+        if (response.ok) {
+          setMessage('경력이 성공적으로 수정되었습니다.')
+        } else {
+          const error = await response.json()
+          throw new Error(error.error || '수정에 실패했습니다.')
         }
-        setMessage('경력이 성공적으로 수정되었습니다.')
       } else {
-        // 새로 추가
-        const { error } = await supabase
-          .from('career_entries')
-          .insert(careerData)
+        // 새로 추가 - 새로운 API 사용
+        const response = await fetch('/api/careers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: profile.id,
+            careerData
+          })
+        })
 
-        if (error) {
-          throw error
+        if (response.ok) {
+          setMessage('경력이 성공적으로 추가되었습니다.')
+        } else {
+          const error = await response.json()
+          throw new Error(error.error || '추가에 실패했습니다.')
         }
-        setMessage('경력이 성공적으로 추가되었습니다.')
       }
 
       await fetchCareers()
@@ -176,17 +237,24 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
     if (!confirm('정말로 이 경력을 삭제하시겠습니까?')) return
 
     try {
-      const { error } = await supabase
-        .from('career_entries')
-        .delete()
-        .eq('id', careerId)
+      const response = await fetch('/api/careers', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          careerId,
+          userId: profile.id
+        })
+      })
 
-      if (error) {
-        throw error
+      if (response.ok) {
+        setMessage('경력이 성공적으로 삭제되었습니다.')
+        await fetchCareers()
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || '삭제에 실패했습니다.')
       }
-
-      setMessage('경력이 성공적으로 삭제되었습니다.')
-      await fetchCareers()
     } catch (error) {
       console.error('경력 삭제 오류:', error)
       setMessage('경력 삭제 중 오류가 발생했습니다.')
@@ -196,17 +264,17 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
   const handleEdit = (career: CareerEntry) => {
     setEditingCareer(career)
     setFormData({
-      category: career.category,
+      category: career.category || 'choreography',
       title: career.title,
       video_url: career.video_url || '',
       poster_url: career.poster_url || '',
       description: career.description || '',
-      country: career.country,
+      country: career.country || 'Korea',
       start_date: career.start_date || '',
       end_date: career.end_date || '',
       single_date: career.single_date || '',
       date_type: career.date_type || (career.single_date ? 'single' : 'range'),
-      is_featured: career.is_featured
+      is_featured: career.is_featured || false
     })
   }
 
@@ -331,13 +399,23 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
         user_id: profile.id
       }))
 
-      // 대량 삽입
-      const { error } = await supabase
-        .from('career_entries')
-        .insert(careerData)
+      // 대량 삽입 - 새로운 API 사용
+      for (const career of careerData) {
+        const response = await fetch('/api/careers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: profile.id,
+            careerData: career
+          })
+        })
 
-      if (error) {
-        throw error
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || '대량 등록 중 오류가 발생했습니다.')
+        }
       }
 
       setMessage(`${careers.length}개의 경력이 성공적으로 등록되었습니다.`)
@@ -349,6 +427,81 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
       setMessage(`대량 등록 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
     } finally {
       setBulkLoading(false)
+    }
+  }
+
+  // 경력 데이터 수정/삭제 함수 수정
+  const handleCareerAction = async (action: 'edit' | 'delete', career: CareerEntry) => {
+    try {
+      if (action === 'edit') {
+        setSelectedCareer(career)
+        setShowCareerModal(true)
+      } else if (action === 'delete') {
+        if (confirm('정말 삭제하시겠습니까?')) {
+          // 연결된 데이터인지 확인
+          const isLinked = career.is_linked || false
+          
+          const response = await fetch('/api/careers', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              careerId: career.id,
+              userId: profile.id,
+              originalOwnerId: isLinked ? career.user_id : null
+            })
+          })
+
+          if (response.ok) {
+            setMessage(isLinked ? '연결된 경력이 삭제되었습니다.' : '경력이 삭제되었습니다.')
+            fetchCareers()
+          } else {
+            const error = await response.json()
+            setMessage(error.error || '삭제에 실패했습니다.')
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Career action error:', error)
+      setMessage('작업에 실패했습니다.')
+    }
+  }
+
+  // 경력 데이터 저장 함수 수정
+  const handleCareerSave = async (careerData: any) => {
+    try {
+      const isLinked = selectedCareer?.is_linked || false
+      const originalOwnerId = isLinked ? selectedCareer?.user_id : null
+      
+      const response = await fetch('/api/careers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: profile.id,
+          careerData: {
+            ...careerData,
+            id: selectedCareer?.id
+          },
+          originalOwnerId
+        })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setMessage(result.message || '경력이 저장되었습니다.')
+        setShowCareerModal(false)
+        setSelectedCareer(null)
+        fetchCareers()
+      } else {
+        const error = await response.json()
+        setMessage(error.error || '저장에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Career save error:', error)
+      setMessage('저장에 실패했습니다.')
     }
   }
 
@@ -674,102 +827,54 @@ choreo,"New is Now - NouerA","안무 제작",,https://www.youtube.com/watch?v=nf
           </Card>
         ) : (
           careers.map((career) => (
-            <Card key={career.id}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
+            <Card key={career.id} className="mb-4">
+              <CardHeader>
+                <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <Badge className={getCategoryColor(career.category)}>
-                        {getCategoryLabel(career.category)}
-                      </Badge>
-                      {career.is_featured && (
-                        <Badge className="bg-yellow-100 text-yellow-800">
-                          <Star className="w-3 h-3 mr-1" />
-                          대표작
+                    <CardTitle className="text-lg font-semibold">
+                      {career.title}
+                      {career.is_linked && (
+                        <Badge className="ml-2 bg-blue-100 text-blue-800">
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          연결됨
                         </Badge>
                       )}
-                    </div>
-                    
-                    <h3 className="text-lg font-semibold text-zinc-900 mb-2">
-                      {career.title}
-                    </h3>
-                    
-                    {career.description && (
-                      <p className="text-zinc-600 mb-3">
-                        {career.description}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center space-x-4 text-sm text-zinc-500">
-                      {career.country && (
-                        <span className="flex items-center">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          {career.country}
-                        </span>
-                      )}
-                      {career.date_type === 'single' && career.single_date && (
-                        <span className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          {formatDate(career.single_date)}
-                        </span>
-                      )}
-                      {career.date_type !== 'single' && career.start_date && (
-                        <span className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          {formatDate(career.start_date)}
-                          {career.end_date && ` ~ ${formatDate(career.end_date)}`}
-                        </span>
-                      )}
-                    </div>
-                    
-                    {(career.video_url || career.poster_url) && (
-                      <div className="mt-3">
-                        {career.video_url && (
-                          <a
-                            href={career.video_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center text-blue-600 hover:underline mr-4"
-                          >
-                            <ExternalLink className="w-4 h-4 mr-1" />
-                            영상 보기
-                          </a>
-                        )}
-                        {career.poster_url && (
-                          <a
-                            href={career.poster_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center text-blue-600 hover:underline"
-                          >
-                            <ExternalLink className="w-4 h-4 mr-1" />
-                            포스터 보기
-                          </a>
-                        )}
-                      </div>
-                    )}
+                    </CardTitle>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {career.category} • {career.country}
+                    </p>
                   </div>
-                  
-                  <div className="flex space-x-2 ml-4">
+                  <div className="flex space-x-2">
                     <Button
-                      onClick={() => handleEdit(career)}
                       variant="outline"
                       size="sm"
-                      className="flex items-center space-x-1"
+                      onClick={() => handleCareerAction('edit', career)}
                     >
                       <Edit className="w-4 h-4" />
-                      <span>수정</span>
                     </Button>
                     <Button
-                      onClick={() => handleDelete(career.id)}
                       variant="outline"
                       size="sm"
-                      className="flex items-center space-x-1 text-red-600 hover:text-red-700"
+                      onClick={() => handleCareerAction('delete', career)}
                     >
-                      <Trash2 className="w-4 h-4" />
-                      <span>삭제</span>
+                      <Trash className="w-4 h-4" />
                     </Button>
                   </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {career.description && (
+                  <p className="text-gray-700 mb-3">{career.description}</p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {career.start_date && career.end_date && (
+                    <Badge variant="secondary">
+                      {new Date(career.start_date).toLocaleDateString()} - {new Date(career.end_date).toLocaleDateString()}
+                    </Badge>
+                  )}
+                  {career.is_featured && (
+                    <Badge variant="default">주요 프로젝트</Badge>
+                  )}
                 </div>
               </CardContent>
             </Card>

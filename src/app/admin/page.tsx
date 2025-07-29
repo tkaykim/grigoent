@@ -16,6 +16,9 @@ import { toast } from 'sonner'
 import Papa from 'papaparse';
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger, TabsContent as UITabsContent } from '@/components/ui/tabs';
 import { SEOSettingsManager } from '@/components/dashboard/SEOSettingsManager';
+import { AlertTriangle, Users, UserCheck, FileText, Link } from 'lucide-react'
+import { ClaimRequestModal } from '@/components/proposals/ClaimRequestModal'
+import { DirectLinkModal } from '@/components/proposals/DirectLinkModal'
 
 export default function AdminPage() {
   const { user, profile, loading } = useAuth()
@@ -41,6 +44,9 @@ export default function AdminPage() {
   const [userSort, setUserSort] = useState<'created_at'|'name'>('created_at');
   const [userSortDir, setUserSortDir] = useState<'asc'|'desc'>('desc');
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  // 직접 연동 기능 상태
+  const [isDirectLinkModalOpen, setIsDirectLinkModalOpen] = useState(false);
+  const [selectedUserForLink, setSelectedUserForLink] = useState<User | null>(null);
   const handleSelectUser = (id: string, checked: boolean) => {
     setSelectedUserIds(prev => checked ? [...prev, id] : prev.filter(uid => uid !== id));
   };
@@ -821,7 +827,7 @@ export default function AdminPage() {
           </div>
 
           <Tabs defaultValue="pending" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="pending">
                 승인 대기 ({pendingUsers.length})
               </TabsTrigger>
@@ -830,6 +836,9 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger value="teams">
                 전체 팀 ({allTeams.length})
+              </TabsTrigger>
+              <TabsTrigger value="claims">
+                연결 요청
               </TabsTrigger>
               <TabsTrigger value="seo">
                 SEO 설정
@@ -1025,6 +1034,10 @@ export default function AdminPage() {
                                     toast.success('삭제됨');
                                   }
                                 }}>삭제</Button>
+                                <Button size="sm" variant="default" onClick={() => {
+                                  setSelectedUserForLink(user);
+                                  setIsDirectLinkModalOpen(true);
+                                }}>연동</Button>
                               </td>
                             </tr>
                           ))}
@@ -1156,6 +1169,36 @@ export default function AdminPage() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="claims">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserCheck className="w-5 h-5" />
+                    연결 요청 관리
+                  </CardTitle>
+                  <p className="text-sm text-zinc-600">
+                    신규 회원의 기존 댄서 정보 연결 요청을 관리하세요
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <FileText className="w-16 h-16 text-zinc-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-zinc-900 mb-2">연결 요청 관리</h3>
+                    <p className="text-zinc-600 mb-6">
+                      신규 회원이 기존 댄서 정보에 연결을 요청한 내역을 확인하고 관리할 수 있습니다.
+                    </p>
+                    <Button 
+                      onClick={() => router.push('/admin/claims')}
+                      className="flex items-center gap-2"
+                    >
+                      <Users className="w-4 h-4" />
+                      연결 요청 관리 페이지로 이동
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="seo">
               <SEOSettingsManager />
             </TabsContent>
@@ -1163,6 +1206,17 @@ export default function AdminPage() {
         </div>
       </main>
       <Footer />
+      
+      {/* 직접 연동 모달 */}
+      <DirectLinkModal
+        isOpen={isDirectLinkModalOpen}
+        onClose={() => setIsDirectLinkModalOpen(false)}
+        onSuccess={() => {
+          // 성공 시 사용자 목록 새로고침
+          fetchAllUsers()
+        }}
+        selectedUser={selectedUserForLink}
+      />
     </div>
   )
 } 

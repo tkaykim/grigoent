@@ -19,6 +19,7 @@ import { ProfileImageUpload } from '@/components/ui/profile-image-upload';
 import { toast } from 'sonner';
 import { useRef } from 'react';
 import { X as CloseIcon } from 'lucide-react';
+import { TeamProposalButton } from '@/components/proposals/TeamProposalButton'
 
 export default function TeamDetailPage() {
   const params = useParams();
@@ -493,6 +494,13 @@ user_id,멤버이름,예시 공연,무대 공연,performance,미국,single,,,202
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  {/* 팀 제안 버튼 추가 */}
+                  <TeamProposalButton
+                    teamId={team.id}
+                    teamName={team.name}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  />
+                  
                   {(isLeader || isAdmin) && (
                     <>
                       <Button variant="default" onClick={() => setInviteModalOpen(true)}>

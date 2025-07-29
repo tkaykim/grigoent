@@ -14,11 +14,16 @@ export interface User {
   twitter_url?: string
   youtube_url?: string
   created_at: string
+  is_hidden?: boolean
+  claim_user_id?: string
+  claim_status?: 'pending' | 'approved' | 'rejected' | 'completed'
+  claim_reason?: string
 }
 
 export interface CareerEntry {
   id: string;
   user_id: string;
+  linked_user_id?: string; // 연동된 사용자 ID
   category: string;
   title: string;
   description?: string;
@@ -33,6 +38,41 @@ export interface CareerEntry {
   // 추가
   date_type?: 'single' | 'range';
   single_date?: string;
+  // 새로운 연결 시스템
+  is_linked?: boolean; // 연결된 데이터인지 여부
+}
+
+// 새로운 연결 시스템 타입들
+export interface UserLink {
+  id: string;
+  primary_user_id: string;
+  linked_user_id: string;
+  link_type: 'career' | 'profile' | 'proposals' | 'teams' | 'all';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DataAccessPermission {
+  id: string;
+  user_id: string;
+  data_type: 'career' | 'profile' | 'proposals' | 'teams';
+  original_owner_id: string;
+  access_level: 'read' | 'write' | 'admin';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConnectionStatus {
+  id: string;
+  requester_id: string;
+  target_user_id: string;
+  status: 'pending' | 'approved' | 'rejected' | 'active' | 'inactive';
+  connection_type: 'career' | 'profile' | 'proposals' | 'teams' | 'all';
+  reason?: string;
+  approved_by?: string;
+  approved_at?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Proposal {

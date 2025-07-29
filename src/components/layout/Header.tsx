@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Menu, X, Clock } from 'lucide-react'
 import { LanguageToggle } from '@/components/ui/LanguageToggle'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 export function Header() {
   const { user, profile, signOut } = useAuth()
@@ -64,12 +65,18 @@ export function Header() {
                     </Button>
                   </Link>
                 )}
+                <NotificationBell />
                 <div className="flex items-center space-x-2">
-                <Link href="/mypage">
-                  <Button variant="ghost" size="sm">
-                    {t('header.mypage')}
-                  </Button>
-                </Link>
+                  <Link href="/mypage">
+                    <Button variant="ghost" size="sm">
+                      {t('header.mypage')}
+                    </Button>
+                  </Link>
+                  <Link href="/proposals">
+                    <Button variant="ghost" size="sm">
+                      제안 관리
+                    </Button>
+                  </Link>
                   {isDancerPending && (
                     <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
                       <Clock className="w-3 h-3 mr-1" />
@@ -130,12 +137,20 @@ export function Header() {
                       </Button>
                     </Link>
                   )}
+                  <div className="flex items-center justify-center">
+                    <NotificationBell />
+                  </div>
                   <div className="flex items-center space-x-2">
                     <Link href="/mypage" className="flex-1">
-                    <Button variant="ghost" className="w-full justify-start" onClick={() => setIsMenuOpen(false)}>
-                      {t('header.mypage')}
-                    </Button>
-                  </Link>
+                      <Button variant="ghost" className="w-full justify-start" onClick={() => setIsMenuOpen(false)}>
+                        {t('header.mypage')}
+                      </Button>
+                    </Link>
+                    <Link href="/proposals" className="flex-1">
+                      <Button variant="ghost" className="w-full justify-start" onClick={() => setIsMenuOpen(false)}>
+                        제안 관리
+                      </Button>
+                    </Link>
                     {isDancerPending && (
                       <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
                         <Clock className="w-3 h-3 mr-1" />

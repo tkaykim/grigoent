@@ -9,22 +9,32 @@ import { DancerDashboard } from '@/components/dashboard/DancerDashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { User, Calendar, Award, Activity, Clock, AlertCircle } from 'lucide-react'
+import { User, Calendar, Award, Activity, Clock, AlertCircle, Link as LinkIcon, CheckCircle, XCircle } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { Team, TeamMember } from '@/lib/types'
 import { TeamCard } from '@/components/artists/TeamCard'
+import { ClaimRequestModal } from '@/components/proposals/ClaimRequestModal'
 
 export default function MyPage() {
   const { user, profile, loading } = useAuth()
   const [activeTab, setActiveTab] = useState('profile')
   const [myTeams, setMyTeams] = useState<{ team: Team; role: string }[]>([])
+  const [isClaimModalOpen, setIsClaimModalOpen] = useState(false)
 
   useEffect(() => {
     if (user && user.id) fetchMyTeams()
     // eslint-disable-next-line
   }, [user])
+
+  // 연동 상태 변경 감지 및 데이터 새로고침
+  useEffect(() => {
+    if (profile?.claim_status === 'approved') {
+      // 연동 승인된 경우 데이터 새로고침
+      fetchMyTeams()
+    }
+  }, [profile?.claim_status])
 
   const fetchMyTeams = async () => {
     if (!user?.id) return;
@@ -38,6 +48,46 @@ export default function MyPage() {
 
   // 댄서 승인 대기 상태 확인
   const isDancerPending = profile?.pending_type === 'dancer' && profile?.type === 'general'
+
+  // 연동 신청 상태 확인
+  const hasClaimRequest = profile?.claim_user_id && profile?.claim_status
+  const isClaimCompleted = profile?.claim_status === 'completed'
+
+  const getClaimStatusBadge = () => {
+    if (!hasClaimRequest && !isClaimCompleted) return null
+    
+    const status = profile?.claim_status
+    if (status === 'pending') {
+      return (
+        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+          <Clock className="w-3 h-3 mr-1" />
+          연동 신청 대기중
+        </Badge>
+      )
+    } else if (status === 'approved') {
+      return (
+        <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          연동 승인됨
+        </Badge>
+      )
+    } else if (status === 'rejected') {
+      return (
+        <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
+          <XCircle className="w-3 h-3 mr-1" />
+          연동 거절됨
+        </Badge>
+      )
+    } else if (status === 'completed') {
+      return (
+        <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          연동 완료
+        </Badge>
+      )
+    }
+    return null
+  }
 
   if (loading) {
     return (
@@ -150,6 +200,39 @@ export default function MyPage() {
             </div>
           )}
 
+          {/* 연동 신청 상태 알림 */}
+          {hasClaimRequest && (
+            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center space-x-3">
+                <LinkIcon className="w-5 h-5 text-blue-600" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-sm font-medium text-blue-800">
+                      기존 댄서 정보 연동 신청
+                    </h3>
+                    {getClaimStatusBadge()}
+                  </div>
+                  <p className="text-xs text-blue-700">
+                    {profile?.claim_status === 'pending' && '연동 신청이 접수되었습니다. 관리자 검토 후 결과를 알려드리겠습니다.'}
+                    {profile?.claim_status === 'approved' && '연동이 승인되었습니다. 프로필 정보, 경력 정보, 팀 멤버십, 제안 정보가 모두 병합되었습니다. 페이지를 새로고침하여 최신 정보를 확인하세요.'}
+                    {profile?.claim_status === 'rejected' && '연동 신청이 거절되었습니다. 다른 댄서 정보로 다시 신청하거나 새로 등록해주세요.'}
+                    {profile?.claim_status === 'completed' && '연동이 완료되었습니다. 기존 댄서 정보와 성공적으로 연결되었습니다.'}
+                  </p>
+                  {profile?.claim_status === 'approved' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.location.reload()}
+                      className="mt-2"
+                    >
+                      페이지 새로고침
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 통합된 프로필 관리 */}
           <Card className="mb-8">
             <CardHeader>
@@ -168,11 +251,34 @@ export default function MyPage() {
                       승인 대기
                     </Badge>
                   )}
+                  {getClaimStatusBadge()}
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <UserDashboard profile={profile} />
+              
+              {/* 연동 신청 버튼 */}
+              {(profile.type === 'general' || profile.type === 'dancer') && !hasClaimRequest && !isClaimCompleted && (
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-blue-900 mb-1">기존 댄서 정보 연동</h4>
+                      <p className="text-sm text-blue-700">
+                        기존에 등록된 댄서 정보가 있다면 연동하여 기존 경력과 정보를 유지할 수 있습니다.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setIsClaimModalOpen(true)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <LinkIcon className="w-4 h-4 mr-2" />
+                      연동 신청
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
               {/* 소속팀 버튼형 표시 */}
               {myTeams.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2 items-center">
@@ -258,6 +364,16 @@ export default function MyPage() {
         </div>
       </main>
       <Footer />
+      
+      {/* 연동 신청 모달 */}
+      <ClaimRequestModal
+        isOpen={isClaimModalOpen}
+        onClose={() => setIsClaimModalOpen(false)}
+        onSuccess={() => {
+          // 성공 시 페이지 새로고침하여 상태 업데이트
+          window.location.reload()
+        }}
+      />
     </div>
   )
 } 
