@@ -12,14 +12,17 @@ import Link from 'next/link'
 import { TeamCard } from '@/components/artists/TeamCard'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/contexts/AuthContext'
+import { ArtistOrderManager } from '@/components/artists/ArtistOrderManager'
 
 export default function ArtistsPage() {
+  const { profile } = useAuth()
   const [allArtists, setAllArtists] = useState<User[]>([])
   const [allTeams, setAllTeams] = useState<Team[]>([])
   const [artistTeamsMap, setArtistTeamsMap] = useState<Record<string, { name: string; name_en: string }[]>>({})
   const [loading, setLoading] = useState(true)
   const [retryCount, setRetryCount] = useState(0)
-  const [tab, setTab] = useState<'all' | 'artist' | 'team'>('all')
+  const [tab, setTab] = useState<'all' | 'artist' | 'team' | 'order'>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
@@ -57,7 +60,7 @@ export default function ArtistsPage() {
             // 아티스트별 소속팀 맵
             if (!artistTeamsMap[m.user_id]) artistTeamsMap[m.user_id] = []
             if (Array.isArray(m.team)) {
-              artistTeamsMap[m.user_id].push(...(m.team.map(t => ({ name: t.name, name_en: t.name_en })) as { name: string; name_en: string }[]))
+              artistTeamsMap[m.user_id].push(...(m.team.map((t: any) => ({ name: t.name, name_en: t.name_en })) as { name: string; name_en: string }[]))
             } else if (m.team) {
               artistTeamsMap[m.user_id].push({ name: m.team.name, name_en: m.team.name_en } as { name: string; name_en: string })
             }
@@ -95,6 +98,9 @@ export default function ArtistsPage() {
     )
   })
 
+  // 관리자용 순서 관리 탭 표시 여부
+  const isAdmin = profile?.type === 'admin'
+
   if (loading) {
     return (
       <div>
@@ -120,6 +126,19 @@ export default function ArtistsPage() {
               ))}
             </div>
           </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  // 순서 관리 탭이 선택된 경우
+  if (tab === 'order') {
+    return (
+      <div>
+        <Header />
+        <main className="pt-16 min-h-screen bg-white">
+          <ArtistOrderManager />
         </main>
         <Footer />
       </div>
@@ -163,6 +182,14 @@ export default function ArtistsPage() {
                   >
                     팀
                   </TabsTrigger>
+                  {isAdmin && (
+                    <TabsTrigger
+                      value="order"
+                      className="data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:bg-transparent data-[state=inactive]:text-white/60"
+                    >
+                      순서 관리
+                    </TabsTrigger>
+                  )}
                 </TabsList>
               </Tabs>
               <Link href="/teams/create">

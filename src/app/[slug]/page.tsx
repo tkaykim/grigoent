@@ -24,6 +24,7 @@ import { toast } from 'sonner'
 import { useRef } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
+import { CareerVideoModal } from '@/components/artists/CareerVideoModal'
 
 export default function ArtistDetailPage() {
   const params = useParams()
@@ -34,6 +35,11 @@ export default function ArtistDetailPage() {
   const [error, setError] = useState('')
   const [retryCount, setRetryCount] = useState(0)
   const [useFallback, setUseFallback] = useState(false)
+
+  // 영상 팝업 상태
+  const [videoModalOpen, setVideoModalOpen] = useState(false)
+  const [videoModalIndex, setVideoModalIndex] = useState(0)
+  const [videoModalCareers, setVideoModalCareers] = useState<CareerEntry[]>([])
 
   useEffect(() => {
     if (slug) {
@@ -567,6 +573,24 @@ export default function ArtistDetailPage() {
     { value: 'workshop', label: '워크샵' },
   ], []);
 
+  // 영상 팝업 열기
+  const handleOpenVideoModal = (career: CareerEntry, careers: CareerEntry[]) => {
+    const index = careers.findIndex(c => c.id === career.id)
+    setVideoModalCareers(careers)
+    setVideoModalIndex(index)
+    setVideoModalOpen(true)
+  }
+
+  // 영상 팝업 닫기
+  const handleCloseVideoModal = () => {
+    setVideoModalOpen(false)
+  }
+
+  // 영상 팝업 인덱스 변경
+  const handleVideoModalIndexChange = (index: number) => {
+    setVideoModalIndex(index)
+  }
+
   if (loading) {
     return (
       <div>
@@ -861,6 +885,7 @@ export default function ArtistDetailPage() {
                     onEdit={openCareerModal}
                     onDelete={handleCareerDelete}
                     disableActions={careerDeleteLoading}
+                    onCardClick={(career) => handleOpenVideoModal(career, featuredCareers)}
                   />
                 ))}
               </Carousel>
@@ -916,6 +941,7 @@ export default function ArtistDetailPage() {
                         onEdit={openCareerModal}
                         onDelete={handleCareerDelete}
                         disableActions={careerDeleteLoading}
+                        onCardClick={(career) => handleOpenVideoModal(career, categoryCareers)}
                       />
                     ))}
                   </Carousel>
@@ -1103,6 +1129,19 @@ export default function ArtistDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 영상 팝업 */}
+      {videoModalOpen && (
+        <CareerVideoModal
+          careers={videoModalCareers}
+          initialIndex={videoModalIndex}
+          onClose={handleCloseVideoModal}
+          onIndexChange={handleVideoModalIndexChange}
+          isAdmin={isAdmin}
+          onEdit={openCareerModal}
+          onDelete={handleCareerDelete}
+        />
       )}
     </div>
   )

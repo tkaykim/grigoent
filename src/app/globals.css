@@ -151,5 +151,28 @@
 
 /* 날짜 input 달력 아이콘을 검정색으로 보이게 (크롬/사파리 등) */
 input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1) brightness(0.2);
+  filter: invert(1);
+}
+
+/* 비디오 모달 z-index 설정 */
+.career-video-modal {
+  z-index: 9999 !important;
+}
+
+.career-video-modal iframe {
+  z-index: 10000 !important;
+}
+
+/* 인스타그램 임베드 스크롤바 숨기기 */
+.instagram-embed iframe {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.instagram-embed iframe::-webkit-scrollbar {
+  display: none !important;
+}
+
+.instagram-embed {
+  overflow: hidden !important;
 }

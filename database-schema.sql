@@ -109,6 +109,35 @@ CREATE POLICY "Users can update their own profile" ON users
 CREATE POLICY "Users can insert their own profile" ON users
   FOR INSERT WITH CHECK (auth.uid() = id);
 
+-- 관리자가 다른 사용자의 display_order를 업데이트할 수 있도록 정책 추가
+-- 기존 정책과 충돌을 피하기 위해 더 구체적인 조건 추가
+CREATE POLICY "Admins can update display_order" ON users
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE id = auth.uid() AND type = 'admin'
+    )
+  ) WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE id = auth.uid() AND type = 'admin'
+    )
+  );
+
+-- 또는 더 구체적으로 display_order만 업데이트할 수 있도록
+CREATE POLICY "Admins can update display_order only" ON users
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE id = auth.uid() AND type = 'admin'
+    )
+  ) WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE id = auth.uid() AND type = 'admin'
+    )
+  );
+
 -- career_entries 테이블 정책
 CREATE POLICY "Anyone can view career entries" ON career_entries
   FOR SELECT USING (true);

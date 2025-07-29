@@ -2,10 +2,12 @@
 
 import { CareerEntry } from '@/lib/types'
 import { getThumbnailFromUrl, isValidYouTubeUrl } from '@/lib/youtube'
+import { isValidInstagramUrl, getInstagramEmbedUrl } from '@/lib/instagram'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ExternalLink, Calendar, MapPin, Star } from 'lucide-react'
+import { ExternalLink, Calendar, MapPin, Star, Play } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 interface CareerCardProps {
   career: CareerEntry
@@ -15,9 +17,21 @@ interface CareerCardProps {
   onEdit?: (career: CareerEntry) => void;
   onDelete?: (career: CareerEntry) => void;
   disableActions?: boolean;
+  onCardClick?: (career: CareerEntry) => void;
 }
 
-export function CareerCard({ career, showDetails = true, className = '', isAdmin = false, onEdit, onDelete, disableActions = false }: CareerCardProps) {
+export function CareerCard({ 
+  career, 
+  showDetails = true, 
+  className = '', 
+  isAdmin = false, 
+  onEdit, 
+  onDelete, 
+  disableActions = false,
+  onCardClick
+}: CareerCardProps) {
+  const [thumbnail, setThumbnail] = useState<string | null>(null)
+
   const getCareerThumbnail = (career: CareerEntry) => {
     // 1. 포스터 URL이 있으면 우선 사용
     if (career.poster_url) {
@@ -29,8 +43,22 @@ export function CareerCard({ career, showDetails = true, className = '', isAdmin
       return getThumbnailFromUrl(career.video_url)
     }
     
+    // 3. 인스타그램 URL인 경우 썸네일을 표시하지 않음 (임베드 사용)
+    if (career.video_url && isValidInstagramUrl(career.video_url)) {
+      return null
+    }
+    
     return null
   }
+
+  useEffect(() => {
+    const loadThumbnail = () => {
+      const thumb = getCareerThumbnail(career)
+      setThumbnail(thumb)
+    }
+    
+    loadThumbnail()
+  }, [career])
 
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
@@ -58,10 +86,26 @@ export function CareerCard({ career, showDetails = true, className = '', isAdmin
     return new Date(dateString).toLocaleDateString('ko-KR')
   }
 
-  const thumbnail = getCareerThumbnail(career)
+  const hasVideo = career.video_url
+  const isInstagram = isValidInstagramUrl(career.video_url || '')
+  const instagramEmbedUrl = isInstagram ? getInstagramEmbedUrl(career.video_url || '') : null
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // 관리자 버튼 클릭 시에는 팝업 열지 않음
+    if ((e.target as HTMLElement).closest('button')) {
+      return
+    }
+    
+    if (hasVideo && onCardClick) {
+      onCardClick(career)
+    }
+  }
 
   return (
-    <Card className={`w-80 flex-shrink-0 hover:shadow-lg transition-all duration-300 group ${className}`}>
+    <Card 
+      className={`w-80 flex-shrink-0 hover:shadow-lg transition-all duration-300 group cursor-pointer ${className}`}
+      onClick={handleCardClick}
+    >
       {/* 썸네일 */}
       <div className="aspect-video bg-zinc-100 relative overflow-hidden">
         {thumbnail ? (
@@ -76,10 +120,44 @@ export function CareerCard({ career, showDetails = true, className = '', isAdmin
               if (fallback) fallback.style.display = 'flex'
             }}
           />
+        ) : isInstagram && instagramEmbedUrl ? (
+          <div className="relative w-full h-full overflow-hidden instagram-embed">
+            <iframe
+              src={`${instagramEmbedUrl}?hidecaption=true`}
+              className="w-full h-full"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={career.title}
+              style={{
+                transform: 'translateY(-300px)',
+                pointerEvents: 'none',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+              }}
+              onLoad={(e) => {
+                const iframe = e.target as HTMLIFrameElement;
+                if (iframe.contentWindow) {
+                  iframe.contentWindow.document.body.style.overflow = 'hidden';
+                  iframe.contentWindow.document.body.style.scrollbarWidth = 'none';
+                  iframe.contentWindow.document.body.style.msOverflowStyle = 'none';
+                }
+              }}
+            />
+          </div>
         ) : null}
-        <div className={`w-full h-full flex items-center justify-center text-zinc-400 ${thumbnail ? 'hidden' : ''}`}>
+        <div className={`w-full h-full flex items-center justify-center text-zinc-400 ${thumbnail || (isInstagram && instagramEmbedUrl) ? 'hidden' : ''}`}>
           <ExternalLink className="w-8 h-8" />
         </div>
+        
+        {/* 영상 재생 오버레이 */}
+        {hasVideo && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="bg-white/90 rounded-full p-3">
+              <Play className="w-6 h-6 text-black" />
+            </div>
+          </div>
+        )}
         
         {/* 배지들 */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
@@ -126,22 +204,14 @@ export function CareerCard({ career, showDetails = true, className = '', isAdmin
 
         {/* 액션 버튼들 */}
         <div className="flex gap-2 flex-wrap">
-          {career.video_url && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.open(career.video_url, '_blank')}
-              className="flex-1 text-xs"
-            >
-              <ExternalLink className="w-3 h-3 mr-1" />
-              영상 보기
-            </Button>
-          )}
           {career.poster_url && career.poster_url !== thumbnail && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(career.poster_url, '_blank')}
+              onClick={(e) => {
+                e.stopPropagation()
+                window.open(career.poster_url, '_blank')
+              }}
               className="flex-1 text-xs"
             >
               <ExternalLink className="w-3 h-3 mr-1" />
@@ -151,8 +221,28 @@ export function CareerCard({ career, showDetails = true, className = '', isAdmin
           {/* 관리자용 수정/삭제 버튼 */}
           {isAdmin && !disableActions && (
             <>
-              <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => onEdit?.(career)}>수정</Button>
-              <Button variant="destructive" size="sm" className="flex-1 text-xs" onClick={() => onDelete?.(career)}>삭제</Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1 text-xs" 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit?.(career)
+                }}
+              >
+                수정
+              </Button>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                className="flex-1 text-xs" 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete?.(career)
+                }}
+              >
+                삭제
+              </Button>
             </>
           )}
         </div>

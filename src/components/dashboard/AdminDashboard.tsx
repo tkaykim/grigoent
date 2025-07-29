@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase'
-import { Check, X, Eye } from 'lucide-react'
+import { Check, X, Eye, ArrowRight } from 'lucide-react'
+import { ArtistOrderManager } from '@/components/artists/ArtistOrderManager'
 
 interface AdminDashboardProps {
   pendingUsers: User[]
@@ -20,6 +21,7 @@ export function AdminDashboard({ pendingUsers, allUsers, onUserUpdate }: AdminDa
   const [loading, setLoading] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [displayOrder, setDisplayOrder] = useState<Record<string, number>>({})
+  const [showOrderManager, setShowOrderManager] = useState(false)
 
   const handleApprove = async (userId: string, pendingType: string) => {
     setLoading(userId)
@@ -97,6 +99,23 @@ export function AdminDashboard({ pendingUsers, allUsers, onUserUpdate }: AdminDa
     return labels[type] || type
   }
 
+  if (showOrderManager) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            onClick={() => setShowOrderManager(false)}
+          >
+            ← 대시보드로 돌아가기
+          </Button>
+          <h2 className="text-2xl font-bold">아티스트 순서 관리</h2>
+        </div>
+        <ArtistOrderManager />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {message && (
@@ -163,10 +182,52 @@ export function AdminDashboard({ pendingUsers, allUsers, onUserUpdate }: AdminDa
         </CardContent>
       </Card>
 
-      {/* 댄서 노출 순서 관리 */}
+      {/* 아티스트 순서 관리 */}
       <Card>
         <CardHeader>
-          <CardTitle>댄서 노출 순서 관리</CardTitle>
+          <CardTitle>아티스트 순서 관리</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-zinc-600">
+                드래그 앤 드롭으로 아티스트 순서를 변경할 수 있습니다.
+              </p>
+              <Button
+                onClick={() => setShowOrderManager(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                순서 관리하기
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+            
+            {/* 간단한 순서 미리보기 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {allUsers
+                .filter(user => user.type === 'dancer')
+                .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+                .slice(0, 6)
+                .map((user, index) => (
+                  <div key={user.id} className="p-3 border rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {user.display_order || index + 1}
+                      </Badge>
+                      <span className="font-medium">{user.name}</span>
+                    </div>
+                    <p className="text-sm text-zinc-600 mt-1">{user.name_en}</p>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 기존 수동 순서 관리 (간소화) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>수동 순서 관리</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
