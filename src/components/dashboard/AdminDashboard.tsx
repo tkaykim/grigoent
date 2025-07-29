@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase'
 import { Check, X, Eye, ArrowRight } from 'lucide-react'
-import { ArtistOrderManager } from '@/components/artists/ArtistOrderManager'
+import { ArtistTeamOrderManager } from '@/components/artists/ArtistTeamOrderManager'
 
 interface AdminDashboardProps {
   pendingUsers: User[]
@@ -111,7 +111,7 @@ export function AdminDashboard({ pendingUsers, allUsers, onUserUpdate }: AdminDa
           </Button>
           <h2 className="text-2xl font-bold">아티스트 순서 관리</h2>
         </div>
-        <ArtistOrderManager />
+        <ArtistTeamOrderManager />
       </div>
     )
   }

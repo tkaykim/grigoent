@@ -4,61 +4,122 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
-import { User } from '@/lib/types'
+import { User, Team } from '@/lib/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { User as UserIcon } from 'lucide-react'
+import { User as UserIcon, Users } from 'lucide-react'
+
+interface DisplayItem {
+  id: string
+  type: 'artist' | 'team'
+  data: User | Team
+  display_order: number
+}
 
 export function ArtistsSection() {
-  const [artists, setArtists] = useState<User[]>([])
+  const [items, setItems] = useState<DisplayItem[]>([])
   const [loading, setLoading] = useState(true)
   const [retryCount, setRetryCount] = useState(0)
-  // 더미 데이터 사용 여부 제거
   const { t, language } = useLanguage()
 
   useEffect(() => {
-    fetchArtistsWithTimeout()
+    fetchItemsWithTimeout()
   }, [])
 
-  const fetchArtistsWithTimeout = async () => {
+  const fetchItemsWithTimeout = async () => {
     if (retryCount >= 3) {
       setLoading(false)
       return
     }
 
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout')), 1000) // 1초 타임아웃으로 변경
+      setTimeout(() => reject(new Error('Timeout')), 1000)
     })
 
     try {
-      const dataPromise = supabase
-        .from('users')
+      // 통합 순서 테이블에서 데이터 가져오기
+      const { data: orderItems, error: orderError } = await supabase
+        .from('display_order_items')
         .select('*')
-        .eq('type', 'dancer')
         .order('display_order', { ascending: true })
-        .order('created_at', { ascending: true })
         .limit(8)
 
-      const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any
-
-      if (error) {
-        console.error('아티스트 로드 오류:', error)
-        throw error
+      if (orderError) {
+        console.error('순서 데이터 로드 오류:', orderError)
+        // 순서 테이블이 없으면 기존 방식으로 로드
+        await fetchWithLegacyMethod()
+        return
       }
 
-      if (data && data.length > 0) {
-        setArtists(data)
-        setLoading(false)
-        console.log('아티스트 로드 성공')
-      } else {
-        throw new Error('No data')
+      if (!orderItems || orderItems.length === 0) {
+        // 순서 테이블이 비어있으면 기존 방식으로 로드
+        await fetchWithLegacyMethod()
+        return
       }
+
+      // 아티스트와 팀 ID 분리
+      const artistIds = orderItems
+        .filter(item => item.item_type === 'artist')
+        .map(item => item.item_id)
+      
+      const teamIds = orderItems
+        .filter(item => item.item_type === 'team')
+        .map(item => item.item_id)
+
+      // 아티스트와 팀 데이터 가져오기
+      const [artistsResult, teamsResult] = await Promise.all([
+        supabase
+          .from('users')
+          .select('*')
+          .eq('type', 'dancer')
+          .in('id', artistIds),
+        supabase
+          .from('teams')
+          .select('*')
+          .eq('status', 'active')
+          .in('id', teamIds)
+      ])
+
+      if (artistsResult.error || teamsResult.error) {
+        console.error('데이터 로드 오류:', artistsResult.error || teamsResult.error)
+        await fetchWithLegacyMethod()
+        return
+      }
+
+      // 순서 테이블의 순서대로 아이템 구성
+      const allItems: DisplayItem[] = orderItems.map(orderItem => {
+        if (orderItem.item_type === 'artist') {
+          const artist = artistsResult.data?.find(a => a.id === orderItem.item_id)
+          if (artist) {
+            return {
+              id: artist.id,
+              type: 'artist' as const,
+              data: artist,
+              display_order: orderItem.display_order
+            }
+          }
+        } else if (orderItem.item_type === 'team') {
+          const team = teamsResult.data?.find(t => t.id === orderItem.item_id)
+          if (team) {
+            return {
+              id: team.id,
+              type: 'team' as const,
+              data: team,
+              display_order: orderItem.display_order
+            }
+          }
+        }
+        return null
+      }).filter(Boolean) as DisplayItem[]
+
+      setItems(allItems)
+      setLoading(false)
+      console.log('아티스트 & 팀 로드 성공')
     } catch (error) {
-      console.error(`아티스트 로드 실패 (시도 ${retryCount + 1}/3):`, error)
+      console.error(`아이템 로드 실패 (시도 ${retryCount + 1}/3):`, error)
       setRetryCount(prev => prev + 1)
       
-      // 1초 타임아웃 시 첫 번째 시도에서만 강제 리로드
       if (retryCount === 0) {
         console.log('1초 타임아웃 - 강제 리로드 실행')
         setTimeout(() => {
@@ -68,11 +129,85 @@ export function ArtistsSection() {
     }
   }
 
-  const getArtistName = (artist: User) => {
-    if (language === 'en' && artist.name_en) {
-      return artist.name_en
+  // 기존 방식으로 데이터 로드 (순서 테이블이 없을 때 사용)
+  const fetchWithLegacyMethod = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('type', 'dancer')
+        .order('display_order', { ascending: true })
+        .order('created_at', { ascending: true })
+        .limit(8)
+
+      if (error) {
+        console.error('아티스트 로드 오류:', error)
+        throw error
+      }
+
+      if (data && data.length > 0) {
+        const artistItems: DisplayItem[] = data.map((artist, index) => ({
+          id: artist.id,
+          type: 'artist' as const,
+          data: artist,
+          display_order: artist.display_order || index + 1
+        }))
+        setItems(artistItems)
+        setLoading(false)
+        console.log('기존 방식 아티스트 로드 성공')
+      } else {
+        throw new Error('No data')
+      }
+    } catch (error) {
+      console.error('기존 방식 데이터 로드 오류:', error)
+      setLoading(false)
     }
-    return artist.name
+  }
+
+  const getItemName = (item: DisplayItem) => {
+    if (item.type === 'artist') {
+      const artist = item.data as User
+      if (language === 'en' && artist.name_en) {
+        return artist.name_en
+      }
+      return artist.name
+    } else {
+      const team = item.data as Team
+      if (language === 'en' && team.name_en) {
+        return team.name_en
+      }
+      return team.name
+    }
+  }
+
+  const getItemDescription = (item: DisplayItem) => {
+    if (item.type === 'artist') {
+      const artist = item.data as User
+      return artist.introduction
+    } else {
+      const team = item.data as Team
+      return team.description
+    }
+  }
+
+  const getItemImage = (item: DisplayItem) => {
+    if (item.type === 'artist') {
+      const artist = item.data as User
+      return artist.profile_image
+    } else {
+      const team = item.data as Team
+      return team.logo_url
+    }
+  }
+
+  const getItemSlug = (item: DisplayItem) => {
+    if (item.type === 'artist') {
+      const artist = item.data as User
+      return artist.slug
+    } else {
+      const team = item.data as Team
+      return team.slug
+    }
   }
 
   if (loading) {
@@ -117,8 +252,8 @@ export function ArtistsSection() {
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             {t('artists.description')}
           </p>
-          {/* 아티스트가 없을 때 안내 메시지 */}
-          {(!loading && artists.length === 0) && (
+          {/* 아이템이 없을 때 안내 메시지 */}
+          {(!loading && items.length === 0) && (
             <p className="text-sm text-gray-500 mt-4">
               {t('artists.empty') || '등록된 댄서가 없습니다.'}
             </p>
@@ -126,34 +261,38 @@ export function ArtistsSection() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-          {artists.map((artist) => (
-            <div key={artist.id} className="group bg-gray-50 rounded-lg p-4 md:p-6 hover:bg-gray-100 transition-all duration-300 transform hover:scale-105">
-              <Link href={`/${artist.slug}`} className="block">
+          {items.map((item) => (
+            <div key={item.id} className="group bg-gray-50 rounded-lg p-4 md:p-6 hover:bg-gray-100 transition-all duration-300 transform hover:scale-105">
+              <Link href={`/${getItemSlug(item)}`} className="block">
                 <div className="relative mb-4">
-                  {artist.profile_image ? (
+                  {getItemImage(item) ? (
                     <img
-                      src={artist.profile_image}
-                      alt={getArtistName(artist)}
+                      src={getItemImage(item)}
+                      alt={getItemName(item)}
                       className="w-full h-48 md:h-56 object-cover rounded-lg"
                       loading="lazy"
                       onError={(e) => {
-                        console.error('아티스트 이미지 로드 실패:', e)
+                        console.error('이미지 로드 실패:', e)
                         e.currentTarget.style.display = 'none'
                       }}
                     />
                   ) : (
                     <div className="w-full h-48 md:h-56 bg-gray-200 rounded-lg flex items-center justify-center">
-                      <UserIcon className="w-12 h-12 text-gray-400" />
+                      {item.type === 'artist' ? (
+                        <UserIcon className="w-12 h-12 text-gray-400" />
+                      ) : (
+                        <Users className="w-12 h-12 text-gray-400" />
+                      )}
                     </div>
                   )}
                   <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors duration-300 rounded-lg"></div>
                 </div>
                 <h3 className="text-lg md:text-xl font-bold mb-2 text-black group-hover:text-gray-700 transition-colors">
-                  {getArtistName(artist)}
+                  {getItemName(item)}
                 </h3>
-                {artist.introduction && (
+                {getItemDescription(item) && (
                   <p className="text-sm text-gray-700 line-clamp-2">
-                    {artist.introduction}
+                    {getItemDescription(item)}
                   </p>
                 )}
               </Link>
