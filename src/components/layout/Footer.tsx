@@ -51,7 +51,7 @@ export function Footer() {
             <ul className="space-y-2 text-zinc-300">
               <li>Email: {t('footer.contact.email')}</li>
               <li>Phone: {t('footer.contact.phone')}</li>
-              <li>Address: {t('footer.contact.address')}</li>
+              <li>{t('footer.contact.address2')}</li>
             </ul>
           </div>
         </div>

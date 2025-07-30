@@ -19,7 +19,7 @@ export function GeneralProposalSection() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto">
           <Card className="text-center hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">

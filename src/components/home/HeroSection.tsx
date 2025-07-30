@@ -71,7 +71,7 @@ export function HeroSection() {
   }, [])
 
   return (
-    <section className="relative h-screen flex items-center justify-center overflow-hidden">
+    <section className="relative h-[66.67vh] flex items-center justify-center overflow-hidden">
       {/* YouTube 비디오 배경 */}
       <div className="absolute inset-0 w-full h-full">
         <div
@@ -98,22 +98,22 @@ export function HeroSection() {
         <div className="space-y-2">
           {/* 메인 텍스트 - 이미지와 동일한 스타일 */}
           <div className="space-y-1">
-            <h1 className="text-7xl md:text-9xl font-black tracking-tight uppercase text-white font-space-grotesk leading-tight">
+            <h1 className="text-5xl md:text-7xl font-black tracking-tight uppercase text-white font-space-grotesk leading-tight">
               {t('hero.main1')}
             </h1>
-            <h1 className="text-6xl md:text-8xl font-black tracking-tight uppercase text-white font-space-grotesk leading-tight">
+            <h1 className="text-4xl md:text-6xl font-black tracking-tight uppercase text-white font-space-grotesk leading-tight">
               {t('hero.main2')}
             </h1>
-            <h1 className="text-7xl md:text-9xl font-black tracking-tight uppercase text-white font-space-grotesk leading-tight">
+            <h1 className="text-5xl md:text-7xl font-black tracking-tight uppercase text-white font-space-grotesk leading-tight">
               {t('hero.main3')}
             </h1>
           </div>
 
           {/* 구분선 - 더 과감한 스타일 */}
-          <div className="w-40 h-0.5 bg-white/80 mx-auto my-8" />
+          <div className="w-32 h-0.5 bg-white/80 mx-auto my-6" />
 
           {/* 보조 텍스트 - 깔끔한 폰트 */}
-          <p className="text-lg md:text-xl font-medium tracking-[0.15em] whitespace-pre-line text-white/80 font-outfit">
+          <p className="text-sm md:text-lg font-medium tracking-[0.15em] whitespace-pre-line text-white/80 font-outfit">
             {t('hero.subtitle')}
           </p>
         </div>

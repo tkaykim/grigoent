@@ -112,10 +112,7 @@ export function ContactSection() {
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">{t('contact.address')}</h4>
-                  <p className="text-zinc-300">
-                    서울특별시 마포구 성지3길 55, 3층<br />
-                    (주) 그리고 엔터테인먼트
-                  </p>
+                  <p className="text-zinc-300">{t('contact.company')}</p>
                 </div>
               </div>
 
