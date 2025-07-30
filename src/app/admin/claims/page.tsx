@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { 
   Users, 
-  User, 
+  User as UserIcon, 
   CheckCircle, 
   XCircle, 
   Clock, 
@@ -308,7 +308,7 @@ export default function AdminClaimsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <User className="w-5 h-5" />
+                    <UserIcon className="w-5 h-5" />
                     신규 회원 정보
                   </CardTitle>
                 </CardHeader>

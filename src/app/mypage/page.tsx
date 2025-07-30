@@ -9,7 +9,7 @@ import { DancerDashboard } from '@/components/dashboard/DancerDashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { User, Calendar, Award, Activity, Clock, AlertCircle, Link as LinkIcon, CheckCircle, XCircle } from 'lucide-react'
+import { User as UserIcon, Calendar, Award, Activity, Clock, AlertCircle, Link as LinkIcon, CheckCircle, XCircle } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
@@ -238,7 +238,7 @@ export default function MyPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <User className="w-5 h-5" />
+                  <UserIcon className="w-5 h-5" />
                   <CardTitle>프로필 관리</CardTitle>
                 </div>
                 <div className="flex items-center space-x-2">
