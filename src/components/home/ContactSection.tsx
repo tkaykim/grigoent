@@ -36,7 +36,7 @@ export function ContactSection() {
     try {
       // 필수 필드 검증
       if (!formData.name || !formData.contact || !formData.inquiry) {
-        toast.error('모든 항목을 입력해주세요.')
+        toast.error(t('contact.form.error.required'))
         return
       }
 
@@ -45,7 +45,7 @@ export function ContactSection() {
       const phoneRegex = /^[0-9+\-\s()]+$/
       
       if (!emailRegex.test(formData.contact) && !phoneRegex.test(formData.contact)) {
-        toast.error('올바른 이메일 또는 전화번호를 입력해주세요.')
+        toast.error(t('contact.form.error.invalid'))
         return
       }
 
@@ -69,10 +69,10 @@ export function ContactSection() {
       })
 
       if (!response.ok) {
-        throw new Error('문의 전송에 실패했습니다.')
+        throw new Error(t('contact.form.error.submission'))
       }
 
-      toast.success('문의가 성공적으로 전송되었습니다! 빠른 시일 내에 연락드리겠습니다.')
+      toast.success(t('contact.form.success'))
       
       // 폼 초기화
       setFormData({
@@ -83,7 +83,7 @@ export function ContactSection() {
 
     } catch (error) {
       console.error('Contact form error:', error)
-      toast.error('문의 전송 중 오류가 발생했습니다. 다시 시도해주세요.')
+      toast.error(t('contact.form.error.general'))
     } finally {
       setLoading(false)
     }
@@ -160,7 +160,7 @@ export function ContactSection() {
 
           {/* 간단한 문의 폼 */}
           <div className="lg:col-span-2">
-            <h3 className="text-2xl font-semibold mb-6">간단한 문의</h3>
+            <h3 className="text-2xl font-semibold mb-6">{t('contact.form.title')}</h3>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* 기본 정보 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -169,7 +169,7 @@ export function ContactSection() {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  placeholder="이름 *"
+                  placeholder={t('contact.form.name')}
                   className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-zinc-500"
                   required
                 />
@@ -178,7 +178,7 @@ export function ContactSection() {
                   name="contact"
                   value={formData.contact}
                   onChange={handleInputChange}
-                  placeholder="이메일 또는 전화번호 *"
+                  placeholder={t('contact.form.contact')}
                   className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-zinc-500"
                   required
                 />
@@ -189,7 +189,7 @@ export function ContactSection() {
                 name="inquiry"
                 value={formData.inquiry}
                 onChange={handleInputChange}
-                placeholder="문의사항을 간단히 작성해주세요 *"
+                placeholder={t('contact.form.inquiry')}
                 rows={6}
                 className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-zinc-500 resize-none"
                 required
@@ -204,12 +204,12 @@ export function ContactSection() {
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div>
-                    <span>전송 중...</span>
+                    <span>{t('contact.form.sending')}</span>
                   </>
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    <span>문의 보내기</span>
+                    <span>{t('contact.form.send')}</span>
                   </>
                 )}
               </Button>

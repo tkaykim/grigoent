@@ -7,8 +7,10 @@ import { Badge } from '@/components/ui/badge'
 import { User, LogOut, LogIn } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export function LoginStatus() {
+  const { t } = useLanguage()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -42,14 +44,14 @@ export function LoginStatus() {
     try {
       const { error } = await supabase.auth.signOut()
       if (error) {
-        toast.error('로그아웃 중 오류가 발생했습니다.')
+        toast.error(t('auth.login.status.error.signout'))
       } else {
-        toast.success('로그아웃되었습니다.')
+        toast.success(t('auth.login.status.success.signout'))
         setUser(null)
       }
     } catch (error) {
       console.error('Sign out error:', error)
-      toast.error('로그아웃 중 오류가 발생했습니다.')
+      toast.error(t('auth.login.status.error.signout'))
     }
   }
 
@@ -75,23 +77,23 @@ export function LoginStatus() {
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <User className="w-5 h-5" />
-          <span>로그인 상태</span>
+          <span>{t('auth.login.status.title')}</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {user ? (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">이메일:</span>
+              <span className="text-sm text-gray-600">{t('auth.login.status.email')}</span>
               <span className="text-sm font-medium">{user.email}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">사용자 ID:</span>
+              <span className="text-sm text-gray-600">{t('auth.login.status.userid')}</span>
               <span className="text-xs font-mono text-gray-500">{user.id.slice(0, 8)}...</span>
             </div>
             <div className="flex items-center space-x-2">
               <Badge variant="default" className="bg-green-600">
-                로그인됨
+                {t('auth.login.status.logged.in')}
               </Badge>
             </div>
             <Button
@@ -101,25 +103,25 @@ export function LoginStatus() {
               className="w-full"
             >
               <LogOut className="w-4 h-4 mr-2" />
-              로그아웃
+              {t('auth.login.status.signout')}
             </Button>
           </div>
         ) : (
           <div className="space-y-3">
             <div className="text-center">
               <Badge variant="secondary" className="bg-gray-600">
-                로그인되지 않음
+                {t('auth.login.status.logged.out')}
               </Badge>
             </div>
             <p className="text-sm text-gray-600 text-center">
-              섭외 제안을 보내려면 로그인이 필요합니다.
+              {t('auth.login.status.require.login')}
             </p>
             <Button
               onClick={handleSignIn}
               className="w-full"
             >
               <LogIn className="w-4 h-4 mr-2" />
-              로그인하기
+              {t('auth.login.status.signin')}
             </Button>
           </div>
         )}

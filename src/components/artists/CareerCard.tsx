@@ -135,14 +135,6 @@ export function CareerCard({
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none'
               }}
-              onLoad={(e) => {
-                const iframe = e.target as HTMLIFrameElement;
-                if (iframe.contentWindow) {
-                  iframe.contentWindow.document.body.style.overflow = 'hidden';
-                  iframe.contentWindow.document.body.style.scrollbarWidth = 'none';
-                  iframe.contentWindow.document.body.style.msOverflowStyle = 'none';
-                }
-              }}
             />
           </div>
         ) : null}

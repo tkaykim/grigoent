@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// 경력 데이터 생성/수정 (연결된 데이터도 수정 가능)
+// 경력 데이터 생성/수정 (연결된 데이터는 복사하여 새로 생성)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -125,7 +125,8 @@ export async function POST(request: NextRequest) {
 
       if (permission.access_level === 'write' || permission.access_level === 'admin') {
         canModify = true
-        targetUserId = originalOwnerId // 원본 소유자의 데이터 수정
+        // 연결된 데이터는 원본을 수정하지 않고 새로운 경력으로 생성
+        targetUserId = userId // 수정자가 새로운 소유자가 됨
       }
     } else {
       // 자신의 데이터 수정
@@ -160,11 +161,85 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       career,
-      message: originalOwnerId ? '연결된 경력 데이터가 수정되었습니다.' : '경력 데이터가 저장되었습니다.'
+      message: originalOwnerId ? '연결된 경력 데이터가 복사되어 새로운 경력으로 생성되었습니다.' : '경력 데이터가 저장되었습니다.'
     })
 
   } catch (error) {
     console.error('Career save error:', error)
     return NextResponse.json({ error: '경력 데이터 저장에 실패했습니다.' }, { status: 500 })
+  }
+} 
+
+// 경력 데이터 삭제 (연결된 데이터는 원본 보호)
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { 
+      careerId, 
+      userId, 
+      originalOwnerId = null 
+    } = body
+
+    if (!careerId || !userId) {
+      return NextResponse.json({ error: '필수 데이터가 누락되었습니다.' }, { status: 400 })
+    }
+
+    // 권한 확인
+    let canDelete = false
+
+    if (originalOwnerId) {
+      // 연결된 데이터 삭제 시 권한 확인
+      const { data: permission, error: permissionError } = await supabase
+        .from('data_access_permissions')
+        .select('access_level')
+        .eq('user_id', userId)
+        .eq('original_owner_id', originalOwnerId)
+        .eq('data_type', 'career')
+        .single()
+
+      if (permissionError || !permission) {
+        return NextResponse.json({ error: '삭제 권한이 없습니다.' }, { status: 403 })
+      }
+
+      if (permission.access_level === 'admin') {
+        canDelete = true
+        // 관리자 권한만 원본 데이터 삭제 가능
+      } else {
+        // 일반 사용자는 원본 데이터 삭제 불가
+        return NextResponse.json({ error: '연결된 경력 데이터는 삭제할 수 없습니다. 원본 소유자에게 문의하세요.' }, { status: 403 })
+      }
+    } else {
+      // 자신의 데이터 삭제
+      canDelete = true
+    }
+
+    if (!canDelete) {
+      return NextResponse.json({ error: '삭제 권한이 없습니다.' }, { status: 403 })
+    }
+
+    // 경력 데이터 삭제
+    const { error } = await supabase
+      .from('career_entries')
+      .delete()
+      .eq('id', careerId)
+
+    if (error) {
+      console.error('Career delete error:', error)
+      return NextResponse.json({ error: '경력 데이터 삭제에 실패했습니다.' }, { status: 500 })
+    }
+
+    console.log('Career deleted successfully:', {
+      careerId,
+      userId,
+      isLinked: !!originalOwnerId
+    })
+
+    return NextResponse.json({ 
+      message: originalOwnerId ? '연결된 경력 데이터가 삭제되었습니다.' : '경력 데이터가 삭제되었습니다.'
+    })
+
+  } catch (error) {
+    console.error('Career delete error:', error)
+    return NextResponse.json({ error: '경력 데이터 삭제에 실패했습니다.' }, { status: 500 })
   }
 } 

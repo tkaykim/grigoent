@@ -12,7 +12,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* 회사 정보 */}
           <div className="col-span-1 md:col-span-2">
-            <h3 className="text-lg font-semibold mb-4">(주) 그리고 엔터테인먼트</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('footer.company.name')}</h3>
             <p className="text-zinc-300 mb-4 whitespace-pre-line">
               {t('footer.description')}
             </p>
@@ -49,9 +49,9 @@ export function Footer() {
           <div>
             <h4 className="text-sm font-semibold mb-4">{t('footer.contact')}</h4>
             <ul className="space-y-2 text-zinc-300">
-              <li>Email: contact@grigoent.co.kr</li>
-              <li>Phone: +82) 02-6229-9229</li>
-              <li>Address: 서울특별시 마포구 성지3길 55, 3층</li>
+              <li>Email: {t('footer.contact.email')}</li>
+              <li>Phone: {t('footer.contact.phone')}</li>
+              <li>Address: {t('footer.contact.address')}</li>
             </ul>
           </div>
         </div>

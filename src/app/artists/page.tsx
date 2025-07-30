@@ -131,7 +131,9 @@ export default function ArtistsPage() {
       setArtistTeamsMap(artistTeamsMap)
     } catch (e) {
       setRetryCount(prev => prev + 1)
-      if (retryCount < 3) setTimeout(fetchAll, 1000)
+      if (retryCount + 1 >= 3) {
+        setLoading(false)
+      }
     } finally {
       setLoading(false)
     }
@@ -319,9 +321,11 @@ export default function ArtistsPage() {
                   )}
                 </TabsList>
               </Tabs>
-              <Link href="/teams/create">
-                <Button className="ml-2 bg-white text-black rounded-lg font-semibold hover:bg-zinc-100 border border-white/30 shadow-sm transition-all">팀 생성</Button>
-              </Link>
+              {profile?.type === 'admin' && (
+                <Link href="/teams/create">
+                  <Button className="ml-2 bg-white text-black rounded-lg font-semibold hover:bg-zinc-100 border border-white/30 shadow-sm transition-all">팀 생성</Button>
+                </Link>
+              )}
             </div>
             <input
               type="text"

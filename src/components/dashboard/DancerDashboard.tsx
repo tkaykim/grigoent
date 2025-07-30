@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,9 +19,15 @@ import {
   X as CloseIcon,
   Upload,
   FileText,
-  Trash
+  Trash,
+  Search,
+  ChevronDown,
+  ChevronRight,
+  Filter,
+  Play
 } from 'lucide-react'
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface DancerDashboardProps {
   profile: any
@@ -44,7 +50,18 @@ interface CareerEntry {
   updated_at?: string;
   date_type?: 'single' | 'range';
   single_date?: string;
-  is_linked?: boolean; // 연결된 데이터인지 여부
+  is_linked?: boolean;
+}
+
+interface YearGroup {
+  year: number;
+  categories: {
+    choreography: CareerEntry[];
+    performance: CareerEntry[];
+    advertisement: CareerEntry[];
+    tv: CareerEntry[];
+    workshop: CareerEntry[];
+  };
 }
 
 export function DancerDashboard({ profile }: DancerDashboardProps) {
@@ -59,6 +76,12 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
   const [isAddingCareer, setIsAddingCareer] = useState(false);
   const [isBulkUpload, setIsBulkUpload] = useState(false);
   const [editingCareer, setEditingCareer] = useState<CareerEntry | null>(null);
+  
+  // 새로운 상태들
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
   
   const [formData, setFormData] = useState({
     title: '',
@@ -80,11 +103,88 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
     }
   }, [profile])
 
+  // 경력의 연도 추출
+  const getCareerYear = (career: CareerEntry): number => {
+    if (career.date_type === 'single' && career.single_date) {
+      return new Date(career.single_date).getFullYear();
+    }
+    if (career.start_date) {
+      return new Date(career.start_date).getFullYear();
+    }
+    if (career.created_at) {
+      return new Date(career.created_at).getFullYear();
+    }
+    return new Date().getFullYear();
+  };
+
+  // 경력 데이터를 연도별, 카테고리별로 그룹화
+  const groupedCareers = useMemo(() => {
+    const filteredCareers = careers.filter(career => {
+      const matchesSearch = career.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (career.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || career.category === selectedCategory;
+      const matchesYear = selectedYear === 'all' || getCareerYear(career) === parseInt(selectedYear);
+      
+      return matchesSearch && matchesCategory && matchesYear;
+    });
+
+    const yearGroups: { [key: number]: YearGroup } = {};
+    
+    filteredCareers.forEach(career => {
+      const year = getCareerYear(career);
+      if (!yearGroups[year]) {
+        yearGroups[year] = {
+          year,
+          categories: {
+            choreography: [],
+            performance: [],
+            advertisement: [],
+            tv: [],
+            workshop: []
+          }
+        };
+      }
+      const categoryKey = career.category as 'choreography' | 'performance' | 'advertisement' | 'tv' | 'workshop';
+      yearGroups[year].categories[categoryKey].push(career);
+    });
+
+    // 연도별로 정렬 (최신 연도가 위로)
+    return Object.values(yearGroups).sort((a, b) => b.year - a.year);
+  }, [careers, searchQuery, selectedCategory, selectedYear]);
+
+  // 사용 가능한 연도 목록
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    careers.forEach(career => {
+      years.add(getCareerYear(career));
+    });
+    return Array.from(years).sort((a, b) => b - a);
+  }, [careers]);
+
+  // 사용 가능한 카테고리 목록
+  const availableCategories = useMemo(() => {
+    const categories = new Set<string>();
+    careers.forEach(career => {
+      categories.add(career.category);
+    });
+    return Array.from(categories);
+  }, [careers]);
+
+  // 연도 토글
+  const toggleYear = (year: number) => {
+    const newExpanded = new Set(expandedYears);
+    if (newExpanded.has(year)) {
+      newExpanded.delete(year);
+    } else {
+      newExpanded.add(year);
+    }
+    setExpandedYears(newExpanded);
+  };
+
   const fetchCareers = async () => {
     try {
       setLoading(true)
       
-      // 새로운 연결 시스템으로 경력 데이터 조회
       const response = await fetch(`/api/careers?userId=${profile.id}`)
       const data = await response.json()
       
@@ -122,10 +222,15 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
     return ''
   }
 
+  // YouTube URL에서 video ID 추출
+  const getYouTubeVideoId = (url: string): string | null => {
+    const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1]
+    return videoId || null
+  }
+
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     
-    // YouTube URL 입력시 자동으로 썸네일 생성
     if (field === 'video_url' && typeof value === 'string' && value.trim()) {
       if (isValidYouTubeUrl(value)) {
         const thumbnailUrl = getThumbnailFromUrl(value)
@@ -179,7 +284,6 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
       }
 
       if (editingCareer) {
-        // 수정 - 새로운 API 사용
         const response = await fetch('/api/careers', {
           method: 'POST',
           headers: {
@@ -201,7 +305,6 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
           throw new Error(error.error || '수정에 실패했습니다.')
         }
       } else {
-        // 새로 추가 - 새로운 API 사용
         const response = await fetch('/api/careers', {
           method: 'POST',
           headers: {
@@ -322,7 +425,6 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
       const line = lines[i].trim()
       if (!line) continue
       
-      // CSV 파싱 (쉼표로 구분, 따옴표 처리)
       const values = []
       let current = ''
       let inQuotes = false
@@ -338,12 +440,11 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
           current += char
         }
       }
-      values.push(current.trim()) // 마지막 값
+      values.push(current.trim())
       
       if (values.length >= 3) {
         const [type, title, detail, country = 'Korea', video_url = ''] = values
         
-        // 타입 매핑
         const categoryMap: Record<string, string> = {
           'choreo': 'choreography',
           'performance': 'performance',
@@ -359,7 +460,7 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
 
         careers.push({
           category: categoryMap[type.toLowerCase()] || 'choreography',
-          title: title.replace(/^"|"$/g, ''), // 따옴표 제거
+          title: title.replace(/^"|"$/g, ''),
           description: detail.replace(/^"|"$/g, ''),
           country: country.replace(/^"|"$/g, '') || 'Korea',
           video_url: cleanVideoUrl,
@@ -393,13 +494,11 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
         return
       }
 
-      // 경력 데이터 준비
       const careerData = careers.map(career => ({
         ...career,
         user_id: profile.id
       }))
 
-      // 대량 삽입 - 새로운 API 사용
       for (const career of careerData) {
         const response = await fetch('/api/careers', {
           method: 'POST',
@@ -430,7 +529,7 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
     }
   }
 
-  // 경력 데이터 수정/삭제 함수 수정
+  // 경력 데이터 수정/삭제 함수
   const handleCareerAction = async (action: 'edit' | 'delete', career: CareerEntry) => {
     try {
       if (action === 'edit') {
@@ -438,7 +537,6 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
         setShowCareerModal(true)
       } else if (action === 'delete') {
         if (confirm('정말 삭제하시겠습니까?')) {
-          // 연결된 데이터인지 확인
           const isLinked = career.is_linked || false
           
           const response = await fetch('/api/careers', {
@@ -468,7 +566,7 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
     }
   }
 
-  // 경력 데이터 저장 함수 수정
+  // 경력 데이터 저장 함수
   const handleCareerSave = async (careerData: any) => {
     try {
       const isLinked = selectedCareer?.is_linked || false
@@ -547,6 +645,51 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
             </Button>
           </div>
         )}
+      </div>
+
+      {/* 검색 및 필터 섹션 */}
+      <div className="space-y-4">
+        {/* 검색 */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            placeholder="경력 제목이나 설명으로 검색..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* 필터 */}
+        <div className="flex flex-wrap gap-2">
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="카테고리" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체 카테고리</SelectItem>
+              {availableCategories.map(category => (
+                <SelectItem key={category} value={category}>
+                  {getCategoryLabel(category)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="연도" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체 연도</SelectItem>
+              {availableYears.map(year => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}년
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* 경력 추가/수정 폼 */}
@@ -654,7 +797,6 @@ export function DancerDashboard({ profile }: DancerDashboardProps) {
                     placeholder="Korea"
                   />
                 </div>
-                {/* 날짜/기간 토글 + 날짜 입력 */}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 mb-1">
                     <Label className="mb-0">날짜</Label>
@@ -802,83 +944,174 @@ choreo,"New is Now - NouerA","안무 제작",,https://www.youtube.com/watch?v=nf
         </Card>
       )}
 
-      {/* 경력 목록 */}
+      {/* 연도별 아코디언 경력 목록 */}
       <div className="space-y-4">
-        {careers.length === 0 ? (
+        {groupedCareers.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
               <div className="text-zinc-400 mb-4">
                 <Plus className="w-12 h-12 mx-auto" />
               </div>
               <h3 className="text-lg font-semibold text-zinc-900 mb-2">
-                등록된 경력이 없습니다
+                {searchQuery || selectedCategory !== 'all' || selectedYear !== 'all' 
+                  ? '검색 결과가 없습니다' 
+                  : '등록된 경력이 없습니다'}
               </h3>
               <p className="text-zinc-600 mb-4">
-                첫 번째 경력을 추가해보세요!
+                {searchQuery || selectedCategory !== 'all' || selectedYear !== 'all'
+                  ? '검색 조건을 변경해보세요'
+                  : '첫 번째 경력을 추가해보세요!'}
               </p>
-              <Button
-                onClick={() => setIsAddingCareer(true)}
-                className="flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>경력 추가</span>
-              </Button>
+              {!searchQuery && selectedCategory === 'all' && selectedYear === 'all' && (
+                <Button
+                  onClick={() => setIsAddingCareer(true)}
+                  className="flex items-center space-x-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>경력 추가</span>
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
-          careers.map((career) => (
-            <Card key={career.id} className="mb-4">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg font-semibold">
-                      {career.title}
-                      {career.is_linked && (
-                        <Badge className="ml-2 bg-blue-100 text-blue-800">
-                          <ExternalLink className="w-3 h-3 mr-1" />
-                          연결됨
-                        </Badge>
-                      )}
-                    </CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {career.category} • {career.country}
-                    </p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCareerAction('edit', career)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCareerAction('delete', career)}
-                    >
-                      <Trash className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {career.description && (
-                  <p className="text-gray-700 mb-3">{career.description}</p>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  {career.start_date && career.end_date && (
+          groupedCareers.map((yearGroup) => {
+            const hasCareers = Object.values(yearGroup.categories).some(careers => careers.length > 0);
+            if (!hasCareers) return null;
+
+            return (
+              <div key={yearGroup.year} className="border-b border-zinc-200 last:border-b-0">
+                <button
+                  type="button"
+                  onClick={() => toggleYear(yearGroup.year)}
+                  className="flex justify-between items-center w-full p-4 text-left cursor-pointer focus:outline-none"
+                >
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg font-semibold">{yearGroup.year}년</span>
                     <Badge variant="secondary">
-                      {new Date(career.start_date).toLocaleDateString()} - {new Date(career.end_date).toLocaleDateString()}
+                      {Object.values(yearGroup.categories).reduce((sum, careers) => sum + careers.length, 0)}개
                     </Badge>
+                  </div>
+                  {expandedYears.has(yearGroup.year) ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4" />
                   )}
-                  {career.is_featured && (
-                    <Badge variant="default">주요 프로젝트</Badge>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                </button>
+                {expandedYears.has(yearGroup.year) && (
+                  <div className="p-4 space-y-4">
+                    {Object.entries(yearGroup.categories).map(([category, careers]) => {
+                      if (careers.length === 0) return null;
+                      
+                      return (
+                        <div key={category} className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <h4 className="font-medium text-zinc-900">
+                              {getCategoryLabel(category)}
+                            </h4>
+                            <Badge variant="outline" className={getCategoryColor(category)}>
+                              {careers.length}개
+                            </Badge>
+                          </div>
+                          <div className="space-y-2">
+                            {careers.map((career) => (
+                              <div 
+                                key={career.id} 
+                                className="group p-4 border border-zinc-200 rounded-lg hover:border-zinc-300 hover:bg-zinc-50 transition-all cursor-pointer"
+                                onClick={() => {
+                                  setSelectedCareer(career);
+                                  setShowCareerModal(true);
+                                }}
+                              >
+                                <div className="flex items-start space-x-4">
+                                  {/* 썸네일 */}
+                                  <div className="flex-shrink-0 w-20 h-20 bg-zinc-100 rounded-lg overflow-hidden">
+                                    {career.video_url && isValidYouTubeUrl(career.video_url) ? (
+                                      <img
+                                        src={`https://img.youtube.com/vi/${getYouTubeVideoId(career.video_url)}/mqdefault.jpg`}
+                                        alt={career.title}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center">
+                                        <Play className="w-6 h-6 text-zinc-400" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* 내용 */}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center space-x-2 mb-2">
+                                      <Badge className={getCategoryColor(category)}>
+                                        {getCategoryLabel(category)}
+                                      </Badge>
+                                      <h5 className="font-medium text-sm truncate">
+                                        {career.title}
+                                      </h5>
+                                      {career.is_featured && (
+                                        <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                                          <Star className="w-3 h-3 mr-1" />
+                                          대표작
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {career.description && (
+                                      <p className="text-xs text-zinc-600 line-clamp-2 mb-2">
+                                        {career.description}
+                                      </p>
+                                    )}
+                                    <div className="flex items-center space-x-2 text-xs text-zinc-500">
+                                      {career.start_date && career.end_date && (
+                                        <span className="flex items-center">
+                                          <Calendar className="w-3 h-3 mr-1" />
+                                          {formatDate(career.start_date)} - {formatDate(career.end_date)}
+                                        </span>
+                                      )}
+                                      {career.country && (
+                                        <span className="flex items-center">
+                                          <MapPin className="w-3 h-3 mr-1" />
+                                          {career.country}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* 액션 버튼 */}
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCareerAction('edit', career);
+                                      }}
+                                      className="h-6 w-6 p-0"
+                                    >
+                                      <Edit className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCareerAction('delete', career);
+                                      }}
+                                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                                    >
+                                      <Trash className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
 
@@ -891,6 +1124,115 @@ choreo,"New is Now - NouerA","안무 제작",,https://www.youtube.com/watch?v=nf
         }`}>
           {message}
         </div>
+      )}
+
+      {/* 경력 상세 모달 */}
+      {showCareerModal && selectedCareer && (
+        <Dialog open={showCareerModal} onOpenChange={setShowCareerModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <span>{selectedCareer.title}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCareerModal(false)}
+                  className="h-6 w-6 p-0"
+                >
+                  <CloseIcon className="w-4 h-4" />
+                </Button>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                {selectedCareer.video_url && isValidYouTubeUrl(selectedCareer.video_url) && (
+                  <div className="w-full max-w-2xl">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${getYouTubeVideoId(selectedCareer.video_url)}`}
+                      title={selectedCareer.title}
+                      className="w-full aspect-video rounded-lg shadow-lg"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                )}
+                {selectedCareer.video_url && !isValidYouTubeUrl(selectedCareer.video_url) && (
+                  <div className="w-full max-w-2xl aspect-video bg-zinc-100 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-zinc-600 mb-2">YouTube가 아닌 영상입니다</p>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open(selectedCareer.video_url, '_blank')}
+                      >
+                        새 탭에서 보기
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {!selectedCareer.video_url && (
+                  <div className="w-full max-w-2xl aspect-video bg-zinc-100 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <Play className="w-12 h-12 text-zinc-400 mx-auto mb-2" />
+                      <p className="text-zinc-600">영상이 없습니다</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg text-zinc-900">
+                  {selectedCareer.title}
+                </h3>
+                <p className="text-sm text-zinc-600">
+                  {selectedCareer.description}
+                </p>
+                <div className="flex items-center space-x-2 text-xs text-zinc-500">
+                  {selectedCareer.start_date && selectedCareer.end_date && (
+                    <span className="flex items-center">
+                      <Calendar className="w-3 h-3 mr-1" />
+                      {formatDate(selectedCareer.start_date)} - {formatDate(selectedCareer.end_date)}
+                    </span>
+                  )}
+                  {selectedCareer.country && (
+                    <span className="flex items-center">
+                      <MapPin className="w-3 h-3 mr-1" />
+                      {selectedCareer.country}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowCareerModal(false);
+                    setSelectedCareer(null);
+                  }}
+                >
+                  닫기
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowCareerModal(false);
+                    setSelectedCareer(null);
+                    handleEdit(selectedCareer);
+                  }}
+                >
+                  수정
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setShowCareerModal(false);
+                    setSelectedCareer(null);
+                    handleCareerAction('delete', selectedCareer);
+                  }}
+                >
+                  삭제
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )

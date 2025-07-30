@@ -70,16 +70,26 @@ const translations = {
     'contact.businesshours.weekday': '월-금: 9:00 AM - 6:00 PM',
     'contact.businesshours.weekend': '토-일: 10:00 AM - 4:00 PM',
     'contact.sendmessage': 'Send Message',
+    'contact.form.title': '문의하기',
     'contact.form.name': '이름',
     'contact.form.contact': '이메일 또는 전화번호',
     'contact.form.inquiry': '문의사항',
     'contact.form.send': '문의 보내기',
     'contact.form.sending': '전송 중...',
+    'contact.form.error.required': '모든 필드를 입력해주세요',
+    'contact.form.error.invalid': '올바른 이메일 또는 전화번호를 입력해주세요',
+    'contact.form.error.submission': '문의 제출에 실패했습니다',
+    'contact.form.success': '문의가 성공적으로 전송되었습니다',
+    'contact.form.error.general': '문의 전송 중 오류가 발생했습니다',
     
     // Footer
+    'footer.company.name': '(주) 그리고 엔터테인먼트',
     'footer.description': '글로벌 댄스 컴퍼니로, 안무제작부터 댄서섭외까지 모든 것을 담당합니다.\n최고의 안무가들과 댄서들을 연결하여 세계적인 공연을 만들어갑니다.',
     'footer.quicklinks': 'Quick Links',
     'footer.contact': 'Contact',
+    'footer.contact.email': 'contact@grigoent.co.kr',
+    'footer.contact.phone': '+82) 02-6229-9229',
+    'footer.contact.address': '서울특별시 강남구',
     'footer.copyright': '© 2024 (주) 그리고 엔터테인먼트. All rights reserved.',
     
     // Proposal
@@ -96,6 +106,19 @@ const translations = {
     'proposal.anonymous.email': '이메일',
     'proposal.anonymous.phone': '전화번호',
     'proposal.anonymous.submit': '익명으로 제안하기',
+    
+    // General Proposal Section
+    'proposal.general.title': '프로젝트 제안',
+    'proposal.general.subtitle': '프로젝트 유형에 따라 적절한 제안 방법을 선택하세요',
+    'proposal.general.individual.title': '개인 댄서',
+    'proposal.general.individual.desc': '개인 댄서와의 협업을 원하시는 경우',
+    'proposal.general.individual.button': '댄서 찾기',
+    'proposal.general.team.title': '댄스 팀',
+    'proposal.general.team.desc': '댄스 팀과의 협업을 원하시는 경우',
+    'proposal.general.team.button': '팀 찾기',
+    'proposal.general.general.title': '일반 제안',
+    'proposal.general.general.desc': '기타 프로젝트 제안을 원하시는 경우',
+    'proposal.general.general.button': '제안하기',
     
     // Common
     'common.loading': '로딩 중...',
@@ -158,16 +181,26 @@ const translations = {
     'contact.businesshours.weekday': 'Mon-Fri: 9:00 AM - 6:00 PM',
     'contact.businesshours.weekend': 'Sat-Sun: 10:00 AM - 4:00 PM',
     'contact.sendmessage': 'Send Message',
+    'contact.form.title': 'Contact Us',
     'contact.form.name': 'Name',
     'contact.form.contact': 'Email or Phone',
     'contact.form.inquiry': 'Inquiry',
     'contact.form.send': 'Send Inquiry',
     'contact.form.sending': 'Sending...',
+    'contact.form.error.required': 'Please fill in all fields',
+    'contact.form.error.invalid': 'Please enter a valid email or phone number',
+    'contact.form.error.submission': 'Failed to submit inquiry',
+    'contact.form.success': 'Inquiry sent successfully',
+    'contact.form.error.general': 'An error occurred while sending the inquiry',
     
     // Footer
+    'footer.company.name': 'GRIGO Entertainment Co., Ltd.',
     'footer.description': 'As a global dance company, we handle everything from choreography to dancer casting.\nWe connect the best choreographers and dancers to create world-class performances.',
     'footer.quicklinks': 'Quick Links',
     'footer.contact': 'Contact',
+    'footer.contact.email': 'contact@grigoent.co.kr',
+    'footer.contact.phone': '+82) 02-6229-9229',
+    'footer.contact.address': 'Gangnam-gu, Seoul',
     'footer.copyright': '© 2024 GRIGO Entertainment. All rights reserved.',
     
     // Proposal
@@ -184,6 +217,19 @@ const translations = {
     'proposal.anonymous.email': 'Email',
     'proposal.anonymous.phone': 'Phone',
     'proposal.anonymous.submit': 'Send Anonymous Proposal',
+    
+    // General Proposal Section
+    'proposal.general.title': 'Project Proposal',
+    'proposal.general.subtitle': 'Choose the appropriate proposal method based on your project type',
+    'proposal.general.individual.title': 'Individual Dancer',
+    'proposal.general.individual.desc': 'For collaboration with individual dancers',
+    'proposal.general.individual.button': 'Find Dancer',
+    'proposal.general.team.title': 'Dance Team',
+    'proposal.general.team.desc': 'For collaboration with dance teams',
+    'proposal.general.team.button': 'Find Team',
+    'proposal.general.general.title': 'General Proposal',
+    'proposal.general.general.desc': 'For other project proposals',
+    'proposal.general.general.button': 'Send Proposal',
     
     // Common
     'common.loading': 'Loading...',

@@ -15,7 +15,7 @@ import { Carousel } from '@/components/ui/carousel'
 import { CareerCard } from '@/components/artists/CareerCard'
 import { CareerSearch } from '@/components/artists/CareerSearch'
 import { ProposalButton } from '@/components/proposals/ProposalButton'
-import { ExternalLink, Instagram, Twitter, Youtube, MapPin, Calendar, X as CloseIcon, Plus } from 'lucide-react'
+import { ExternalLink, Instagram, Twitter, Youtube, MapPin, Calendar, X as CloseIcon, Plus, ChevronDown, ChevronRight, Filter, Play, Star, Edit, Trash } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -36,14 +36,23 @@ export default function ArtistDetailPage() {
   const [retryCount, setRetryCount] = useState(0)
   const [useFallback, setUseFallback] = useState(false)
 
+  // 새로운 상태 변수들
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string>('')
+  const [selectedYear, setSelectedYear] = useState<string>('')
+  const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set())
+
   // 영상 팝업 상태
   const [videoModalOpen, setVideoModalOpen] = useState(false)
   const [videoModalIndex, setVideoModalIndex] = useState(0)
   const [videoModalCareers, setVideoModalCareers] = useState<CareerEntry[]>([])
 
+  // 필터링된 경력 상태
+  const [filteredCareers, setFilteredCareers] = useState<CareerEntry[]>(careers)
+
   useEffect(() => {
     if (slug) {
-      fetchArtistDataWithTimeout()
+      fetchArtistData()
     }
   }, [slug])
 
@@ -52,38 +61,121 @@ export default function ArtistDetailPage() {
     setFilteredCareers(careers)
   }, [careers])
 
-  const fetchArtistDataWithTimeout = async () => {
-    if (retryCount >= 3) {
-      console.log('3회 시도 후 폴백 데이터 사용')
-      setLoading(false)
-      setUseFallback(true)
-      return
+  // 연도 추출 함수
+  const getCareerYear = (career: CareerEntry): string => {
+    if (career.single_date) {
+      return new Date(career.single_date).getFullYear().toString()
+    }
+    if (career.start_date) {
+      return new Date(career.start_date).getFullYear().toString()
+    }
+    return '기타'
+  }
+
+  // 날짜 포맷 함수
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('ko-KR')
+  }
+
+  // YouTube URL 검증 함수
+  const isValidYouTubeUrl = (url: string): boolean => {
+    return /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]{11}/.test(url)
+  }
+
+  // YouTube video ID 추출 함수
+  const getYouTubeVideoId = (url: string): string | null => {
+    const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1]
+    return videoId || null
+  }
+
+  // 연도 토글 함수
+  const toggleYear = (year: string) => {
+    const newExpandedYears = new Set(expandedYears)
+    if (newExpandedYears.has(year)) {
+      newExpandedYears.delete(year)
+    } else {
+      newExpandedYears.add(year)
+    }
+    setExpandedYears(newExpandedYears)
+  }
+
+  // 필터링된 경력 계산
+  const filteredCareersMemo = useMemo(() => {
+    let filtered = careers
+
+    // 검색 필터
+    if (searchQuery) {
+      filtered = filtered.filter(career =>
+        career.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (career.description && career.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
     }
 
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout')), 2000) // 2초 타임아웃
+    // 카테고리 필터
+    if (selectedCategory) {
+      filtered = filtered.filter(career => career.category === selectedCategory)
+    }
+
+    // 연도 필터
+    if (selectedYear) {
+      filtered = filtered.filter(career => getCareerYear(career) === selectedYear)
+    }
+
+    return filtered
+  }, [careers, searchQuery, selectedCategory, selectedYear])
+
+  // 그룹화된 경력 계산 (대표작 우선 정렬)
+  const groupedCareers = useMemo(() => {
+    const grouped: { [year: string]: { [category: string]: CareerEntry[] } } = {}
+
+    filteredCareersMemo.forEach(career => {
+      const year = getCareerYear(career)
+      const category = career.category || 'performance'
+
+      if (!grouped[year]) {
+        grouped[year] = {}
+      }
+      if (!grouped[year][category]) {
+        grouped[year][category] = []
+      }
+      grouped[year][category].push(career)
     })
 
-    try {
-      const dataPromise = fetchArtistData()
-      await Promise.race([dataPromise, timeoutPromise])
-    } catch (error) {
-      console.error(`아티스트 데이터 로드 실패 (시도 ${retryCount + 1}/3):`, error)
-      setRetryCount(prev => prev + 1)
-      
-      if (retryCount + 1 >= 3) {
-        console.log('3회 시도 후 폴백 데이터 사용')
-        setLoading(false)
-        setUseFallback(true)
-      } else {
-        // 2초 후 강제 리프레시
-        console.log(`${retryCount + 1}회 시도 실패, 2초 후 페이지 리프레시`)
-        setTimeout(() => {
-          window.location.reload()
-        }, 2000)
+    // 각 카테고리 내에서 대표작을 맨 위로 정렬
+    Object.keys(grouped).forEach(year => {
+      Object.keys(grouped[year]).forEach(category => {
+        grouped[year][category].sort((a, b) => {
+          if (a.is_featured && !b.is_featured) return -1
+          if (!a.is_featured && b.is_featured) return 1
+          return 0
+        })
+      })
+    })
+
+    return grouped
+  }, [filteredCareersMemo])
+
+  // 사용 가능한 연도 목록
+  const availableYears = useMemo(() => {
+    const years = new Set<string>()
+    careers.forEach(career => {
+      years.add(getCareerYear(career))
+    })
+    return Array.from(years).sort((a, b) => b.localeCompare(a)) // 최신 연도부터
+  }, [careers])
+
+  // 사용 가능한 카테고리 목록
+  const availableCategories = useMemo(() => {
+    const categories = new Set<string>()
+    careers.forEach(career => {
+      if (career.category) {
+        categories.add(career.category)
       }
-    }
-  }
+    })
+    return Array.from(categories).sort()
+  }, [careers])
+
+
 
   const fetchArtistData = async () => {
     try {
@@ -132,7 +224,17 @@ export default function ArtistDetailPage() {
     return labels[category] || category
   }
 
-  const [filteredCareers, setFilteredCareers] = useState<CareerEntry[]>(careers)
+  // 카테고리 색상 함수
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      choreography: 'bg-purple-100 text-purple-800',
+      performance: 'bg-blue-100 text-blue-800',
+      advertisement: 'bg-green-100 text-green-800',
+      tv: 'bg-red-100 text-red-800',
+      workshop: 'bg-orange-100 text-orange-800',
+    }
+    return colors[category] || 'bg-gray-100 text-gray-800'
+  }
 
   // 카테고리별 경력 그룹화 (필터링된 경력 기준)
   const careersByCategory = filteredCareers.reduce((acc, career) => {
@@ -297,7 +399,7 @@ export default function ArtistDetailPage() {
   // 경력 추가/수정 모달 상태
   const [careerModalOpen, setCareerModalOpen] = useState(false);
   const [editingCareer, setEditingCareer] = useState<CareerEntry | null>(null);
-  const [careerForm, setCareerForm] = useState({
+  const [careerForm, setCareerForm] = useState<Partial<CareerEntry>>({
     title: '',
     description: '',
     category: '',
@@ -894,20 +996,67 @@ export default function ArtistDetailPage() {
 
           {/* 경력 검색 */}
           {careers.length > 0 && (
-            <CareerSearch 
-              careers={careers}
-              onFilteredCareers={handleFilteredCareers}
-            />
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-zinc-900">경력 검색</h2>
+                <div className="text-sm text-zinc-600">
+                  총 {filteredCareersMemo.length}개의 경력
+                  {filteredCareersMemo.length !== careers.length && (
+                    <span className="text-blue-600 ml-2">
+                      (전체 {careers.length}개 중)
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              {/* 검색 및 필터 */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="flex-1">
+                  <Input
+                    placeholder="제목이나 설명으로 검색..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="px-3 py-2 border border-zinc-300 rounded-md text-sm"
+                  >
+                    <option value="">모든 카테고리</option>
+                    {availableCategories.map(category => (
+                      <option key={category} value={category}>
+                        {getCategoryLabel(category)}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="px-3 py-2 border border-zinc-300 rounded-md text-sm"
+                  >
+                    <option value="">모든 연도</option>
+                    {availableYears.map(year => (
+                      <option key={year} value={year}>
+                        {year}년
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
           )}
 
-          {/* 카테고리별 경력 */}
-          {Object.keys(careersByCategory).length > 0 && (
-            <div className="space-y-12">
+          {/* 연도별 경력 아코디언 */}
+          {Object.keys(groupedCareers).length > 0 && (
+            <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-3xl font-bold text-zinc-900">카테고리별 경력</h2>
+                <h2 className="text-3xl font-bold text-zinc-900">연도별 경력</h2>
                 <div className="text-sm text-zinc-600">
-                  총 {filteredCareers.length}개의 경력
-                  {filteredCareers.length !== careers.length && (
+                  총 {filteredCareersMemo.length}개의 경력
+                  {filteredCareersMemo.length !== careers.length && (
                     <span className="text-blue-600 ml-2">
                       (전체 {careers.length}개 중)
                     </span>
@@ -921,36 +1070,149 @@ export default function ArtistDetailPage() {
                 )}
               </div>
               
-              {Object.entries(careersByCategory).map(([category, categoryCareers]) => (
-                <div key={category} className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-2xl font-semibold text-zinc-900">
-                      {getCategoryLabel(category)}
-                    </h3>
-                    <Badge variant="outline" className="text-sm">
-                      {categoryCareers.length}개
-                    </Badge>
-                  </div>
+              {Object.entries(groupedCareers).sort(([yearA], [yearB]) => {
+                // 숫자로 변환하여 비교 (최신 연도가 위로)
+                const yearANum = parseInt(yearA) || 0
+                const yearBNum = parseInt(yearB) || 0
+                return yearBNum - yearANum
+              }).map(([year, yearGroup]) => (
+                <div key={year} className="border border-zinc-200 rounded-lg">
+                  <button
+                    onClick={() => toggleYear(year)}
+                    className="w-full p-4 flex items-center justify-between hover:bg-zinc-50 transition-colors"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <h3 className="text-xl font-semibold text-zinc-900">
+                        {year}년
+                      </h3>
+                      <Badge variant="outline" className="text-sm">
+                        {Object.values(yearGroup).reduce((total, careers) => total + careers.length, 0)}개
+                      </Badge>
+                    </div>
+                    {expandedYears.has(year) ? (
+                      <ChevronDown className="w-5 h-5 text-zinc-500" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-zinc-500" />
+                    )}
+                  </button>
                   
-                  <Carousel>
-                    {categoryCareers.map((career) => (
-                      <CareerCard
-                        key={career.id}
-                        career={career}
-                        isAdmin={isAdmin}
-                        onEdit={openCareerModal}
-                        onDelete={handleCareerDelete}
-                        disableActions={careerDeleteLoading}
-                        onCardClick={(career) => handleOpenVideoModal(career, categoryCareers)}
-                      />
-                    ))}
-                  </Carousel>
+                  {expandedYears.has(year) && (
+                    <div className="p-4 space-y-4">
+                      {Object.entries(yearGroup).map(([category, careers]) => {
+                        if (careers.length === 0) return null;
+                        
+                        return (
+                          <div key={category} className="space-y-3">
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-medium text-zinc-900">
+                                {getCategoryLabel(category)}
+                              </h4>
+                              <Badge variant="outline" className={getCategoryColor(category)}>
+                                {careers.length}개
+                              </Badge>
+                            </div>
+                            <div className="space-y-2">
+                              {careers.map((career) => (
+                                <div 
+                                  key={career.id} 
+                                  className="group p-4 border border-zinc-200 rounded-lg hover:border-zinc-300 hover:bg-zinc-50 transition-all cursor-pointer"
+                                  onClick={() => handleOpenVideoModal(career, careers)}
+                                >
+                                  <div className="flex items-start space-x-4">
+                                    {/* 썸네일 */}
+                                    <div className="flex-shrink-0 w-20 h-20 bg-zinc-100 rounded-lg overflow-hidden">
+                                      {career.video_url && isValidYouTubeUrl(career.video_url) ? (
+                                        <img
+                                          src={`https://img.youtube.com/vi/${getYouTubeVideoId(career.video_url)}/mqdefault.jpg`}
+                                          alt={career.title}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                          <Play className="w-6 h-6 text-zinc-400" />
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* 내용 */}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center space-x-2 mb-2">
+                                        <Badge className={getCategoryColor(category)}>
+                                          {getCategoryLabel(category)}
+                                        </Badge>
+                                        <h5 className="font-medium text-sm truncate">
+                                          {career.title}
+                                        </h5>
+                                        {career.is_featured && (
+                                          <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                                            <Star className="w-3 h-3 mr-1" />
+                                            대표작
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      {career.description && (
+                                        <p className="text-xs text-zinc-600 line-clamp-2 mb-2">
+                                          {career.description}
+                                        </p>
+                                      )}
+                                      <div className="flex items-center space-x-2 text-xs text-zinc-500">
+                                        {career.start_date && career.end_date && (
+                                          <span className="flex items-center">
+                                            <Calendar className="w-3 h-3 mr-1" />
+                                            {formatDate(career.start_date)} - {formatDate(career.end_date)}
+                                          </span>
+                                        )}
+                                        {career.country && (
+                                          <span className="flex items-center">
+                                            <MapPin className="w-3 h-3 mr-1" />
+                                            {career.country}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    
+                                    {/* 관리자 액션 버튼 */}
+                                    {isAdmin && (
+                                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openCareerModal(career);
+                                          }}
+                                          className="h-6 w-6 p-0"
+                                        >
+                                          <Edit className="w-3 h-3" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCareerDelete(career);
+                                          }}
+                                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                                        >
+                                          <Trash className="w-3 h-3" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
 
-          {filteredCareers.length === 0 && (
+          {filteredCareersMemo.length === 0 && (
             <div className="text-center py-12">
               <p className="text-zinc-600 text-lg mb-4">
                 {careers.length === 0 ? '등록된 경력이 없습니다.' : '검색 결과가 없습니다.'}
