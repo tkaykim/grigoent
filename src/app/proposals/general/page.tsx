@@ -122,11 +122,13 @@ export default function GeneralProposalPage() {
         hasError = true
       }
       
-      if (emailResponse.status === 'rejected' || 
-          (emailResponse.status === 'fulfilled' && !emailResponse.value.ok)) {
+      if (emailResponse.status === 'rejected') {
         console.error('Email webhook error:', emailResponse)
         // 이메일 전송 실패는 경고만 표시
         toast.warning('의뢰는 접수되었으나 이메일 전송에 실패했습니다.')
+      } else if (emailResponse.status === 'fulfilled') {
+        // 응답이 성공이든 실패든 이메일이 전송되었을 가능성이 있음
+        console.log('Email webhook response:', emailResponse.value)
       }
 
       if (hasError) {
