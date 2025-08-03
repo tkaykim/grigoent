@@ -53,22 +53,55 @@ export function ContactSection() {
       const proposalData = {
         title: `문의: ${formData.name}`,
         description: `문의 내용:\n${formData.inquiry}\n\n연락처 정보:\n이름: ${formData.name}\n연락처: ${formData.contact}`,
-        project_type: 'inquiry',
+        project_type: 'other', // 'inquiry' 대신 'other' 사용
         status: 'pending',
         client_id: null,
         dancer_id: null
       }
 
-      // API 호출
-      const response = await fetch('/api/proposals/anonymous', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(proposalData),
-      })
+      // 두 개의 API를 병렬로 호출
+      const [proposalResponse, emailResponse] = await Promise.allSettled([
+        // 기존 proposal API 호출
+        fetch('/api/proposals/anonymous', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(proposalData),
+        }),
+        
+        // Google Apps Script 웹훅 호출 (Gmail 전송) - 프록시 API 사용
+        fetch('/api/email-webhook', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'contact',
+            name: formData.name,
+            contact: formData.contact,
+            inquiry: formData.inquiry
+          }),
+        })
+      ])
 
-      if (!response.ok) {
+      // 결과 확인
+      let hasError = false
+      
+      if (proposalResponse.status === 'rejected' || 
+          (proposalResponse.status === 'fulfilled' && !proposalResponse.value.ok)) {
+        console.error('Proposal API error:', proposalResponse)
+        hasError = true
+      }
+      
+      if (emailResponse.status === 'rejected' || 
+          (emailResponse.status === 'fulfilled' && !emailResponse.value.ok)) {
+        console.error('Email webhook error:', emailResponse)
+        // 이메일 전송 실패는 경고만 표시
+        toast.warning('문의는 접수되었으나 이메일 전송에 실패했습니다.')
+      }
+
+      if (hasError) {
         throw new Error(t('contact.form.error.submission'))
       }
 

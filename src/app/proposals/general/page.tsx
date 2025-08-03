@@ -65,33 +65,73 @@ export default function GeneralProposalPage() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/proposals/general', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          client_name: formData.client_name,
-          client_email: formData.client_email,
-          client_phone: formData.client_phone,
-          title: formData.title,
-          description: formData.description,
-          project_type: formData.project_type,
-          budget_min: formData.budget_min && !budgetMinUndecided ? parseInt(formData.budget_min.replace(/,/g, '')) : null,
-          budget_max: formData.budget_max && !budgetMaxUndecided ? parseInt(formData.budget_max.replace(/,/g, '')) : null,
-          start_date: formData.start_date || null,
-          end_date: formData.end_date || null,
-          location: formData.location || null,
-          requirements: formData.requirements || null
+      // 두 개의 API를 병렬로 호출
+      const [proposalResponse, emailResponse] = await Promise.allSettled([
+        // 기존 proposal API 호출
+        fetch('/api/proposals/general', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            client_name: formData.client_name,
+            client_email: formData.client_email,
+            client_phone: formData.client_phone,
+            title: formData.title,
+            description: formData.description,
+            project_type: formData.project_type,
+            budget_min: formData.budget_min && !budgetMinUndecided ? parseInt(formData.budget_min.replace(/,/g, '')) : null,
+            budget_max: formData.budget_max && !budgetMaxUndecided ? parseInt(formData.budget_max.replace(/,/g, '')) : null,
+            start_date: formData.start_date || null,
+            end_date: formData.end_date || null,
+            location: formData.location || null,
+            requirements: formData.requirements || null
+          }),
         }),
-      })
+        
+        // Google Apps Script 웹훅 호출 (Gmail 전송) - 프록시 API 사용
+        fetch('/api/email-webhook', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'general_proposal',
+            client_name: formData.client_name,
+            client_email: formData.client_email,
+            client_phone: formData.client_phone,
+            title: formData.title,
+            description: formData.description,
+            project_type: formData.project_type,
+            budget_min: formData.budget_min && !budgetMinUndecided ? parseInt(formData.budget_min.replace(/,/g, '')) : null,
+            budget_max: formData.budget_max && !budgetMaxUndecided ? parseInt(formData.budget_max.replace(/,/g, '')) : null,
+            start_date: formData.start_date || null,
+            end_date: formData.end_date || null,
+            location: formData.location || null,
+            requirements: formData.requirements || null
+          }),
+        })
+      ])
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || '의뢰 전송에 실패했습니다.')
+      // 결과 확인
+      let hasError = false
+      
+      if (proposalResponse.status === 'rejected' || 
+          (proposalResponse.status === 'fulfilled' && !proposalResponse.value.ok)) {
+        console.error('Proposal API error:', proposalResponse)
+        hasError = true
+      }
+      
+      if (emailResponse.status === 'rejected' || 
+          (emailResponse.status === 'fulfilled' && !emailResponse.value.ok)) {
+        console.error('Email webhook error:', emailResponse)
+        // 이메일 전송 실패는 경고만 표시
+        toast.warning('의뢰는 접수되었으나 이메일 전송에 실패했습니다.')
       }
 
-      const result = await response.json()
+      if (hasError) {
+        throw new Error('의뢰 전송에 실패했습니다.')
+      }
       
       toast.success('일반 의뢰가 성공적으로 전송되었습니다! 적절한 댄서나 팀이 확인 후 연락드리겠습니다.')
       router.push('/')
