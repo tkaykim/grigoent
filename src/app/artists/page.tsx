@@ -350,7 +350,7 @@ export default function ArtistsPage() {
                           <img
                             src={(item.data as User).profile_image}
                             alt={(item.data as User).name}
-                            className="w-full h-48 md:h-56 object-cover rounded-lg"
+                            className="w-full h-48 md:h-56 object-cover object-top rounded-lg"
                             loading="lazy"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none'
@@ -370,7 +370,7 @@ export default function ArtistsPage() {
                           <img
                             src={(item.data as Team).logo_url}
                             alt={(item.data as Team).name}
-                            className="w-full h-48 md:h-56 object-cover rounded-lg"
+                            className="w-full h-48 md:h-56 object-cover object-top rounded-lg"
                             loading="lazy"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none'
@@ -438,7 +438,7 @@ export default function ArtistsPage() {
                       <img
                         src={artist.profile_image}
                         alt={artist.name}
-                        className="w-full h-48 md:h-56 object-cover rounded-lg"
+                        className="w-full h-48 md:h-56 object-cover object-top rounded-lg"
                         loading="lazy"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none'

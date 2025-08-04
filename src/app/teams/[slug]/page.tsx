@@ -453,70 +453,93 @@ user_id,멤버이름,예시 공연,무대 공연,performance,미국,single,,,202
             팀 목록으로 돌아가기
           </Link>
         </div>
-        {/* 팀 헤더 */}
-        <div className="bg-white rounded-lg shadow-sm border border-zinc-200 p-6 mb-8">
-          <div className="flex flex-col md:flex-row md:items-start gap-6">
-            {/* 팀 로고 */}
-            <div className="h-24 w-24 border border-zinc-200 rounded-lg overflow-hidden">
-              {team.logo_url ? (
-                <img
-                  src={team.logo_url}
-                  alt={team.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
+        {/* 팀 헤더 - 배경 이미지가 꽉 찬 디자인 */}
+        <div className="relative h-[60vh] min-h-[400px] rounded-lg overflow-hidden mb-8">
+          {/* 배경 이미지 */}
+          <div className="absolute inset-0">
+            {team.logo_url ? (
+              <img
+                src={team.logo_url}
+                alt={team.name}
+                className="w-full h-full object-cover object-top"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
+                <span className="text-white text-6xl font-bold opacity-20">
+                  {team.name.charAt(0)}
+                </span>
+              </div>
+            )}
+            {/* 오버레이 */}
+            <div className="absolute inset-0 bg-black/40"></div>
+          </div>
+          
+          {/* 콘텐츠 오버레이 */}
+          <div className="relative z-10 h-full flex flex-col justify-between p-8">
+            {/* 상단 정보 */}
+            <div className="flex items-start justify-between">
+              <div className="text-white">
+                <h1 className="text-4xl md:text-5xl font-bold mb-2">{team.name}</h1>
+                <p className="text-xl md:text-2xl text-zinc-200 mb-4">{team.name_en}</p>
+                {team.description && (
+                  <p className="text-lg text-zinc-300 max-w-2xl">{team.description}</p>
+                )}
+              </div>
+              
+              {/* 우측 버튼들 */}
+              <div className="flex flex-col gap-2">
+                <TeamProposalButton
+                  teamId={team.id}
+                  teamName={team.name}
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30"
                 />
-              ) : (
-                <div className="w-full h-full bg-zinc-100 flex items-center justify-center">
-                  <span className="text-zinc-600 text-2xl font-medium">
-                    {team.name.charAt(0)}
-                  </span>
-                </div>
-              )}
-            </div>
-            {/* 팀 정보 */}
-            <div className="flex-1">
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                <div>
-                  <h1 className="text-3xl font-bold text-zinc-900 mb-2">{team.name}</h1>
-                  <p className="text-lg text-zinc-600 mb-2">{team.name_en}</p>
-                  {team.description && <p className="text-zinc-700 mb-4">{team.description}</p>}
-                  <div className="flex items-center gap-4 text-sm text-zinc-500">
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      <span>{team.member_count}명</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>{new Date(team.created_at).toLocaleDateString("ko-KR")} 생성</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {/* 팀 제안 버튼 추가 */}
-                  <TeamProposalButton
-                    teamId={team.id}
-                    teamName={team.name}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  />
-                  
-                  {(isLeader || isAdmin) && (
-                    <>
-                      <Button variant="default" onClick={() => setInviteModalOpen(true)}>
-                        팀원 초대하기
-                      </Button>
-                      <Button variant="outline" className="ml-2" onClick={() => setEditModalOpen(true)}>팀 정보 수정</Button>
-                      <Button variant="destructive" className="ml-2" onClick={async () => {
+                
+                {(isLeader || isAdmin) && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setInviteModalOpen(true)}
+                      className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                    >
+                      팀원 초대하기
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setEditModalOpen(true)}
+                      className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                    >
+                      팀 정보 수정
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={async () => {
                         if (window.confirm('정말 팀을 삭제하시겠습니까? 복구할 수 없습니다.')) {
                           await supabase.from('teams').delete().eq('id', team.id);
                           toast.success('팀이 삭제되었습니다.');
                           window.location.href = '/teams';
                         }
-                      }}>팀 삭제</Button>
-                    </>
-                  )}
-                </div>
+                      }}
+                      className="bg-red-600/20 hover:bg-red-600/30 text-red-200 border-red-300/30"
+                    >
+                      팀 삭제
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            {/* 하단 정보 */}
+            <div className="flex items-center gap-6 text-white/90">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                <span className="text-lg">{team.member_count}명</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                <span className="text-lg">{new Date(team.created_at).toLocaleDateString("ko-KR")} 생성</span>
               </div>
             </div>
           </div>
@@ -643,7 +666,7 @@ user_id,멤버이름,예시 공연,무대 공연,performance,미국,single,,,202
                               <img
                                 src={member.user.profile_image}
                                 alt={member.user.name}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover object-top"
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none'
                                 }}

@@ -783,92 +783,106 @@ export default function ArtistDetailPage() {
       <Header />
       <main className="pt-16 min-h-screen bg-zinc-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* 프로필 헤더 */}
-          <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
-            <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-              <div className="flex-shrink-0">
-                {artist.profile_image ? (
-                  <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-4 border-gray-200 shadow-lg">
-                    <img
-                      src={artist.profile_image}
-                      alt={artist.name}
-                      className="w-full h-full object-cover object-center"
-                      onError={(e) => {
-                        console.error('프로필 이미지 로드 실패:', e)
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300 shadow-lg">
-                    <span className="text-4xl text-gray-400 font-semibold">{artist.name.charAt(0)}</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex-1 text-center md:text-left">
-                <h1 className="text-4xl font-bold text-zinc-900 mb-2">
-                  {artist.name}
-                </h1>
-                <p className="text-2xl text-zinc-600 mb-4">
-                  {artist.name_en}
-                </p>
-                
-                {artist.introduction && (
-                  <p className="text-lg text-zinc-700 mb-6 leading-relaxed">
-                    {artist.introduction}
+          {/* 프로필 헤더 - 배경 이미지가 꽉 찬 디자인 */}
+          <div className="relative h-[60vh] min-h-[400px] rounded-lg overflow-hidden mb-8">
+            {/* 배경 이미지 */}
+            <div className="absolute inset-0">
+              {artist.profile_image ? (
+                <img
+                  src={artist.profile_image}
+                  alt={artist.name}
+                  className="w-full h-full object-cover object-top"
+                  onError={(e) => {
+                    console.error('프로필 이미지 로드 실패:', e)
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
+                  <span className="text-white text-6xl font-bold opacity-20">
+                    {artist.name.charAt(0)}
+                  </span>
+                </div>
+              )}
+              {/* 오버레이 */}
+              <div className="absolute inset-0 bg-black/40"></div>
+            </div>
+            
+            {/* 콘텐츠 오버레이 */}
+            <div className="relative z-10 h-full flex flex-col justify-between p-8">
+              {/* 상단 정보 */}
+              <div className="flex items-start justify-between">
+                <div className="text-white">
+                  <h1 className="text-4xl md:text-5xl font-bold mb-2">
+                    {artist.name}
+                  </h1>
+                  <p className="text-xl md:text-2xl text-zinc-200 mb-4">
+                    {artist.name_en}
                   </p>
-                )}
-
-                {/* SNS 링크 */}
-                {(artist.instagram_url || artist.twitter_url || artist.youtube_url) && (
-                  <div className="flex justify-center md:justify-start space-x-4 mb-6">
-                    {artist.instagram_url && (
-                      <a
-                        href={artist.instagram_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
-                      >
-                        <Instagram className="w-5 h-5" />
-                      </a>
-                    )}
-                    {artist.twitter_url && (
-                      <a
-                        href={artist.twitter_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
-                      >
-                        <Twitter className="w-5 h-5" />
-                      </a>
-                    )}
-                    {artist.youtube_url && (
-                      <a
-                        href={artist.youtube_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                      >
-                        <Youtube className="w-5 h-5" />
-                      </a>
-                    )}
-                  </div>
-                )}
-
-                {artist.phone && (
-                  <div className="text-sm text-zinc-500 mb-4">
-                    연락처: {artist.phone}
-                  </div>
-                )}
-
-                {/* 섭외 제안 버튼 */}
-                <div className="mt-6">
+                  
+                  {artist.introduction && (
+                    <p className="text-lg text-zinc-300 max-w-2xl leading-relaxed">
+                      {artist.introduction}
+                    </p>
+                  )}
+                </div>
+                
+                {/* 우측 버튼들 */}
+                <div className="flex flex-col gap-2">
                   <ProposalButton
                     dancerId={artist.id}
                     dancerName={artist.name}
-                    className="w-full sm:w-auto"
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/30"
                   />
+                  
+                  
+                </div>
+              </div>
+              
+              {/* 하단 정보 */}
+              <div className="flex items-center justify-between text-white/90">
+                <div className="flex items-center gap-6">
+                  {/* SNS 링크 */}
+                  {(artist.instagram_url || artist.twitter_url || artist.youtube_url) && (
+                    <div className="flex space-x-4">
+                      {artist.instagram_url && (
+                        <a
+                          href={artist.instagram_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 bg-white/20 text-white rounded-full hover:bg-white/30 transition-colors"
+                        >
+                          <Instagram className="w-5 h-5" />
+                        </a>
+                      )}
+                      {artist.twitter_url && (
+                        <a
+                          href={artist.twitter_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 bg-white/20 text-white rounded-full hover:bg-white/30 transition-colors"
+                        >
+                          <Twitter className="w-5 h-5" />
+                        </a>
+                      )}
+                      {artist.youtube_url && (
+                        <a
+                          href={artist.youtube_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 bg-white/20 text-white rounded-full hover:bg-white/30 transition-colors"
+                        >
+                          <Youtube className="w-5 h-5" />
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  
+                  {artist.phone && (
+                    <div className="text-lg">
+                      연락처: {artist.phone}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1125,7 +1139,7 @@ export default function ArtistDetailPage() {
                                         <img
                                           src={`https://img.youtube.com/vi/${getYouTubeVideoId(career.video_url)}/mqdefault.jpg`}
                                           alt={career.title}
-                                          className="w-full h-full object-cover"
+                                          className="w-full h-full object-cover object-top"
                                         />
                                       ) : (
                                         <div className="w-full h-full flex items-center justify-center">

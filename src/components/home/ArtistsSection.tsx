@@ -209,7 +209,7 @@ export function ArtistsSection() {
                         <img
                           src={(item.data as User).profile_image}
                           alt={(item.data as User).name}
-                          className="w-full h-48 md:h-56 object-cover rounded-lg"
+                          className="w-full h-48 md:h-56 object-cover object-top rounded-lg"
                           loading="lazy"
                           onError={(e) => {
                             console.error('아티스트 이미지 로드 실패:', e)
@@ -230,7 +230,7 @@ export function ArtistsSection() {
                         <img
                           src={(item.data as Team).logo_url}
                           alt={(item.data as Team).name}
-                          className="w-full h-48 md:h-56 object-cover rounded-lg"
+                          className="w-full h-48 md:h-56 object-cover object-top rounded-lg"
                           loading="lazy"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none'

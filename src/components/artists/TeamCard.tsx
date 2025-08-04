@@ -19,7 +19,7 @@ export function TeamCard({ team, members = [] }: TeamCardProps) {
             <img
               src={team.logo_url}
               alt={team.name}
-              className="w-full h-48 md:h-56 object-cover rounded-lg"
+              className="w-full h-48 md:h-56 object-cover object-top rounded-lg"
               loading="lazy"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
@@ -54,7 +54,7 @@ export function TeamCard({ team, members = [] }: TeamCardProps) {
                   <img
                     src={member.user.profile_image}
                     alt={member.user.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-top"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none'
                     }}
