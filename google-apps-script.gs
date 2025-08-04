@@ -14,6 +14,12 @@ function doPost(e) {
     // 요청 데이터 파싱
     const data = JSON.parse(e.postData.contents);
     console.log('Received data:', JSON.stringify(data));
+    console.log('Data type:', data.type);
+    console.log('Required fields check:');
+    console.log('- client_name:', !!data.client_name);
+    console.log('- client_email:', !!data.client_email);
+    console.log('- title:', !!data.title);
+    console.log('- description:', !!data.description);
     
     // 문의 유형에 따른 처리
     let subject, body;
