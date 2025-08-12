@@ -12,9 +12,11 @@ interface CareerEditModalProps {
   career: CareerEntry | null
   onClose: () => void
   onSave: (updates: Partial<CareerEntry>) => Promise<void> | void
+  defaultCategory?: string
+  defaultIsFeatured?: boolean
 }
 
-export function CareerEditModal({ open, career, onClose, onSave }: CareerEditModalProps) {
+export function CareerEditModal({ open, career, onClose, onSave, defaultCategory = 'choreography', defaultIsFeatured = false }: CareerEditModalProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('choreography')
@@ -28,26 +30,42 @@ export function CareerEditModal({ open, career, onClose, onSave }: CareerEditMod
   const [endDate, setEndDate] = useState('')
 
   useEffect(() => {
-    if (!career) return
-    setTitle(career.title || '')
-    setDescription(career.description || '')
-    setCategory(career.category || 'choreography')
-    setVideoUrl(career.video_url || '')
-    setPosterUrl(career.poster_url || '')
-    setCountry(career.country || '')
-    setIsFeatured(!!career.is_featured)
-    if (career.date_type === 'range' || (career.start_date || career.end_date)) {
-      setDateType('range')
-      setStartDate(career.start_date || '')
-      setEndDate(career.end_date || '')
-      setSingleDate('')
+    // 초기화
+    if (!open) return
+    if (career) {
+      setTitle(career.title || '')
+      setDescription(career.description || '')
+      setCategory(career.category || 'choreography')
+      setVideoUrl(career.video_url || '')
+      setPosterUrl(career.poster_url || '')
+      setCountry(career.country || '')
+      setIsFeatured(!!career.is_featured)
+      if (career.date_type === 'range' || (career.start_date || career.end_date)) {
+        setDateType('range')
+        setStartDate(career.start_date || '')
+        setEndDate(career.end_date || '')
+        setSingleDate('')
+      } else {
+        setDateType('single')
+        setSingleDate(career.single_date || '')
+        setStartDate('')
+        setEndDate('')
+      }
     } else {
+      // 생성 모드 기본값
+      setTitle('')
+      setDescription('')
+      setCategory(defaultCategory)
+      setVideoUrl('')
+      setPosterUrl('')
+      setCountry('')
+      setIsFeatured(!!defaultIsFeatured)
       setDateType('single')
-      setSingleDate(career.single_date || '')
+      setSingleDate('')
       setStartDate('')
       setEndDate('')
     }
-  }, [career])
+  }, [open, career, defaultCategory, defaultIsFeatured])
 
   const handleSave = async () => {
     if (!career) return

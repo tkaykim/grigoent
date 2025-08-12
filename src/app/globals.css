@@ -146,6 +146,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+    overscroll-behavior-x: none;
+    touch-action: pan-y;
   }
 }
 
@@ -296,6 +301,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* TIDAL 스타일 스크롤바 */
 .tidal-scrollbar::-webkit-scrollbar {
   height: 6px;
+}
+
+/* Prevent accidental horizontal overflow on containers */
+.overflow-x-clip {
+  overflow-x: clip;
+}
+
+/* Prevent the page from nudging when inner scrollers hit edges */
+.x-scroll-contain {
+  overscroll-behavior-x: contain;
+}
+
+/* Allow horizontal pan on carousels */
+.x-scroll-pan {
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tidal-scrollbar::-webkit-scrollbar-track {

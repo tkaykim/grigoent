@@ -77,12 +77,12 @@ export function ContentCarousel({
       )}
 
       {/* 캐러셀 컨테이너 */}
-      <div className="relative group">
+      <div className="relative group x-scroll-contain">
         {/* 좌우 스크롤 버튼 */}
         {canScrollLeft && (
           <Button
             onClick={() => scrollTo('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black text-white rounded-full w-14 h-14 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 -ml-7 backdrop-blur-sm border border-white/20"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black text-white rounded-full w-12 h-12 md:w-14 md:h-14 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 ml-0 md:-ml-7 backdrop-blur-sm border border-white/20"
           >
             <ChevronLeft className="w-7 h-7" />
           </Button>
@@ -91,7 +91,7 @@ export function ContentCarousel({
         {canScrollRight && (
           <Button
             onClick={() => scrollTo('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black text-white rounded-full w-14 h-14 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 -mr-7 backdrop-blur-sm border border-white/20"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black text-white rounded-full w-12 h-12 md:w-14 md:h-14 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 mr-0 md:-mr-7 backdrop-blur-sm border border-white/20"
           >
             <ChevronRight className="w-7 h-7" />
           </Button>
@@ -101,7 +101,7 @@ export function ContentCarousel({
         <div
           ref={scrollContainerRef}
           onScroll={checkScrollButtons}
-          className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-6 tidal-scrollbar"
+          className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-6 tidal-scrollbar x-scroll-contain x-scroll-pan"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {items.map((item, index) => (

@@ -16,9 +16,10 @@ interface LatestSongsSectionProps {
   onEdit?: (career: CareerEntry) => void
   onDelete?: (career: CareerEntry) => void
   title?: string
+  onAdd?: () => void
 }
 
-export function LatestSongsSection({ careers, onVideoOpen, className = '', isAdmin = false, isEditMode = false, onEdit, onDelete, title = 'Latest Songs' }: LatestSongsSectionProps) {
+export function LatestSongsSection({ careers, onVideoOpen, className = '', isAdmin = false, isEditMode = false, onEdit, onDelete, title = 'Latest Songs', onAdd }: LatestSongsSectionProps) {
   const [currentPage, setCurrentPage] = useState(0)
   const itemsPerPage = 4
   const totalPages = Math.ceil(careers.length / itemsPerPage)
@@ -45,8 +46,16 @@ export function LatestSongsSection({ careers, onVideoOpen, className = '', isAdm
           <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
           <h2 className="text-2xl md:text-3xl font-bold text-white">{title}</h2>
         </div>
-        
-        
+        {isAdmin && isEditMode && onAdd && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-black/50 text-white border-white/30 hover:bg-black/70"
+            onClick={onAdd}
+          >
+            추가
+          </Button>
+        )}
       </div>
 
              <div className="relative">
@@ -59,7 +68,7 @@ export function LatestSongsSection({ careers, onVideoOpen, className = '', isAdm
                  <div key={pageIndex} className="flex-shrink-0">
                    <div className="space-y-4">
                       {pageCareers.map((career) => (
-                        <div key={career.id} className="group flex items-center space-x-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-all duration-300 cursor-pointer w-96" onClick={() => { if (!isEditMode) onVideoOpen(career) }}>
+                        <div key={career.id} className="group flex items-center space-x-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-all duration-300 cursor-pointer w-96 h-24" onClick={() => { if (!isEditMode) onVideoOpen(career) }}>
                          <div className="flex-shrink-0 w-16 h-16 bg-gray-900 rounded-lg overflow-hidden">
                            {getCareerThumbnail(career) ? (
                              <img src={getCareerThumbnail(career)!} alt={career.title} className="w-full h-full object-cover" />
@@ -70,7 +79,7 @@ export function LatestSongsSection({ careers, onVideoOpen, className = '', isAdm
                            )}
                          </div>
 
-                         <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 flex flex-col justify-center">
                            <div className="flex items-center space-x-2 mb-1">
                              <h3 className="text-white font-semibold text-lg truncate">{career.title}</h3>
                              {career.description && career.description.length > 50 && (

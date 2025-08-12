@@ -9,7 +9,7 @@ import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Play, Star, ChevronDown, ChevronRight, Calendar, MapPin, Edit, Trash, Plus } from 'lucide-react'
+import { Play, Star, ChevronDown, ChevronRight, Calendar, MapPin, Edit, Trash, Plus, Check } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { CareerVideoModal } from '@/components/artists/CareerVideoModal'
 import { CareerEditModal } from '@/components/artists/detail/CareerEditModal'
@@ -252,21 +252,32 @@ export default function ArtistDetailPage() {
 
   const handleAddCareerQuick = async () => {
     if (!canEdit || !isEditMode || !artist) return
-    const title = window.prompt('경력 제목 입력')
-    if (!title) return
-    const category = window.prompt('카테고리 (choreography/performance/advertisement/tv/workshop)', 'choreography') || 'choreography'
-    try {
-      const { data, error } = await supabase
-        .from('career_entries')
-        .insert({ user_id: artist.id, title, category })
-        .select('*')
-      if (error) throw error
-      toast.success('경력이 추가되었습니다')
-      fetchArtistData()
-    } catch (e) {
-      toast.error('경력 추가 실패')
-      console.error(e)
-    }
+    setEditingCareer(null)
+    setEditModalOpen(true)
+  }
+
+  const handleAddCareerForCategory = async (category: string) => {
+    if (!canEdit || !isEditMode || !artist) return
+    setEditingCareer({
+      id: '',
+      user_id: artist.id,
+      category,
+      title: '',
+      is_featured: false,
+    } as CareerEntry)
+    setEditModalOpen(true)
+  }
+
+  const handleAddFeaturedCareer = async () => {
+    if (!canEdit || !isEditMode || !artist) return
+    setEditingCareer({
+      id: '',
+      user_id: artist.id,
+      category: 'choreography',
+      title: '',
+      is_featured: true,
+    } as CareerEntry)
+    setEditModalOpen(true)
   }
 
   // 연도별 그룹화된 경력
@@ -458,7 +469,17 @@ export default function ArtistDetailPage() {
                     TOP HITS &gt;
                   </h2>
                 </div>
-              </div>
+                {canEdit && isEditMode && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-black/50 text_white border-white/30 hover:bg-black/70"
+                    onClick={handleAddFeaturedCareer}
+                  >
+                    추가
+                  </Button>
+                      )}
+                    </div>
               
               <ContentCarousel 
                 title=""
@@ -476,18 +497,19 @@ export default function ArtistDetailPage() {
                 )}
                 showViewAll={false}
               />
-                    </div>
-                  )}
-                  
+            </div>
+          )}
+
           {/* 최근 활동 섹션 → Latest Works(= LatestSongsSection)로 통합 */}
           <LatestSongsSection 
             careers={careers}
             onVideoOpen={(career) => { if (!isEditMode) handleOpenVideoModal(career, careers) }}
-            isAdmin={isAdmin}
+            isAdmin={canEdit}
             isEditMode={isEditMode}
             onEdit={(c) => handleEditCareer(c)}
             onDelete={(c) => handleDeleteCareer(c)}
             title="Latest Works"
+            onAdd={() => handleAddCareerQuick()}
           />
 
           {/* 카테고리별 섹션들 */}
@@ -508,7 +530,7 @@ export default function ArtistDetailPage() {
               return (
                 <div key={category} className="mb-12">
                   <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-4">
                       <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
                       <h2 className="text-2xl md:text-3xl font-bold text-white cursor-pointer hover:text-gray-300 transition-colors" onClick={() => {
                         const element = document.getElementById(`category-${category}`)
@@ -517,14 +539,24 @@ export default function ArtistDetailPage() {
                         {categoryLabels[category as keyof typeof categoryLabels]} &gt;
                       </h2>
                 </div>
-                  </div>
+                {canEdit && isEditMode && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-black/50 text-white border-white/30 hover:bg-black/70"
+                    onClick={() => handleAddCareerForCategory(category)}
+                  >
+                    추가
+                  </Button>
+                )}
+              </div>
                   
                   <ContentCarousel 
                     title=""
                     items={categoryCareers}
                     renderItem={(career) => (
                       <TidalCareerCard
-                        career={career}
+                    career={career}
                         onCardClick={(career) => { if (!isEditMode) handleOpenVideoModal(career, categoryCareers) }}
                         onLike={(career) => toast.success(`${career.title}을 좋아합니다!`)}
                         isAdmin={canEdit}
@@ -553,7 +585,7 @@ export default function ArtistDetailPage() {
                 <h2 className="text-2xl md:text-3xl font-bold text-white">전체 경력</h2>
                 <div className="flex items-center gap-3">
                   <div className="text-sm text-gray-400">총 {careers.length}개의 경력</div>
-                  {isAdmin && isEditMode && (
+                  {canEdit && isEditMode && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -610,6 +642,16 @@ export default function ArtistDetailPage() {
                                                                   <Badge variant="outline" className="bg-black text-white border-white">
                                 {careers.length}개
                               </Badge>
+                              {canEdit && isEditMode && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="ml-2 bg-black/50 text-white border-white/30 hover:bg-black/70 px-2 py-1 h-7"
+                                  onClick={() => handleAddCareerForCategory(category)}
+                                >
+                                  추가
+                                </Button>
+                              )}
                             </div>
                             <div className="space-y-2">
                               {careers.map((career) => (
@@ -671,8 +713,8 @@ export default function ArtistDetailPage() {
                                       </div>
                                     </div>
                                     
-                                    {/* 관리자 편집 버튼들 (수정모드에서만 표시) */}
-                                    {isAdmin && isEditMode && (
+                                    {/* 관리자/권한 사용자 편집 버튼들 (수정모드에서만 표시) */}
+                                    {canEdit && isEditMode && (
                                       <div className="flex items-center space-x-2 ml-4" onClick={(e) => e.stopPropagation()}>
                                         <Button
                                           size="sm"
@@ -735,17 +777,30 @@ export default function ArtistDetailPage() {
       {editModalOpen && (
         <CareerEditModal
           open={editModalOpen}
-          career={editingCareer}
-          onClose={() => setEditModalOpen(false)}
+          career={editingCareer && editingCareer.id ? editingCareer : null}
+          defaultCategory={editingCareer && !editingCareer.id ? editingCareer.category : undefined}
+          defaultIsFeatured={editingCareer && !editingCareer.id ? !!editingCareer.is_featured : undefined}
+          onClose={() => { setEditModalOpen(false); setEditingCareer(null) }}
           onSave={async (updates) => {
-            if (!editingCareer) return
             try {
-              const { error } = await supabase
-                .from('career_entries')
-                .update(updates)
-                .eq('id', editingCareer.id)
-              if (error) throw error
-              toast.success('경력이 수정되었습니다')
+              if (editingCareer && editingCareer.id) {
+                // update
+                const { error } = await supabase
+                  .from('career_entries')
+                  .update(updates)
+                  .eq('id', editingCareer.id)
+                if (error) throw error
+                toast.success('경력이 수정되었습니다')
+              } else {
+                // insert
+                if (!artist) return
+                const payload = { user_id: artist.id, ...updates }
+                const { error } = await supabase
+                  .from('career_entries')
+                  .insert(payload)
+                if (error) throw error
+                toast.success('경력이 추가되었습니다')
+              }
               setEditModalOpen(false)
               setEditingCareer(null)
               fetchArtistData()
@@ -762,6 +817,16 @@ export default function ArtistDetailPage() {
           artistId={artist.id}
           onClose={() => setPermissionModalOpen(false)}
         />
+      )}
+
+      {/* 수정모드 플로팅 완료 버튼 */}
+      {canEdit && isEditMode && (
+        <Button
+          onClick={() => handleEditMode()}
+          className="fixed bottom-6 right-6 z-50 bg-white text-black hover:bg-gray-100 border border-white px-5 py-3 rounded-full shadow-lg"
+        >
+          수정 완료
+              </Button>
       )}
     </div>
   )

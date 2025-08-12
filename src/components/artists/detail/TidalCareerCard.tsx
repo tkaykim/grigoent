@@ -68,13 +68,13 @@ export function TidalCareerCard({
       className={`
         group relative bg-gray-800 rounded-lg overflow-hidden cursor-pointer
         hover:bg-gray-700 transition-all duration-300 hover:scale-105
-        shadow-lg hover:shadow-xl w-64 flex-shrink-0
+        shadow-lg hover:shadow-xl w-64 h-80 flex-shrink-0 flex flex-col
         ${className}
       `}
       onClick={handleCardClick}
     >
       {/* 썸네일 */}
-      <div className="relative w-full h-40 bg-gray-900 overflow-hidden">
+      <div className="relative w-full h-40 bg-gray-900 overflow-hidden flex-none">
         {thumbnail ? (
           <img
             src={thumbnail}
@@ -132,15 +132,15 @@ export function TidalCareerCard({
       </div>
 
       {/* 카드 내용 */}
-      <div className="p-4">
+      <div className="p-4 flex-1 flex flex-col justify-start">
         {/* 제목 */}
-        <h3 className="text-white font-semibold text-lg mb-2 line-clamp-2 leading-tight">
+        <h3 className="text-white font-semibold text-lg mb-2 line-clamp-2 leading-tight min-h-[44px]">
           {career.title}
         </h3>
 
         {/* 안무 설명 */}
         {career.description && (
-          <p className="text-gray-300 text-sm line-clamp-2 leading-relaxed">
+          <p className="text-gray-300 text-sm line-clamp-2 leading-relaxed min-h-[40px]">
             {career.description}
           </p>
         )}
