@@ -10,6 +10,9 @@ interface ContactFormData {
   name: string
   contact: string
   inquiry: string
+  password: string
+  type: string
+  title: string
 }
 
 export function ContactSection() {
@@ -18,7 +21,10 @@ export function ContactSection() {
   const [formData, setFormData] = useState<ContactFormData>({
     name: '',
     contact: '',
-    inquiry: ''
+    inquiry: '',
+    password: '',
+    type: '',
+    title: ''
   })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -35,7 +41,7 @@ export function ContactSection() {
 
     try {
       // 필수 필드 검증
-      if (!formData.name || !formData.contact || !formData.inquiry) {
+      if (!formData.name || !formData.contact || !formData.inquiry || !formData.password || !formData.title || !formData.type) {
         toast.error(t('contact.form.error.required'))
         return
       }
@@ -49,48 +55,33 @@ export function ContactSection() {
         return
       }
 
-      // Proposal 데이터 준비
-      const proposalData = {
-        title: `문의: ${formData.name}`,
-        description: `문의 내용:\n${formData.inquiry}\n\n연락처 정보:\n이름: ${formData.name}\n연락처: ${formData.contact}`,
-        project_type: 'other', // 'inquiry' 대신 'other' 사용
-        status: 'pending',
-        client_id: null,
-        dancer_id: null
-      }
-
-      // 두 개의 API를 병렬로 호출
-      const [proposalResponse, emailResponse] = await Promise.allSettled([
-        // 기존 proposal API 호출
-        fetch('/api/proposals/anonymous', {
+      // 문의게시판 저장 및 이메일 전송 병렬 처리
+      const [inquiryResponse, emailResponse] = await Promise.allSettled([
+        fetch('/api/inquiries', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(proposalData),
-        }),
-        
-        // Google Apps Script 웹훅 호출 (Gmail 전송) - 프록시 API 사용
-        fetch('/api/email-webhook', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            type: 'contact',
+            type: formData.type,
+            title: formData.title,
+            content: formData.inquiry,
             name: formData.name,
             contact: formData.contact,
-            inquiry: formData.inquiry
-          }),
+            password: formData.password,
+          })
+        }),
+        fetch('/api/email-webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'contact', name: formData.name, contact: formData.contact, inquiry: formData.inquiry, category: formData.type, title: formData.title })
         })
       ])
 
       // 결과 확인
       let hasError = false
       
-      if (proposalResponse.status === 'rejected' || 
-          (proposalResponse.status === 'fulfilled' && !proposalResponse.value.ok)) {
-        console.error('Proposal API error:', proposalResponse)
+      if (inquiryResponse.status === 'rejected' || 
+          (inquiryResponse.status === 'fulfilled' && !inquiryResponse.value.ok)) {
+        console.error('Inquiry API error:', inquiryResponse)
         hasError = true
       }
       
@@ -113,7 +104,10 @@ export function ContactSection() {
       setFormData({
         name: '',
         contact: '',
-        inquiry: ''
+        inquiry: '',
+        password: '',
+        type: 'general',
+        title: ''
       })
 
     } catch (error) {
@@ -192,8 +186,11 @@ export function ContactSection() {
 
           {/* 간단한 문의 폼 */}
           <div className="lg:col-span-2">
-            <h3 className="text-2xl font-semibold mb-6">{t('contact.form.title')}</h3>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-semibold">{t('contact.form.title')}</h3>
+              <a href="/inquiries" className="text-sm px-3 py-2 rounded bg-white text-black border border-white hover:bg-gray-100">문의게시판으로 이동</a>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
               {/* 기본 정보 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
@@ -203,6 +200,7 @@ export function ContactSection() {
                   onChange={handleInputChange}
                   placeholder={t('contact.form.name')}
                   className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-zinc-500"
+                  autoComplete="off"
                   required
                 />
                 <input
@@ -212,6 +210,36 @@ export function ContactSection() {
                   onChange={handleInputChange}
                   placeholder={t('contact.form.contact')}
                   className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-zinc-500"
+                  autoComplete="off"
+                  required
+                />
+              </div>
+
+              {/* 문의 유형 / 제목 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <select
+                  name="type"
+                  value={formData.type}
+                  onChange={handleInputChange as any}
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-zinc-500"
+                  autoComplete="off"
+                >
+                  <option value="" disabled>문의 카테고리</option>
+                  <option value="안무제작(앨범,광고,행사 등)">안무제작(앨범,광고,행사 등)</option>
+                  <option value="행사섭외(공연,심사,게스트 등)">행사섭외(공연,심사,게스트 등)</option>
+                  <option value="광고(SNS, TVC 등)">광고(SNS, TVC 등)</option>
+                  <option value="레슨(티칭,워크샵,디렉팅 등)">레슨(티칭,워크샵,디렉팅 등)</option>
+                  <option value="댄서 섭외(안무시안,백업,모션캡쳐 등)">댄서 섭외(안무시안,백업,모션캡쳐 등)</option>
+                  <option value="기타(자율문의)">기타(자율문의)</option>
+                </select>
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  placeholder="문의 제목"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-zinc-500"
+                  autoComplete="off"
                   required
                 />
               </div>
@@ -224,6 +252,18 @@ export function ContactSection() {
                 placeholder={t('contact.form.inquiry')}
                 rows={6}
                 className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-zinc-500 resize-none"
+                required
+              />
+
+              {/* 비공개 비밀번호 */}
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                placeholder="게시글 비밀번호 (열람용)"
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-zinc-500"
+                autoComplete="new-password"
                 required
               />
 

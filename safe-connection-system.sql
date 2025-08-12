@@ -276,3 +276,28 @@ SELECT
   'Existing data preserved' as status,
   COUNT(*) as total_users
 FROM users;
+
+-- 11. 문의게시판 테이블 (비밀번호 해시 보관, 비공개 기본)
+CREATE TABLE IF NOT EXISTS inquiries (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  type text NOT NULL, -- ex) general, proposal, etc
+  title text NOT NULL,
+  content text NOT NULL,
+  name text,
+  contact text,
+  password_hash text NOT NULL,
+  is_private boolean DEFAULT true,
+  status text DEFAULT 'pending',
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT inquiries_pkey PRIMARY KEY (id)
+);
+
+-- 12. 문의 답변 테이블
+CREATE TABLE IF NOT EXISTS inquiry_replies (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  inquiry_id uuid NOT NULL REFERENCES public.inquiries(id) ON DELETE CASCADE,
+  responder_id uuid REFERENCES public.users(id),
+  content text NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  CONSTRAINT inquiry_replies_pkey PRIMARY KEY (id)
+);

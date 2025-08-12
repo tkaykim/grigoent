@@ -827,7 +827,7 @@ export default function AdminPage() {
           </div>
 
           <Tabs defaultValue="pending" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="pending">
                 승인 대기 ({pendingUsers.length})
               </TabsTrigger>
@@ -839,6 +839,9 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger value="claims">
                 연결 요청
+              </TabsTrigger>
+              <TabsTrigger value="inquiries">
+                문의게시판
               </TabsTrigger>
               <TabsTrigger value="seo">
                 SEO 설정
@@ -1193,6 +1196,36 @@ export default function AdminPage() {
                     >
                       <Users className="w-4 h-4" />
                       연결 요청 관리 페이지로 이동
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="inquiries">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    문의게시판 관리
+                  </CardTitle>
+                  <p className="text-sm text-zinc-600">
+                    문의글을 확인하고 답변을 관리하세요
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <FileText className="w-16 h-16 text-zinc-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-zinc-900 mb-2">문의게시판</h3>
+                    <p className="text-zinc-600 mb-6">
+                      접수된 문의를 검토하고, 비공개 답변을 등록할 수 있습니다.
+                    </p>
+                    <Button 
+                      onClick={() => router.push('/admin/inquiries')}
+                      className="flex items-center gap-2"
+                    >
+                      <Link className="w-4 h-4" />
+                      문의게시판 관리 페이지로 이동
                     </Button>
                   </div>
                 </CardContent>
