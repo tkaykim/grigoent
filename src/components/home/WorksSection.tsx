@@ -283,53 +283,53 @@ export function WorksSection() {
 
           {/* 서비스 카드들 */}
           <div className="mb-20">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              <div className="bg-zinc-50 p-8 rounded-lg border border-zinc-200 hover:shadow-lg transition-shadow text-center">
-                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Music className="w-8 h-8 text-zinc-600" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Music className="w-8 h-8 text-gray-600" />
                 </div>
-                <h4 className="font-semibold text-zinc-900 mb-4">{t('works.services.kpop.title')}</h4>
-                <p className="text-sm text-zinc-600">{t('works.services.kpop.desc')}</p>
+                <h4 className="font-semibold text-black mb-2 text-center">{t('works.services.kpop.title')}</h4>
+                <p className="text-sm text-gray-600 text-center">{t('works.services.kpop.desc')}</p>
               </div>
               
-              <div className="bg-zinc-50 p-8 rounded-lg border border-zinc-200 hover:shadow-lg transition-shadow text-center">
-                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Film className="w-8 h-8 text-zinc-600" />
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Film className="w-8 h-8 text-gray-600" />
                 </div>
-                <h4 className="font-semibold text-zinc-900 mb-4">{t('works.services.movie.title')}</h4>
-                <p className="text-sm text-zinc-600">{t('works.services.movie.desc')}</p>
+                <h4 className="font-semibold text-black mb-2 text-center">{t('works.services.movie.title')}</h4>
+                <p className="text-sm text-gray-600 text-center">{t('works.services.movie.desc')}</p>
               </div>
               
-              <div className="bg-zinc-50 p-8 rounded-lg border border-zinc-200 hover:shadow-lg transition-shadow text-center">
-                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Tv className="w-8 h-8 text-zinc-600" />
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Tv className="w-8 h-8 text-gray-600" />
                 </div>
-                <h4 className="font-semibold text-zinc-900 mb-4">{t('works.services.broadcast.title')}</h4>
-                <p className="text-sm text-zinc-600">{t('works.services.broadcast.desc')}</p>
+                <h4 className="font-semibold text-black mb-2 text-center">{t('works.services.broadcast.title')}</h4>
+                <p className="text-sm text-gray-600 text-center">{t('works.services.broadcast.desc')}</p>
               </div>
               
-              <div className="bg-zinc-50 p-8 rounded-lg border border-zinc-200 hover:shadow-lg transition-shadow text-center">
-                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Globe className="w-8 h-8 text-zinc-600" />
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Globe className="w-8 h-8 text-gray-600" />
                 </div>
-                <h4 className="font-semibold text-zinc-900 mb-4">{t('works.services.workshop.title')}</h4>
-                <p className="text-sm text-zinc-600">{t('works.services.workshop.desc')}</p>
+                <h4 className="font-semibold text-black mb-2 text-center">{t('works.services.workshop.title')}</h4>
+                <p className="text-sm text-gray-600 text-center">{t('works.services.workshop.desc')}</p>
               </div>
               
-              <div className="bg-zinc-50 p-8 rounded-lg border border-zinc-200 hover:shadow-lg transition-shadow text-center">
-                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Heart className="w-8 h-8 text-zinc-600" />
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Heart className="w-8 h-8 text-gray-600" />
                 </div>
-                <h4 className="font-semibold text-zinc-900 mb-4">{t('works.services.challenge.title')}</h4>
-                <p className="text-sm text-zinc-600">{t('works.services.challenge.desc')}</p>
+                <h4 className="font-semibold text-black mb-2 text-center">{t('works.services.challenge.title')}</h4>
+                <p className="text-sm text-gray-600 text-center">{t('works.services.challenge.desc')}</p>
               </div>
               
-              <div className="bg-zinc-50 p-8 rounded-lg border border-zinc-200 hover:shadow-lg transition-shadow text-center">
-                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Trophy className="w-8 h-8 text-zinc-600" />
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Trophy className="w-8 h-8 text-gray-600" />
                 </div>
-                <h4 className="font-semibold text-zinc-900 mb-4">{t('works.services.competition.title')}</h4>
-                <p className="text-sm text-zinc-600">{t('works.services.competition.desc')}</p>
+                <h4 className="font-semibold text-black mb-2 text-center">{t('works.services.competition.title')}</h4>
+                <p className="text-sm text-gray-600 text-center">{t('works.services.competition.desc')}</p>
               </div>
             </div>
           </div>
@@ -341,7 +341,7 @@ export function WorksSection() {
             <p className="text-zinc-500 mb-4">{error}</p>
             <button
               onClick={() => fetchFeaturedWorks()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors border border-gray-300"
             >
               {t('works.error.retry')}
             </button>
@@ -366,53 +366,53 @@ export function WorksSection() {
 
           {/* 서비스 카드들 */}
           <div className="mb-20">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              <div className="bg-zinc-50 p-8 rounded-lg border border-zinc-200 hover:shadow-lg transition-shadow text-center">
-                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Music className="w-8 h-8 text-zinc-600" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Music className="w-8 h-8 text-gray-600" />
                 </div>
-                <h4 className="font-semibold text-zinc-900 mb-4">{t('works.services.kpop.title')}</h4>
-                <p className="text-sm text-zinc-600">{t('works.services.kpop.desc')}</p>
+                <h4 className="font-semibold text-black mb-2 text-center">{t('works.services.kpop.title')}</h4>
+                <p className="text-sm text-gray-600 text-center">{t('works.services.kpop.desc')}</p>
               </div>
               
-              <div className="bg-zinc-50 p-8 rounded-lg border border-zinc-200 hover:shadow-lg transition-shadow text-center">
-                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Film className="w-8 h-8 text-zinc-600" />
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Film className="w-8 h-8 text-gray-600" />
                 </div>
-                <h4 className="font-semibold text-zinc-900 mb-4">{t('works.services.movie.title')}</h4>
-                <p className="text-sm text-zinc-600">{t('works.services.movie.desc')}</p>
+                <h4 className="font-semibold text-black mb-2 text-center">{t('works.services.movie.title')}</h4>
+                <p className="text-sm text-gray-600 text-center">{t('works.services.movie.desc')}</p>
               </div>
               
-              <div className="bg-zinc-50 p-8 rounded-lg border border-zinc-200 hover:shadow-lg transition-shadow text-center">
-                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Tv className="w-8 h-8 text-zinc-600" />
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Tv className="w-8 h-8 text-gray-600" />
                 </div>
-                <h4 className="font-semibold text-zinc-900 mb-4">{t('works.services.broadcast.title')}</h4>
-                <p className="text-sm text-zinc-600">{t('works.services.broadcast.desc')}</p>
+                <h4 className="font-semibold text-black mb-2 text-center">{t('works.services.broadcast.title')}</h4>
+                <p className="text-sm text-gray-600 text-center">{t('works.services.broadcast.desc')}</p>
               </div>
               
-              <div className="bg-zinc-50 p-8 rounded-lg border border-zinc-200 hover:shadow-lg transition-shadow text-center">
-                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Globe className="w-8 h-8 text-zinc-600" />
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Globe className="w-8 h-8 text-gray-600" />
                 </div>
-                <h4 className="font-semibold text-zinc-900 mb-4">{t('works.services.workshop.title')}</h4>
-                <p className="text-sm text-zinc-600">{t('works.services.workshop.desc')}</p>
+                <h4 className="font-semibold text-black mb-2 text-center">{t('works.services.workshop.title')}</h4>
+                <p className="text-sm text-gray-600 text-center">{t('works.services.workshop.desc')}</p>
               </div>
               
-              <div className="bg-zinc-50 p-8 rounded-lg border border-zinc-200 hover:shadow-lg transition-shadow text-center">
-                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Heart className="w-8 h-8 text-zinc-600" />
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Heart className="w-8 h-8 text-gray-600" />
                 </div>
-                <h4 className="font-semibold text-zinc-900 mb-4">{t('works.services.challenge.title')}</h4>
-                <p className="text-sm text-zinc-600">{t('works.services.challenge.desc')}</p>
+                <h4 className="font-semibold text-black mb-2 text-center">{t('works.services.challenge.title')}</h4>
+                <p className="text-sm text-gray-600 text-center">{t('works.services.challenge.desc')}</p>
               </div>
               
-              <div className="bg-zinc-50 p-8 rounded-lg border border-zinc-200 hover:shadow-lg transition-shadow text-center">
-                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Trophy className="w-8 h-8 text-zinc-600" />
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Trophy className="w-8 h-8 text-gray-600" />
                 </div>
-                <h4 className="font-semibold text-zinc-900 mb-4">{t('works.services.competition.title')}</h4>
-                <p className="text-sm text-zinc-600">{t('works.services.competition.desc')}</p>
+                <h4 className="font-semibold text-black mb-2 text-center">{t('works.services.competition.title')}</h4>
+                <p className="text-sm text-gray-600 text-center">{t('works.services.competition.desc')}</p>
               </div>
             </div>
           </div>
@@ -433,60 +433,58 @@ export function WorksSection() {
               )}
             </div>
             {featuredWorks.length > 0 ? (
-              <div className="overflow-x-auto">
-                <div className="grid grid-cols-3 gap-4 min-w-max md:min-w-0 md:gap-6 lg:gap-8">
-                  {featuredWorks.map((work) => (
-                    <div 
-                      key={work.id} 
-                      className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer w-64 md:w-auto"
-                      onClick={() => handleWorkClick(work)}
-                    >
-                      <div className="aspect-video relative">
-                        {getThumbnailUrl(work) ? (
-                          <img
-                            src={getThumbnailUrl(work)}
-                            alt={work.title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              // 썸네일 로딩 실패 시 대체 이미지 표시
-                              const img = e.currentTarget
-                              const parent = img.parentElement
-                              if (parent) {
-                                img.style.display = 'none'
-                                const fallback = parent.querySelector('.thumbnail-fallback')
-                                if (fallback) {
-                                  fallback.classList.remove('hidden')
-                                }
-                              }
-                            }}
-                          />
-                        ) : null}
-                        
-                        {/* 썸네일 로딩 실패 시 대체 이미지 */}
-                        <div className={`thumbnail-fallback w-full h-full bg-zinc-200 flex items-center justify-center ${getThumbnailUrl(work) ? 'hidden' : ''}`}>
-                          <Play className="w-12 h-12 text-zinc-400" />
-                        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {featuredWorks.map((work) => (
+                  <div 
+                    key={work.id} 
+                    className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+                    onClick={() => handleWorkClick(work)}
+                  >
+                                         <div className="aspect-video relative">
+                       {getThumbnailUrl(work) ? (
+                         <img
+                           src={getThumbnailUrl(work)}
+                           alt={work.title}
+                           className="w-full h-full object-cover"
+                           loading="lazy"
+                           onError={(e) => {
+                             // 썸네일 로딩 실패 시 대체 이미지 표시
+                             const img = e.currentTarget
+                             const parent = img.parentElement
+                             if (parent) {
+                               img.style.display = 'none'
+                               const fallback = parent.querySelector('.thumbnail-fallback')
+                               if (fallback) {
+                                 fallback.classList.remove('hidden')
+                               }
+                             }
+                           }}
+                         />
+                       ) : null}
+                       
+                       {/* 썸네일 로딩 실패 시 대체 이미지 */}
+                       <div className={`thumbnail-fallback w-full h-full bg-zinc-200 flex items-center justify-center ${getThumbnailUrl(work) ? 'hidden' : ''}`}>
+                         <Play className="w-12 h-12 text-zinc-400" />
+                       </div>
 
-                        {/* 호버 오버레이 */}
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <div className="text-white text-center p-4">
-                            <h3 className="text-lg font-semibold mb-2">{work.title}</h3>
-                            <p className="text-sm font-medium">{work.category}</p>
-                          </div>
+                      {/* 호버 오버레이 */}
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="text-white text-center p-4">
+                          <h3 className="text-lg font-semibold mb-2">{work.title}</h3>
+                          <p className="text-sm font-medium">{work.category}</p>
                         </div>
-                      </div>
-                      
-                      <div className="p-4">
-                        <h3 className="text-lg font-semibold text-zinc-900 mb-1 group-hover:text-blue-600 transition-colors">
-                          {work.title}
-                        </h3>
-                        <p className="text-sm text-zinc-600">{work.category}</p>
                       </div>
                     </div>
-                  ))}
+                    
+                                      <div className="p-4">
+                    <h3 className="text-lg font-semibold text-zinc-900 mb-1 group-hover:text-blue-600 transition-colors">
+                      {work.title}
+                    </h3>
+                    <p className="text-sm text-zinc-600">{work.category}</p>
+                  </div>
                 </div>
-              </div>
+              ))}
+            </div>
             ) : (
               <div className="text-center py-12">
                 <div className="text-zinc-400 text-6xl mb-4">🎭</div>
