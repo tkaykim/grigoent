@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
@@ -26,6 +26,23 @@ const categories = [
 ]
 
 export default function InquiriesPage() {
+  return (
+    <div>
+      <Header />
+      <main className="pt-16 min-h-screen bg-black">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-8">문의게시판</h1>
+          <Suspense fallback={<div className="text-white/70">불러오는 중…</div>}>
+            <InquiriesList />
+          </Suspense>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  )
+}
+
+function InquiriesList() {
   const [items, setItems] = useState<InquiryListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -51,61 +68,53 @@ export default function InquiriesPage() {
   }, [selected])
 
   return (
-    <div>
-      <Header />
-      <main className="pt-16 min-h-screen bg-black">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-8">문의게시판</h1>
+    <>
+      {/* 카테고리 필터 */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => router.push(cat === '전체' ? '/inquiries' : `/inquiries?type=${encodeURIComponent(cat)}`)}
+            className={`px-3 py-1.5 rounded border ${selected === cat ? 'bg-white text-black border-white' : 'bg-white/5 text-white border-white/20 hover:bg-white/10'}`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
 
-          {/* 카테고리 필터 */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => router.push(cat === '전체' ? '/inquiries' : `/inquiries?type=${encodeURIComponent(cat)}`)}
-                className={`px-3 py-1.5 rounded border ${selected === cat ? 'bg-white text-black border-white' : 'bg-white/5 text-white border-white/20 hover:bg_white/10'}`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
-          {loading ? (
-            <div className="text-white/70">불러오는 중…</div>
-          ) : error ? (
-            <div className="text-red-400">{error}</div>
-          ) : items.length === 0 ? (
-            <div className="text-white/70">등록된 문의가 없습니다.</div>
-          ) : (
-            <div className="divide-y divide-white/10 border border-white/10 rounded-lg overflow-hidden">
-              {items.map((it) => (
-                <Link
-                  key={it.id}
-                  href={`/inquiries/${it.id}`}
-                  className="block bg-white/5 hover:bg-white/10 transition-colors"
-                >
-                  <div className="px-4 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs px-2 py-1 rounded bg-black text-white border border-white/20">
-                        {it.type}
-                      </span>
-                      <span className="text-white font-medium">{it.title}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className={`text-xs px-2 py-1 rounded border ${it.status === 'answered' ? 'bg-green-500/20 text-green-300 border-green-400/40' : 'bg-yellow-500/20 text-yellow-300 border-yellow-400/40'}`}>
-                        {it.status === 'answered' ? `답변 완료 (${it.reply_count || 0})` : `답변 대기중 (${it.reply_count || 0})`}
-                      </span>
-                      <span className="text-white/50 text-sm">{new Date(it.created_at).toLocaleString('ko-KR')}</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+      {loading ? (
+        <div className="text-white/70">불러오는 중…</div>
+      ) : error ? (
+        <div className="text-red-400">{error}</div>
+      ) : items.length === 0 ? (
+        <div className="text-white/70">등록된 문의가 없습니다.</div>
+      ) : (
+        <div className="divide-y divide-white/10 border border-white/10 rounded-lg overflow-hidden">
+          {items.map((it) => (
+            <Link
+              key={it.id}
+              href={`/inquiries/${it.id}`}
+              className="block bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="px-4 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs px-2 py-1 rounded bg-black text-white border border-white/20">
+                    {it.type}
+                  </span>
+                  <span className="text-white font-medium">{it.title}</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className={`text-xs px-2 py-1 rounded border ${it.status === 'answered' ? 'bg-green-500/20 text-green-300 border-green-400/40' : 'bg-yellow-500/20 text-yellow-300 border-yellow-400/40'}`}>
+                    {it.status === 'answered' ? `답변 완료 (${it.reply_count || 0})` : `답변 대기중 (${it.reply_count || 0})`}
+                  </span>
+                  <span className="text-white/50 text-sm">{new Date(it.created_at).toLocaleString('ko-KR')}</span>
+                </div>
+              </div>
+            </Link>
+          ))}
         </div>
-      </main>
-      <Footer />
-    </div>
+      )}
+    </>
   )
 }
 
