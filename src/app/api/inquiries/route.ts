@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       }
     }
   }
-  const items = (data || []).map((d: any) => ({ ...d, reply_count: countsMap[d.id] || 0 }))
+  const items = (data || []).map((d: any) => ({ ...d, title: '비공개', reply_count: countsMap[d.id] || 0 }))
   return NextResponse.json({ items })
 }
 

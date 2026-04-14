@@ -28,11 +28,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   const { data, error } = await supabase
     .from('inquiries')
-    .select('id, type, title, created_at, status')
+    .select('id, type, created_at, status')
     .eq('id', id)
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ item: data })
+  return NextResponse.json({ item: { ...data, title: '비공개' } })
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
