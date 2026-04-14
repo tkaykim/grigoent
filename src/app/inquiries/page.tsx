@@ -101,7 +101,7 @@ function InquiriesList() {
                   <span className="text-xs px-2 py-1 rounded bg-black text-white border border-white/20">
                     {it.type}
                   </span>
-                  <span className="text-white font-medium">{it.title}</span>
+                  <span className="text-white/50 font-medium">비공개</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <span className={`text-xs px-2 py-1 rounded border ${it.status === 'answered' ? 'bg-green-500/20 text-green-300 border-green-400/40' : 'bg-yellow-500/20 text-yellow-300 border-yellow-400/40'}`}>

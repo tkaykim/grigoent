@@ -67,7 +67,7 @@ export default function InquiryDetailPage() {
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                 <span className="text-xs px-2 py-1 rounded bg-black text-white border border-white/20">{meta.type}</span>
-                <h1 className="text-2xl md:text-3xl font-bold text-white">{meta.title}</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-white/50">비공개</h1>
               </div>
               <div className="text-white/50 text-sm">{new Date(meta.created_at).toLocaleString('ko-KR')}</div>
 
