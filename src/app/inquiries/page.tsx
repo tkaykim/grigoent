@@ -105,7 +105,7 @@ function InquiriesList() {
                 </div>
                 <div className="flex items-center gap-4">
                   <span className={`text-xs px-2 py-1 rounded border ${it.status === 'answered' ? 'bg-green-500/20 text-green-300 border-green-400/40' : 'bg-yellow-500/20 text-yellow-300 border-yellow-400/40'}`}>
-                    {it.status === 'answered' ? `답변 완료 (${it.reply_count || 0})` : `답변 대기중 (${it.reply_count || 0})`}
+                    {it.status === 'answered' ? '답변완료' : '답변 대기중'}
                   </span>
                   <span className="text-white/50 text-sm">{new Date(it.created_at).toLocaleString('ko-KR')}</span>
                 </div>
