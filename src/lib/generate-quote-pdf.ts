@@ -5,17 +5,17 @@ import type { QuoteItem } from '@/lib/types'
 
 const BLACK = '#111111'
 const GRAY = '#666666'
-const LIGHT_GRAY = '#999999'
-const BG_GRAY = '#f5f5f5'
-const PAGE_W = 595.28
-const PAGE_H = 841.89
-const M = 50
+const LGRAY = '#999999'
+const BG = '#f5f5f5'
+const PW = 595.28
+const PH = 841.89
+const M = 40
 
-function formatKRW(amount: number | null | undefined): string {
-  return (amount ?? 0).toLocaleString('ko-KR') + '원'
+function fmt(n: number | null | undefined): string {
+  return (n ?? 0).toLocaleString('ko-KR') + '원'
 }
 
-interface GenerateQuotePdfInput {
+interface Input {
   quote: {
     id: string
     items: QuoteItem[]
@@ -30,14 +30,13 @@ interface GenerateQuotePdfInput {
   projectTitle?: string
 }
 
-function registerFonts(doc: InstanceType<typeof PDFDocument>) {
-  const fontsDir = path.join(process.cwd(), 'public', 'fonts')
-  const regularPath = path.join(fontsDir, 'NanumGothic-Regular.ttf')
-  const boldPath = path.join(fontsDir, 'NanumGothic-Bold.ttf')
-
-  if (fs.existsSync(regularPath) && fs.existsSync(boldPath)) {
-    doc.registerFont('NanumGothic', regularPath)
-    doc.registerFont('NanumGothic-Bold', boldPath)
+function regFonts(doc: InstanceType<typeof PDFDocument>) {
+  const d = path.join(process.cwd(), 'public', 'fonts')
+  const r = path.join(d, 'NanumGothic-Regular.ttf')
+  const b = path.join(d, 'NanumGothic-Bold.ttf')
+  if (fs.existsSync(r) && fs.existsSync(b)) {
+    doc.registerFont('NG', r)
+    doc.registerFont('NGB', b)
     return true
   }
   return false
@@ -46,208 +45,138 @@ function registerFonts(doc: InstanceType<typeof PDFDocument>) {
 const CO = {
   name: '(주)그리고 엔터테인먼트',
   brand: '그리고 엔터테인먼트',
-  brandEn: 'GRIGO Entertainment',
   bizNo: '116-81-96848',
   bizType: '서비스업',
   bizItem: '매니지먼트업',
-  address: '서울특별시 마포구 성지3길 55, 3층',
+  addr: '서울특별시 마포구 성지3길 55, 3층',
   tel: '02-6229-9229',
 }
 
-export async function generateQuotePdf(input: GenerateQuotePdfInput): Promise<Buffer> {
+export async function generateQuotePdf(input: Input): Promise<Buffer> {
   const { quote, clientName, clientCompany, projectTitle } = input
-  const numericPart = quote.id.replace(/\D/g, '').slice(-6)
-  const docNumber = `GRG-${numericPart.padStart(6, '0')}`
+  const num = quote.id.replace(/\D/g, '').slice(-6)
+  const docNo = `GRG-${num.padStart(6, '0')}`
 
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ size: 'A4', margin: M })
+      const doc = new PDFDocument({ size: 'A4', margin: M, bufferPages: true })
       const chunks: Uint8Array[] = []
-
-      doc.on('data', (chunk: Uint8Array) => chunks.push(chunk))
+      doc.on('data', (c: Uint8Array) => chunks.push(c))
       doc.on('end', () => resolve(Buffer.concat(chunks)))
       doc.on('error', reject)
 
-      const hasKoreanFont = registerFonts(doc)
-      const fr = hasKoreanFont ? 'NanumGothic' : 'Helvetica'
-      const fb = hasKoreanFont ? 'NanumGothic-Bold' : 'Helvetica-Bold'
-      const cw = PAGE_W - M * 2
+      const ok = regFonts(doc)
+      const fr = ok ? 'NG' : 'Helvetica'
+      const fb = ok ? 'NGB' : 'Helvetica-Bold'
+      const cw = PW - M * 2
+      const lb = { lineBreak: false }
+
+      let y = M
 
       // ── 헤더 ──
-      doc.font(fb).fontSize(18).fillColor(BLACK)
-        .text(CO.brand, M, M)
-      doc.font(fr).fontSize(8).fillColor(LIGHT_GRAY)
-        .text(CO.name, M, doc.y + 2)
+      doc.font(fb).fontSize(15).fillColor(BLACK).text(CO.brand, M, y, lb)
+      doc.font(fr).fontSize(16).fillColor('#333').text('견 적 서', M, y, { width: cw, align: 'right', ...lb })
+      y += 18
+      doc.font(fr).fontSize(7).fillColor(LGRAY).text(CO.name, M, y, lb)
+      doc.font(fr).fontSize(7).fillColor(LGRAY).text(`No. ${docNo}`, M, y, { width: cw, align: 'right', ...lb })
+      y += 12
+      doc.moveTo(M, y).lineTo(M + cw, y).lineWidth(2).strokeColor(BLACK).stroke()
+      y += 10
 
-      doc.font(fr).fontSize(20).fillColor('#333')
-        .text('견 적 서', M, M, { width: cw, align: 'right' })
-      doc.font(fr).fontSize(8).fillColor(LIGHT_GRAY)
-        .text(`No. ${docNumber}`, M, M + 24, { width: cw, align: 'right' })
+      // ── 발행자 ──
+      const iH = 56
+      doc.rect(M, y, 3, iH).fill(BLACK)
+      doc.rect(M + 3, y, cw - 3, iH).fill(BG)
+      doc.font(fr).fontSize(6.5).fillColor(LGRAY).text('발행자', M + 10, y + 5, lb)
+      doc.font(fb).fontSize(8.5).fillColor(BLACK).text(CO.name, M + 10, y + 15, lb)
+      doc.font(fr).fontSize(7).fillColor(GRAY).text(`사업자등록번호 ${CO.bizNo}  |  업태: ${CO.bizType}  종목: ${CO.bizItem}`, M + 10, y + 27, lb)
+      doc.font(fr).fontSize(7).fillColor(GRAY).text(`${CO.addr}  |  ${CO.tel}`, M + 10, y + 38, lb)
+      y += iH + 6
 
-      let y = M + 44
-      doc.moveTo(M, y).lineTo(M + cw, y).lineWidth(2.5).strokeColor(BLACK).stroke()
-      y += 16
-
-      // ── 발행자 정보 ──
-      const issuerH = 72
-      doc.rect(M, y, 3, issuerH).fill(BLACK)
-      doc.rect(M + 3, y, cw - 3, issuerH).fill(BG_GRAY)
-
-      doc.font(fr).fontSize(7).fillColor(LIGHT_GRAY)
-        .text('발행자', M + 14, y + 8)
-      doc.font(fb).fontSize(10).fillColor(BLACK)
-        .text(CO.name, M + 14, y + 20)
-
-      const issuerLines = [
-        `사업자등록번호  ${CO.bizNo}`,
-        `업태: ${CO.bizType}  종목: ${CO.bizItem}`,
-        `${CO.address}`,
-        `연락처: ${CO.tel}`,
-      ]
-      let iy = y + 34
-      for (const line of issuerLines) {
-        doc.font(fr).fontSize(7.5).fillColor(GRAY)
-          .text(line, M + 14, iy, { width: cw - 28 })
-        iy += 10
-      }
-      y += issuerH + 10
-
-      // ── 프로젝트 (ESTIMATE) ──
+      // ── ESTIMATE ──
       if (projectTitle) {
-        const projH = 46
-        doc.rect(M, y, 3, projH).fill(BLACK)
-        doc.rect(M + 3, y, cw - 3, projH).fill(BG_GRAY)
-        doc.font(fr).fontSize(7).fillColor(LIGHT_GRAY)
-          .text('ESTIMATE', M + 14, y + 8)
-        doc.font(fb).fontSize(13).fillColor(BLACK)
-          .text(projectTitle, M + 14, y + 22, { width: cw - 28 })
-        y += projH + 10
+        const pH = 32
+        doc.rect(M, y, 3, pH).fill(BLACK)
+        doc.rect(M + 3, y, cw - 3, pH).fill(BG)
+        doc.font(fr).fontSize(6.5).fillColor(LGRAY).text('ESTIMATE', M + 10, y + 5, lb)
+        doc.font(fb).fontSize(11).fillColor(BLACK).text(projectTitle, M + 10, y + 17, lb)
+        y += pH + 6
       }
 
       // ── 수신 / 발행일 ──
-      const infoH = 44
-      const halfW = (cw - 1) / 2
+      const half = (cw - 1) / 2
+      doc.moveTo(M, y).lineTo(M + cw, y).lineWidth(0.3).strokeColor('#ddd').stroke()
+      doc.font(fr).fontSize(6.5).fillColor(LGRAY).text('수신', M + 4, y + 5, lb)
+      doc.font(fb).fontSize(9).fillColor(BLACK).text(`${clientName} 님`, M + 4, y + 16, lb)
+      if (clientCompany) doc.font(fr).fontSize(7).fillColor(GRAY).text(clientCompany, M + 4, y + 28, lb)
+      doc.moveTo(M + half, y + 4).lineTo(M + half, y + 32).lineWidth(0.3).strokeColor('#ddd').stroke()
+      doc.font(fr).fontSize(6.5).fillColor(LGRAY).text('발행일', M + half + 10, y + 5, lb)
+      const dateStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric' })
+      doc.font(fb).fontSize(9).fillColor(BLACK).text(`${dateStr}.`, M + half + 10, y + 16, lb)
+      y += 36
+      doc.moveTo(M, y).lineTo(M + cw, y).lineWidth(0.3).strokeColor('#ddd').stroke()
+      y += 10
 
-      doc.moveTo(M, y).lineTo(M + cw, y).lineWidth(0.5).strokeColor('#ddd').stroke()
+      // ── 테이블 ──
+      const cols = [cw * 0.44, cw * 0.12, cw * 0.22, cw * 0.22]
+      const hdrs = ['품목', '수량', '단가', '금액']
+      const RH = 22
 
-      doc.font(fr).fontSize(7).fillColor(LIGHT_GRAY)
-        .text('수신', M + 4, y + 8)
-      doc.font(fb).fontSize(11).fillColor(BLACK)
-        .text(`${clientName} 님`, M + 4, y + 22)
-      if (clientCompany) {
-        doc.font(fr).fontSize(8).fillColor(GRAY)
-          .text(clientCompany, M + 4, y + 36, { width: halfW - 8 })
-      }
-
-      doc.moveTo(M + halfW, y + 6).lineTo(M + halfW, y + infoH - 6)
-        .lineWidth(0.5).strokeColor('#ddd').stroke()
-
-      doc.font(fr).fontSize(7).fillColor(LIGHT_GRAY)
-        .text('발행일', M + halfW + 12, y + 8)
-      doc.font(fb).fontSize(11).fillColor(BLACK)
-        .text(new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric' }) + '.', M + halfW + 12, y + 22)
-
-      doc.moveTo(M, y + infoH).lineTo(M + cw, y + infoH).lineWidth(0.5).strokeColor('#ddd').stroke()
-      y += infoH + 16
-
-      // ── 품목 테이블 ──
-      const colW = [cw * 0.44, cw * 0.12, cw * 0.22, cw * 0.22]
-      const headers = ['품목', '수량', '단가', '금액']
-      const ROW_H = 28
-
-      doc.rect(M, y, cw, ROW_H).fill(BLACK)
+      doc.rect(M, y, cw, RH).fill(BLACK)
       let cx = M
-      for (let i = 0; i < headers.length; i++) {
-        const align = i >= 2 ? 'right' : i === 1 ? 'center' : 'left'
-        doc.font(fb).fontSize(8.5).fillColor('#ffffff')
-          .text(headers[i], cx + 10, y + 9, { width: colW[i] - 20, align })
-        cx += colW[i]
+      for (let i = 0; i < 4; i++) {
+        const a = i >= 2 ? 'right' : i === 1 ? 'center' : 'left'
+        doc.font(fb).fontSize(7.5).fillColor('#fff').text(hdrs[i], cx + 8, y + 7, { width: cols[i] - 16, align: a, ...lb })
+        cx += cols[i]
       }
-      y += ROW_H
+      y += RH
 
       const items = quote.items ?? []
       for (let idx = 0; idx < items.length; idx++) {
-        if (y + ROW_H > PAGE_H - M - 100) {
-          doc.addPage()
-          y = M
-        }
-        const item = items[idx]
-
-        doc.moveTo(M, y + ROW_H).lineTo(M + cw, y + ROW_H)
-          .lineWidth(0.3).strokeColor('#e0e0e0').stroke()
-
-        const itemName = item.category ? `${item.name}` : item.name
-        const rowData = [
-          itemName,
-          `${item.qty}${item.unit || ''}`,
-          formatKRW(item.unit_price),
-          formatKRW(item.amount),
-        ]
+        const it = items[idx]
+        doc.moveTo(M, y + RH).lineTo(M + cw, y + RH).lineWidth(0.2).strokeColor('#e0e0e0').stroke()
+        const rd = [it.name, `${it.qty}${it.unit || ''}`, fmt(it.unit_price), fmt(it.amount)]
         cx = M
-        for (let i = 0; i < rowData.length; i++) {
-          const align = i >= 2 ? 'right' : i === 1 ? 'center' : 'left'
-          const font = i === 3 ? fb : fr
-          doc.font(font).fontSize(8.5).fillColor(BLACK)
-            .text(rowData[i], cx + 10, y + 9, { width: colW[i] - 20, align })
-          cx += colW[i]
+        for (let i = 0; i < 4; i++) {
+          const a = i >= 2 ? 'right' : i === 1 ? 'center' : 'left'
+          doc.font(i === 3 ? fb : fr).fontSize(7.5).fillColor(BLACK).text(rd[i], cx + 8, y + 7, { width: cols[i] - 16, align: a, ...lb })
+          cx += cols[i]
         }
-        y += ROW_H
+        y += RH
       }
-      y += 6
+      y += 4
 
-      // ── 합계 영역 ──
-      const sumLabelX = M + cw - 260
-      const sumValX = M + cw - 140
-      const sumValW = 140
+      // ── 합계 ──
+      const lx = M + cw - 220
+      const vx = M + cw - 120
 
-      doc.font(fr).fontSize(8.5).fillColor(GRAY)
-        .text('공급가액', sumLabelX, y, { width: 110, align: 'right' })
-      doc.font(fr).fontSize(9).fillColor(BLACK)
-        .text(formatKRW(quote.supply_amount), sumValX, y, { width: sumValW, align: 'right' })
-      y += 18
-
-      doc.font(fr).fontSize(8.5).fillColor(GRAY)
-        .text('부가세 (10%)', sumLabelX, y, { width: 110, align: 'right' })
-      doc.font(fr).fontSize(9).fillColor(BLACK)
-        .text(formatKRW(quote.vat), sumValX, y, { width: sumValW, align: 'right' })
-      y += 20
-
-      doc.moveTo(sumLabelX, y).lineTo(M + cw, y)
-        .lineWidth(1.5).strokeColor(BLACK).stroke()
-      y += 8
-
-      doc.font(fb).fontSize(12).fillColor(BLACK)
-        .text('합계', sumLabelX, y, { width: 110, align: 'right' })
-      doc.font(fb).fontSize(14).fillColor(BLACK)
-        .text(formatKRW(quote.total_amount), sumValX, y, { width: sumValW, align: 'right' })
-      y += 30
+      doc.font(fr).fontSize(7.5).fillColor(GRAY).text('공급가액', lx, y, { width: 90, align: 'right', ...lb })
+      doc.font(fr).fontSize(8).fillColor(BLACK).text(fmt(quote.supply_amount), vx, y, { width: 120, align: 'right', ...lb })
+      y += 14
+      doc.font(fr).fontSize(7.5).fillColor(GRAY).text('부가세 (10%)', lx, y, { width: 90, align: 'right', ...lb })
+      doc.font(fr).fontSize(8).fillColor(BLACK).text(fmt(quote.vat), vx, y, { width: 120, align: 'right', ...lb })
+      y += 14
+      doc.moveTo(lx, y).lineTo(M + cw, y).lineWidth(1).strokeColor(BLACK).stroke()
+      y += 5
+      doc.font(fb).fontSize(10).fillColor(BLACK).text('합계', lx, y, { width: 90, align: 'right', ...lb })
+      doc.font(fb).fontSize(12).fillColor(BLACK).text(fmt(quote.total_amount), vx, y, { width: 120, align: 'right', ...lb })
+      y += 22
 
       // ── 특이사항 ──
       if (quote.notes) {
-        if (y + 50 > PAGE_H - M - 30) {
-          doc.addPage()
-          y = M
-        }
-        const noteLines = quote.notes.split('\n')
-        const noteH = Math.max(40, 20 + noteLines.length * 12)
-
-        doc.rect(M, y, 3, noteH).fill(BLACK)
-        doc.rect(M + 3, y, cw - 3, noteH).fill('#fafafa')
-        doc.font(fb).fontSize(8).fillColor(BLACK)
-          .text('특이사항', M + 14, y + 8)
-        doc.font(fr).fontSize(8).fillColor('#444')
-          .text(quote.notes, M + 14, y + 22, { width: cw - 32, lineGap: 3 })
-        y += noteH + 10
+        const lines = quote.notes.split('\n')
+        const nH = Math.max(28, 16 + lines.length * 11)
+        doc.rect(M, y, 3, nH).fill(BLACK)
+        doc.rect(M + 3, y, cw - 3, nH).fill('#fafafa')
+        doc.font(fb).fontSize(7).fillColor(BLACK).text('특이사항', M + 10, y + 5, lb)
+        doc.font(fr).fontSize(7).fillColor('#444').text(quote.notes, M + 10, y + 16, { width: cw - 24, lineGap: 2 })
       }
 
-      // ── 푸터 ──
-      const footerY = PAGE_H - 32
-      doc.moveTo(M, footerY).lineTo(M + cw, footerY)
-        .lineWidth(0.3).strokeColor('#ddd').stroke()
-      doc.font(fr).fontSize(7).fillColor(LIGHT_GRAY)
-        .text(`${CO.name} | ${CO.brandEn} | ${CO.tel}`, M, footerY + 8)
-      doc.font(fr).fontSize(7).fillColor(LIGHT_GRAY)
-        .text(docNumber, M, footerY + 8, { width: cw, align: 'right' })
+      // ── 푸터 (항상 1페이지 하단) ──
+      const fy = PH - 28
+      doc.moveTo(M, fy).lineTo(M + cw, fy).lineWidth(0.2).strokeColor('#ddd').stroke()
+      doc.font(fr).fontSize(6.5).fillColor(LGRAY).text(`${CO.name} | GRIGO Entertainment | ${CO.tel}`, M, fy + 6, lb)
+      doc.font(fr).fontSize(6.5).fillColor(LGRAY).text(docNo, M, fy + 6, { width: cw, align: 'right', ...lb })
 
       doc.end()
     } catch (err) {
