@@ -155,6 +155,12 @@
   }
 }
 
+/* <select>의 <option> 드롭다운이 부모의 text-white를 상속받아 안 보이는 문제 방지 */
+select option {
+  color: #111;
+  background-color: #fff;
+}
+
 /* 날짜 input 달력 아이콘을 검정색으로 보이게 (크롬/사파리 등) */
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
