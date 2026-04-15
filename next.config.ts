@@ -8,7 +8,10 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   outputFileTracingIncludes: {
-    '/api/quotes/send': ['./public/fonts/**/*'],
+    '/api/quotes/send': [
+      './public/fonts/**/*',
+      './node_modules/pdfkit/js/data/**/*',
+    ],
   },
 }
 
