@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { useAuth } from '@/contexts/AuthContext'
@@ -44,6 +45,7 @@ const categories = [
 
 export default function AdminInquiriesPage() {
   const { profile } = useAuth()
+  const router = useRouter()
   const isAdmin = profile?.type === 'admin'
   const [items, setItems] = useState<InquiryListItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -241,13 +243,21 @@ export default function AdminInquiriesPage() {
                             작성자: {detail[it.id]?.name || '익명'} · 연락처: {detail[it.id]?.contact || '-'}
                           </div>
                         )}
-                        <button
-                          className="text-red-300 text-sm border border-red-500/40 rounded px-3 py-1 hover:bg-red-500/20"
-                          onClick={() => deleteInquiry(it.id)}
-                          disabled={deletingInquiryId === it.id}
-                        >
-                          {deletingInquiryId === it.id ? '삭제 중…' : '문의 삭제'}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            className="text-blue-300 text-sm border border-blue-500/40 rounded px-3 py-1 hover:bg-blue-500/20"
+                            onClick={() => router.push(`/admin/quotes/new?inquiry_id=${it.id}`)}
+                          >
+                            견적서 작성
+                          </button>
+                          <button
+                            className="text-red-300 text-sm border border-red-500/40 rounded px-3 py-1 hover:bg-red-500/20"
+                            onClick={() => deleteInquiry(it.id)}
+                            disabled={deletingInquiryId === it.id}
+                          >
+                            {deletingInquiryId === it.id ? '삭제 중…' : '문의 삭제'}
+                          </button>
+                        </div>
                       </div>
 
                       {replies[it.id] && replies[it.id]!.length > 0 && (

@@ -200,6 +200,89 @@ export interface CareerCategory {
   placeholder: string
 }
 
+// 견적서 관련 타입 정의
+export interface QuoteItem {
+  name: string
+  category?: string
+  qty: number
+  unit: string
+  unit_price: number
+  amount: number
+}
+
+export interface Quote {
+  id: string
+  inquiry_id: string | null
+  client_name: string
+  client_email: string
+  client_phone: string
+  client_company: string
+  project_title: string
+  project_type: string
+  items: QuoteItem[]
+  supply_amount: number
+  vat: number
+  total_amount: number
+  valid_until: string
+  notes: string
+  status: 'draft' | 'sent'
+  sent_at: string | null
+  view_token: string | null
+  client_response: 'pending' | 'approved' | 'revision_requested' | 'rejected' | null
+  client_response_at: string | null
+  client_response_note: string | null
+  created_at: string
+}
+
+export const QUOTE_ITEM_PRESETS: { category: string; label: string; items: string[] }[] = [
+  {
+    category: 'dancer_casting',
+    label: '댄서섭외비',
+    items: ['백업댄서', '메인댄서', '안무시안 댄서', '모션캡쳐 댄서']
+  },
+  {
+    category: 'choreography',
+    label: '안무제작비',
+    items: ['타이틀곡 안무', 'B-side 안무', '광고 안무', '행사 안무', '뮤직비디오 안무']
+  },
+  {
+    category: 'rehearsal',
+    label: '리허설비',
+    items: ['연습실 대관', '리허설 진행비']
+  },
+  {
+    category: 'travel',
+    label: '교통/숙박비',
+    items: ['교통비', '숙박비', '해외 출장비']
+  },
+  {
+    category: 'costume',
+    label: '의상/소품비',
+    items: ['의상 제작', '의상 대여', '소품 준비']
+  },
+  {
+    category: 'video',
+    label: '영상촬영비',
+    items: ['촬영 비용', '편집 비용', '뮤직비디오 제작']
+  },
+  {
+    category: 'other',
+    label: '기타',
+    items: ['디렉팅비', '워크샵 진행비', '기타']
+  }
+]
+
+export const PROJECT_TYPES = [
+  { value: 'choreography', label: '안무제작' },
+  { value: 'dancer_casting', label: '댄서섭외' },
+  { value: 'music_video', label: '뮤직비디오' },
+  { value: 'advertisement', label: '광고' },
+  { value: 'concert', label: '콘서트/공연' },
+  { value: 'event', label: '행사' },
+  { value: 'workshop', label: '워크샵/레슨' },
+  { value: 'other', label: '기타' }
+]
+
 export const CAREER_CATEGORIES: CareerCategory[] = [
   {
     value: 'choreography',

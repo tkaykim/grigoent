@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 import Papa from 'papaparse';
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger, TabsContent as UITabsContent } from '@/components/ui/tabs';
 import { SEOSettingsManager } from '@/components/dashboard/SEOSettingsManager';
-import { AlertTriangle, Users, UserCheck, FileText, Link } from 'lucide-react'
+import { AlertTriangle, Users, UserCheck, FileText, Link, Receipt } from 'lucide-react'
 import { ClaimRequestModal } from '@/components/proposals/ClaimRequestModal'
 import { DirectLinkModal } from '@/components/proposals/DirectLinkModal'
 
@@ -827,7 +827,7 @@ export default function AdminPage() {
           </div>
 
           <Tabs defaultValue="pending" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="pending">
                 승인 대기 ({pendingUsers.length})
               </TabsTrigger>
@@ -842,6 +842,9 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger value="inquiries">
                 문의게시판
+              </TabsTrigger>
+              <TabsTrigger value="quotes">
+                견적서
               </TabsTrigger>
               <TabsTrigger value="seo">
                 SEO 설정
@@ -1226,6 +1229,36 @@ export default function AdminPage() {
                     >
                       <Link className="w-4 h-4" />
                       문의게시판 관리 페이지로 이동
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="quotes">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Receipt className="w-5 h-5" />
+                    견적서 관리
+                  </CardTitle>
+                  <p className="text-sm text-zinc-600">
+                    견적서를 작성하고 고객에게 이메일로 발송하세요
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <Receipt className="w-16 h-16 text-zinc-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-zinc-900 mb-2">견적서 관리</h3>
+                    <p className="text-zinc-600 mb-6">
+                      견적서 작성, PDF 생성, 이메일 발송, 고객 응답을 한 곳에서 관리할 수 있습니다.
+                    </p>
+                    <Button 
+                      onClick={() => router.push('/admin/quotes')}
+                      className="flex items-center gap-2"
+                    >
+                      <Receipt className="w-4 h-4" />
+                      견적서 관리 페이지로 이동
                     </Button>
                   </div>
                 </CardContent>
