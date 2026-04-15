@@ -58,7 +58,7 @@ export function ArtistSearch({ onSearch, onClear, className = '' }: ArtistSearch
               variant="outline"
               size="sm"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center space-x-1 border-white/20 text-white hover:bg-white/10"
+              className="flex items-center space-x-1 bg-transparent border-white/20 text-white hover:bg-white/10"
             >
               <Filter className="w-4 h-4" />
               <span>필터</span>

@@ -324,7 +324,7 @@ export default function AdminQuoteEditPage() {
                 onClick={saveQuote}
                 disabled={saving || sending}
                 variant="outline"
-                className="gap-2 border-white/20 text-white hover:bg-white/10"
+                className="gap-2 bg-transparent border-white/20 text-white hover:bg-white/10"
               >
                 <Save className="w-4 h-4" /> {saving ? '저장 중...' : '저장'}
               </Button>
@@ -524,7 +524,7 @@ export default function AdminQuoteEditPage() {
                     onClick={addItem}
                     variant="outline"
                     size="sm"
-                    className="gap-1 border-white/20 text-white hover:bg-white/10"
+                    className="gap-1 bg-transparent border-white/20 text-white hover:bg-white/10"
                   >
                     <Plus className="w-3 h-3" /> 품목 추가
                   </Button>
@@ -678,7 +678,7 @@ export default function AdminQuoteEditPage() {
                   <Button
                     onClick={addCcEmail}
                     variant="outline"
-                    className="border-white/20 text-white hover:bg-white/10"
+                    className="bg-transparent border-white/20 text-white hover:bg-white/10"
                   >
                     추가
                   </Button>
@@ -708,7 +708,7 @@ export default function AdminQuoteEditPage() {
               onClick={saveQuote}
               disabled={saving || sending}
               variant="outline"
-              className="gap-2 border-white/20 text-white hover:bg-white/10"
+              className="gap-2 bg-transparent border-white/20 text-white hover:bg-white/10"
             >
               <Save className="w-4 h-4" /> {saving ? '저장 중...' : '저장'}
             </Button>
