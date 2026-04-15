@@ -7,11 +7,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  serverExternalPackages: ['pdfkit'],
   outputFileTracingIncludes: {
-    '/api/quotes/send': [
-      './public/fonts/**/*',
-      './node_modules/pdfkit/js/data/**/*',
-    ],
+    '/api/quotes/send': ['./public/fonts/**/*'],
   },
 }
 
