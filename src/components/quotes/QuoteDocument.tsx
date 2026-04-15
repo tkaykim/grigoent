@@ -241,7 +241,7 @@ export function buildQuoteDocument({
   projectTitle,
 }: QuoteDocumentProps) {
   const numericPart = quote.id.replace(/\D/g, '').slice(-6)
-  const docNumber = `GE-${numericPart.padStart(6, '0')}`
+  const docNumber = `GRG-${numericPart.padStart(6, '0')}`
 
   return (
     <Document>

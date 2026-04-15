@@ -12,7 +12,7 @@ function formatKRW(amount: number | null | undefined): string {
 
 function getDocNumber(id: string): string {
   const numericPart = id.replace(/\D/g, '').slice(-6)
-  return `GE-${numericPart.padStart(6, '0')}`
+  return `GRG-${numericPart.padStart(6, '0')}`
 }
 
 export default function QuoteViewPage() {
