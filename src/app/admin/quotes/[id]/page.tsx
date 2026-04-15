@@ -23,6 +23,7 @@ import {
   XCircle,
   Clock,
   X,
+  ChevronDown,
 } from 'lucide-react'
 
 function formatKRW(amount: number | null | undefined): string {
@@ -68,6 +69,7 @@ export default function AdminQuoteEditPage() {
   const [saving, setSaving] = useState(false)
   const [sending, setSending] = useState(false)
   const [loadingQuote, setLoadingQuote] = useState(!isNew)
+  const [presetsOpen, setPresetsOpen] = useState(false)
 
   // 금액 계산
   const calcAmounts = useCallback((currentItems: QuoteItem[]) => {
@@ -478,28 +480,37 @@ export default function AdminQuoteEditPage() {
           {status !== 'sent' && (
             <Card className="bg-white/5 border-white/10 mb-6">
               <CardHeader>
-                <CardTitle className="text-white text-lg">프리셋 품목 추가</CardTitle>
+                <button
+                  type="button"
+                  onClick={() => setPresetsOpen(prev => !prev)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <CardTitle className="text-white text-lg">프리셋 품목 추가</CardTitle>
+                  <ChevronDown className={`w-5 h-5 text-white/60 transition-transform ${presetsOpen ? 'rotate-180' : ''}`} />
+                </button>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {QUOTE_ITEM_PRESETS.map(preset => (
-                    <div key={preset.category}>
-                      <div className="text-white/60 text-xs mb-1.5 font-semibold">{preset.label}</div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {preset.items.map(item => (
-                          <button
-                            key={item}
-                            onClick={() => addPresetItem(preset.category, item)}
-                            className="px-2.5 py-1 text-xs rounded border border-white/20 text-white/70 hover:bg-white/10 hover:text-white transition"
-                          >
-                            + {item}
-                          </button>
-                        ))}
+              {presetsOpen && (
+                <CardContent>
+                  <div className="space-y-3">
+                    {QUOTE_ITEM_PRESETS.map(preset => (
+                      <div key={preset.category}>
+                        <div className="text-white/60 text-xs mb-1.5 font-semibold">{preset.label}</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {preset.items.map(item => (
+                            <button
+                              key={item}
+                              onClick={() => addPresetItem(preset.category, item)}
+                              className="px-2.5 py-1 text-xs rounded border border-white/20 text-white/70 hover:bg-white/10 hover:text-white transition"
+                            >
+                              + {item}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
+                    ))}
+                  </div>
+                </CardContent>
+              )}
             </Card>
           )}
 
