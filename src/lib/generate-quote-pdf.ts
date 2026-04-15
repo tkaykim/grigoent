@@ -3,10 +3,13 @@ import path from 'path'
 import fs from 'fs'
 import type { QuoteItem } from '@/lib/types'
 
-const BRAND_COLOR = '#111111'
-const PAGE_W = 595.28 // A4
+const BLACK = '#111111'
+const GRAY = '#666666'
+const LIGHT_GRAY = '#999999'
+const BG_GRAY = '#f5f5f5'
+const PAGE_W = 595.28
 const PAGE_H = 841.89
-const M = 40 // margin
+const M = 50
 
 function formatKRW(amount: number | null | undefined): string {
   return (amount ?? 0).toLocaleString('ko-KR') + '원'
@@ -40,8 +43,10 @@ function registerFonts(doc: InstanceType<typeof PDFDocument>) {
   return false
 }
 
-const COMPANY = {
+const CO = {
   name: '(주)그리고 엔터테인먼트',
+  brand: '그리고 엔터테인먼트',
+  brandEn: 'GRIGO Entertainment',
   bizNo: '116-81-96848',
   bizType: '서비스업',
   bizItem: '매니지먼트업',
@@ -64,179 +69,185 @@ export async function generateQuotePdf(input: GenerateQuotePdfInput): Promise<Bu
       doc.on('error', reject)
 
       const hasKoreanFont = registerFonts(doc)
-      const fontRegular = hasKoreanFont ? 'NanumGothic' : 'Helvetica'
-      const fontBold = hasKoreanFont ? 'NanumGothic-Bold' : 'Helvetica-Bold'
-
-      const contentW = PAGE_W - M * 2
+      const fr = hasKoreanFont ? 'NanumGothic' : 'Helvetica'
+      const fb = hasKoreanFont ? 'NanumGothic-Bold' : 'Helvetica-Bold'
+      const cw = PAGE_W - M * 2
 
       // ── 헤더 ──
-      doc.font(fontBold).fontSize(16).fillColor(BRAND_COLOR)
-        .text('그리고 엔터테인먼트', M, M)
-      doc.font(fontRegular).fontSize(8).fillColor('#888')
-        .text('GRIGO Entertainment', M, doc.y + 1)
+      doc.font(fb).fontSize(18).fillColor(BLACK)
+        .text(CO.brand, M, M)
+      doc.font(fr).fontSize(8).fillColor(LIGHT_GRAY)
+        .text(CO.name, M, doc.y + 2)
 
-      doc.font(fontRegular).fontSize(16).fillColor('#333')
-        .text('견 적 서', M, M, { width: contentW, align: 'right' })
-      doc.fontSize(8).fillColor('#888')
-        .text(`No. ${docNumber}`, M, M + 20, { width: contentW, align: 'right' })
+      doc.font(fr).fontSize(20).fillColor('#333')
+        .text('견 적 서', M, M, { width: cw, align: 'right' })
+      doc.font(fr).fontSize(8).fillColor(LIGHT_GRAY)
+        .text(`No. ${docNumber}`, M, M + 24, { width: cw, align: 'right' })
 
-      let y = M + 38
-      doc.moveTo(M, y).lineTo(M + contentW, y)
-        .lineWidth(2).strokeColor(BRAND_COLOR).stroke()
-      y += 8
+      let y = M + 44
+      doc.moveTo(M, y).lineTo(M + cw, y).lineWidth(2.5).strokeColor(BLACK).stroke()
+      y += 16
 
-      // ── 사업자 정보 (공급자) + 수신자 양쪽 배치 ──
-      const halfW = (contentW - 10) / 2
+      // ── 발행자 정보 ──
+      const issuerH = 72
+      doc.rect(M, y, 3, issuerH).fill(BLACK)
+      doc.rect(M + 3, y, cw - 3, issuerH).fill(BG_GRAY)
 
-      doc.rect(M, y, halfW, 68).fill('#fafafa')
-      doc.font(fontBold).fontSize(8).fillColor('#555')
-        .text('공급자', M + 8, y + 6)
-      const infoLines = [
-        `상호: ${COMPANY.name}`,
-        `사업자번호: ${COMPANY.bizNo}`,
-        `업태: ${COMPANY.bizType}  종목: ${COMPANY.bizItem}`,
-        `주소: ${COMPANY.address}`,
-        `연락처: ${COMPANY.tel}`,
+      doc.font(fr).fontSize(7).fillColor(LIGHT_GRAY)
+        .text('발행자', M + 14, y + 8)
+      doc.font(fb).fontSize(10).fillColor(BLACK)
+        .text(CO.name, M + 14, y + 20)
+
+      const issuerLines = [
+        `사업자등록번호  ${CO.bizNo}`,
+        `업태: ${CO.bizType}  종목: ${CO.bizItem}`,
+        `${CO.address}`,
+        `연락처: ${CO.tel}`,
       ]
-      let iy = y + 18
-      for (const line of infoLines) {
-        doc.font(fontRegular).fontSize(7.5).fillColor('#333')
-          .text(line, M + 8, iy, { width: halfW - 16 })
+      let iy = y + 34
+      for (const line of issuerLines) {
+        doc.font(fr).fontSize(7.5).fillColor(GRAY)
+          .text(line, M + 14, iy, { width: cw - 28 })
         iy += 10
       }
+      y += issuerH + 10
 
-      const rightX = M + halfW + 10
-      doc.rect(rightX, y, halfW, 68).fill('#fafafa')
-      doc.font(fontBold).fontSize(8).fillColor('#555')
-        .text('수신', rightX + 8, y + 6)
-      doc.font(fontRegular).fontSize(9).fillColor('#333')
-        .text(`${clientName}님${clientCompany ? ` (${clientCompany})` : ''}`, rightX + 8, y + 20, { width: halfW - 16 })
-
-      const metaItems = [
-        ['발행일', new Date().toLocaleDateString('ko-KR')],
-        ['유효기간', quote.valid_until ? new Date(quote.valid_until).toLocaleDateString('ko-KR') : '-'],
-      ]
-      let my = y + 36
-      for (const [label, value] of metaItems) {
-        doc.font(fontRegular).fontSize(7.5).fillColor('#888')
-          .text(label, rightX + 8, my, { width: 40 })
-        doc.font(fontRegular).fontSize(8).fillColor('#333')
-          .text(value, rightX + 52, my, { width: halfW - 60 })
-        my += 12
-      }
-
-      y += 76
-
-      // ── 프로젝트 ──
+      // ── 프로젝트 (ESTIMATE) ──
       if (projectTitle) {
-        doc.rect(M, y, 3, 28).fill(BRAND_COLOR)
-        doc.rect(M + 3, y, contentW - 3, 28).fill('#f8f8f8')
-        doc.font(fontRegular).fontSize(7).fillColor('#888')
-          .text('PROJECT', M + 12, y + 4)
-        doc.font(fontBold).fontSize(11).fillColor(BRAND_COLOR)
-          .text(projectTitle, M + 12, y + 14, { width: contentW - 24 })
-        y += 34
+        const projH = 46
+        doc.rect(M, y, 3, projH).fill(BLACK)
+        doc.rect(M + 3, y, cw - 3, projH).fill(BG_GRAY)
+        doc.font(fr).fontSize(7).fillColor(LIGHT_GRAY)
+          .text('ESTIMATE', M + 14, y + 8)
+        doc.font(fb).fontSize(13).fillColor(BLACK)
+          .text(projectTitle, M + 14, y + 22, { width: cw - 28 })
+        y += projH + 10
       }
+
+      // ── 수신 / 발행일 ──
+      const infoH = 44
+      const halfW = (cw - 1) / 2
+
+      doc.moveTo(M, y).lineTo(M + cw, y).lineWidth(0.5).strokeColor('#ddd').stroke()
+
+      doc.font(fr).fontSize(7).fillColor(LIGHT_GRAY)
+        .text('수신', M + 4, y + 8)
+      doc.font(fb).fontSize(11).fillColor(BLACK)
+        .text(`${clientName} 님`, M + 4, y + 22)
+      if (clientCompany) {
+        doc.font(fr).fontSize(8).fillColor(GRAY)
+          .text(clientCompany, M + 4, y + 36, { width: halfW - 8 })
+      }
+
+      doc.moveTo(M + halfW, y + 6).lineTo(M + halfW, y + infoH - 6)
+        .lineWidth(0.5).strokeColor('#ddd').stroke()
+
+      doc.font(fr).fontSize(7).fillColor(LIGHT_GRAY)
+        .text('발행일', M + halfW + 12, y + 8)
+      doc.font(fb).fontSize(11).fillColor(BLACK)
+        .text(new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric' }) + '.', M + halfW + 12, y + 22)
+
+      doc.moveTo(M, y + infoH).lineTo(M + cw, y + infoH).lineWidth(0.5).strokeColor('#ddd').stroke()
+      y += infoH + 16
 
       // ── 품목 테이블 ──
-      const colWidths = [contentW * 0.15, contentW * 0.32, contentW * 0.13, contentW * 0.20, contentW * 0.20]
-      const headers = ['카테고리', '품목명', '수량', '단가', '금액']
-      const ROW_H = 20
+      const colW = [cw * 0.44, cw * 0.12, cw * 0.22, cw * 0.22]
+      const headers = ['품목', '수량', '단가', '금액']
+      const ROW_H = 28
 
-      doc.rect(M, y, contentW, ROW_H).fill(BRAND_COLOR)
+      doc.rect(M, y, cw, ROW_H).fill(BLACK)
       let cx = M
       for (let i = 0; i < headers.length; i++) {
-        const align = i >= 3 ? 'right' : i === 2 ? 'center' : 'left'
-        doc.font(fontBold).fontSize(8).fillColor('#ffffff')
-          .text(headers[i], cx + 6, y + 6, { width: colWidths[i] - 12, align })
-        cx += colWidths[i]
+        const align = i >= 2 ? 'right' : i === 1 ? 'center' : 'left'
+        doc.font(fb).fontSize(8.5).fillColor('#ffffff')
+          .text(headers[i], cx + 10, y + 9, { width: colW[i] - 20, align })
+        cx += colW[i]
       }
       y += ROW_H
 
       const items = quote.items ?? []
       for (let idx = 0; idx < items.length; idx++) {
-        if (y + ROW_H > PAGE_H - M - 60) {
+        if (y + ROW_H > PAGE_H - M - 100) {
           doc.addPage()
           y = M
         }
         const item = items[idx]
-        if (idx % 2 === 1) {
-          doc.rect(M, y, contentW, ROW_H).fill('#fafafa')
-        }
-        doc.moveTo(M, y + ROW_H).lineTo(M + contentW, y + ROW_H)
-          .lineWidth(0.3).strokeColor('#ddd').stroke()
 
+        doc.moveTo(M, y + ROW_H).lineTo(M + cw, y + ROW_H)
+          .lineWidth(0.3).strokeColor('#e0e0e0').stroke()
+
+        const itemName = item.category ? `${item.name}` : item.name
         const rowData = [
-          item.category || '',
-          item.name,
+          itemName,
           `${item.qty}${item.unit || ''}`,
           formatKRW(item.unit_price),
           formatKRW(item.amount),
         ]
         cx = M
         for (let i = 0; i < rowData.length; i++) {
-          const align = i >= 3 ? 'right' : i === 2 ? 'center' : 'left'
-          const f = i === 4 ? fontBold : fontRegular
-          doc.font(f).fontSize(8).fillColor('#333')
-            .text(rowData[i], cx + 6, y + 6, { width: colWidths[i] - 12, align })
-          cx += colWidths[i]
+          const align = i >= 2 ? 'right' : i === 1 ? 'center' : 'left'
+          const font = i === 3 ? fb : fr
+          doc.font(font).fontSize(8.5).fillColor(BLACK)
+            .text(rowData[i], cx + 10, y + 9, { width: colW[i] - 20, align })
+          cx += colW[i]
         }
         y += ROW_H
       }
+      y += 6
 
-      // ── 합계 ──
+      // ── 합계 영역 ──
+      const sumLabelX = M + cw - 260
+      const sumValX = M + cw - 140
+      const sumValW = 140
+
+      doc.font(fr).fontSize(8.5).fillColor(GRAY)
+        .text('공급가액', sumLabelX, y, { width: 110, align: 'right' })
+      doc.font(fr).fontSize(9).fillColor(BLACK)
+        .text(formatKRW(quote.supply_amount), sumValX, y, { width: sumValW, align: 'right' })
+      y += 18
+
+      doc.font(fr).fontSize(8.5).fillColor(GRAY)
+        .text('부가세 (10%)', sumLabelX, y, { width: 110, align: 'right' })
+      doc.font(fr).fontSize(9).fillColor(BLACK)
+        .text(formatKRW(quote.vat), sumValX, y, { width: sumValW, align: 'right' })
+      y += 20
+
+      doc.moveTo(sumLabelX, y).lineTo(M + cw, y)
+        .lineWidth(1.5).strokeColor(BLACK).stroke()
       y += 8
-      const labelX = M + contentW - 200
-      const valX = M + contentW - 100
-      const valW = 100
 
-      doc.font(fontRegular).fontSize(8).fillColor('#666')
-        .text('공급가액', labelX, y, { width: 90, align: 'right' })
-      doc.font(fontRegular).fontSize(8).fillColor('#333')
-        .text(formatKRW(quote.supply_amount), valX, y, { width: valW, align: 'right' })
-      y += 14
+      doc.font(fb).fontSize(12).fillColor(BLACK)
+        .text('합계', sumLabelX, y, { width: 110, align: 'right' })
+      doc.font(fb).fontSize(14).fillColor(BLACK)
+        .text(formatKRW(quote.total_amount), sumValX, y, { width: sumValW, align: 'right' })
+      y += 30
 
-      doc.font(fontRegular).fontSize(8).fillColor('#666')
-        .text('부가세 (10%)', labelX, y, { width: 90, align: 'right' })
-      doc.font(fontRegular).fontSize(8).fillColor('#333')
-        .text(formatKRW(quote.vat), valX, y, { width: valW, align: 'right' })
-      y += 16
-
-      doc.moveTo(labelX, y).lineTo(M + contentW, y)
-        .lineWidth(1.5).strokeColor(BRAND_COLOR).stroke()
-      y += 4
-
-      doc.font(fontBold).fontSize(11).fillColor(BRAND_COLOR)
-        .text('합계', labelX, y, { width: 90, align: 'right' })
-      doc.font(fontBold).fontSize(12).fillColor(BRAND_COLOR)
-        .text(formatKRW(quote.total_amount), valX, y, { width: valW, align: 'right' })
-      y += 22
-
-      // ── 비고 ──
+      // ── 특이사항 ──
       if (quote.notes) {
-        const noteText = quote.notes
-        const noteHeight = Math.max(30, Math.min(60, 18 + noteText.length * 0.8))
-        if (y + noteHeight > PAGE_H - M - 30) {
+        if (y + 50 > PAGE_H - M - 30) {
           doc.addPage()
           y = M
         }
-        doc.rect(M, y, 3, noteHeight).fill('#f59e0b')
-        doc.rect(M + 3, y, contentW - 3, noteHeight).fill('#fffaf0')
-        doc.font(fontRegular).fontSize(7).fillColor('#888')
-          .text('비고', M + 12, y + 5)
-        doc.font(fontRegular).fontSize(8).fillColor('#333')
-          .text(noteText, M + 12, y + 15, { width: contentW - 28, lineGap: 3 })
-        y += noteHeight + 8
+        const noteLines = quote.notes.split('\n')
+        const noteH = Math.max(40, 20 + noteLines.length * 12)
+
+        doc.rect(M, y, 3, noteH).fill(BLACK)
+        doc.rect(M + 3, y, cw - 3, noteH).fill('#fafafa')
+        doc.font(fb).fontSize(8).fillColor(BLACK)
+          .text('특이사항', M + 14, y + 8)
+        doc.font(fr).fontSize(8).fillColor('#444')
+          .text(quote.notes, M + 14, y + 22, { width: cw - 32, lineGap: 3 })
+        y += noteH + 10
       }
 
       // ── 푸터 ──
-      const footerY = PAGE_H - 30
-      doc.moveTo(M, footerY).lineTo(M + contentW, footerY)
+      const footerY = PAGE_H - 32
+      doc.moveTo(M, footerY).lineTo(M + cw, footerY)
         .lineWidth(0.3).strokeColor('#ddd').stroke()
-      doc.font(fontRegular).fontSize(7).fillColor('#999')
-        .text(`${COMPANY.name} | ${COMPANY.tel} | ${COMPANY.address}`, M, footerY + 6)
-      doc.font(fontRegular).fontSize(7).fillColor('#999')
-        .text(docNumber, M, footerY + 6, { width: contentW, align: 'right' })
+      doc.font(fr).fontSize(7).fillColor(LIGHT_GRAY)
+        .text(`${CO.name} | ${CO.brandEn} | ${CO.tel}`, M, footerY + 8)
+      doc.font(fr).fontSize(7).fillColor(LIGHT_GRAY)
+        .text(docNumber, M, footerY + 8, { width: cw, align: 'right' })
 
       doc.end()
     } catch (err) {
