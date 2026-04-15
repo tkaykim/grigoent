@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+function getSupabase() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+}
 
 // 연결 시스템: 참조로 연결된 경력 데이터 조회
 export async function GET(request: NextRequest) {
+  const supabase = getSupabase()
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
@@ -93,6 +93,7 @@ export async function GET(request: NextRequest) {
 
 // 경력 데이터 생성/수정 (연결된 데이터는 복사하여 새로 생성)
 export async function POST(request: NextRequest) {
+  const supabase = getSupabase()
   try {
     const body = await request.json()
     const { 
@@ -172,6 +173,7 @@ export async function POST(request: NextRequest) {
 
 // 경력 데이터 삭제 (연결된 데이터는 원본 보호)
 export async function DELETE(request: NextRequest) {
+  const supabase = getSupabase()
   try {
     const body = await request.json()
     const { 
