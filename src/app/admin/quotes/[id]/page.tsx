@@ -328,15 +328,13 @@ export default function AdminQuoteEditPage() {
               >
                 <Save className="w-4 h-4" /> {saving ? '저장 중...' : '저장'}
               </Button>
-              {status !== 'sent' && (
-                <Button
-                  onClick={sendQuote}
-                  disabled={saving || sending}
-                  className="gap-2 bg-white text-black hover:bg-gray-200"
-                >
-                  <Send className="w-4 h-4" /> {sending ? '발송 중...' : '견적서 발송'}
-                </Button>
-              )}
+              <Button
+                onClick={sendQuote}
+                disabled={saving || sending}
+                className="gap-2 bg-white text-black hover:bg-gray-200"
+              >
+                <Send className="w-4 h-4" /> {sending ? '발송 중...' : status === 'sent' ? '재발송' : '견적서 발송'}
+              </Button>
             </div>
           </div>
 
@@ -712,15 +710,13 @@ export default function AdminQuoteEditPage() {
             >
               <Save className="w-4 h-4" /> {saving ? '저장 중...' : '저장'}
             </Button>
-            {status !== 'sent' && (
-              <Button
-                onClick={sendQuote}
-                disabled={saving || sending}
-                className="gap-2 bg-white text-black hover:bg-gray-200"
-              >
-                <Send className="w-4 h-4" /> {sending ? '발송 중...' : '견적서 발송'}
-              </Button>
-            )}
+            <Button
+              onClick={sendQuote}
+              disabled={saving || sending}
+              className="gap-2 bg-white text-black hover:bg-gray-200"
+            >
+              <Send className="w-4 h-4" /> {sending ? '발송 중...' : status === 'sent' ? '재발송' : '견적서 발송'}
+            </Button>
           </div>
         </div>
       </main>
