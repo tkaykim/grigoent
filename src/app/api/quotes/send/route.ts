@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { renderToBuffer } from '@react-pdf/renderer'
-import { buildQuoteDocument } from '@/components/quotes/QuoteDocument'
+import { generateQuotePdf } from '@/lib/generate-quote-pdf'
 import { sendQuoteEmail } from '@/lib/email'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
 function getSupabase() {
-  return createClient(supabaseUrl, supabaseServiceKey)
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 }
 
 export async function POST(req: NextRequest) {
@@ -42,23 +38,20 @@ export async function POST(req: NextRequest) {
 
     let pdfBuffer: Buffer
     try {
-      const rawBuffer = await renderToBuffer(
-        buildQuoteDocument({
-          quote: {
-            id: quote.id,
-            items: quote.items || [],
-            supply_amount: quote.supply_amount,
-            vat: quote.vat,
-            total_amount: quote.total_amount,
-            valid_until: quote.valid_until,
-            notes: quote.notes,
-          },
-          clientName: quote.client_name,
-          clientCompany: quote.client_company,
-          projectTitle: quote.project_title,
-        })
-      )
-      pdfBuffer = Buffer.from(rawBuffer)
+      pdfBuffer = await generateQuotePdf({
+        quote: {
+          id: quote.id,
+          items: quote.items || [],
+          supply_amount: quote.supply_amount,
+          vat: quote.vat,
+          total_amount: quote.total_amount,
+          valid_until: quote.valid_until,
+          notes: quote.notes,
+        },
+        clientName: quote.client_name,
+        clientCompany: quote.client_company,
+        projectTitle: quote.project_title,
+      })
     } catch (pdfErr: any) {
       console.error('PDF 생성 실패:', pdfErr)
       return NextResponse.json(

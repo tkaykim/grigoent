@@ -39,6 +39,7 @@
     "next-seo": "^6.8.0",
     "nodemailer": "^8.0.5",
     "papaparse": "^5.5.3",
+    "pdfkit": "^0.18.0",
     "photoswipe": "^5.4.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
