@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 import Papa from 'papaparse';
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger, TabsContent as UITabsContent } from '@/components/ui/tabs';
 import { SEOSettingsManager } from '@/components/dashboard/SEOSettingsManager';
-import { AlertTriangle, Users, UserCheck, FileText, Link, Receipt } from 'lucide-react'
+import { AlertTriangle, Users, UserCheck, FileText, Link, Receipt, Scale } from 'lucide-react'
 import { ClaimRequestModal } from '@/components/proposals/ClaimRequestModal'
 import { DirectLinkModal } from '@/components/proposals/DirectLinkModal'
 
@@ -827,7 +827,7 @@ export default function AdminPage() {
           </div>
 
           <Tabs defaultValue="pending" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 gap-1 h-auto">
               <TabsTrigger value="pending">
                 승인 대기 ({pendingUsers.length})
               </TabsTrigger>
@@ -842,6 +842,9 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger value="inquiries">
                 문의게시판
+              </TabsTrigger>
+              <TabsTrigger value="fee-reports">
+                미수 제보
               </TabsTrigger>
               <TabsTrigger value="quotes">
                 견적서
@@ -1229,6 +1232,36 @@ export default function AdminPage() {
                     >
                       <Link className="w-4 h-4" />
                       문의게시판 관리 페이지로 이동
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="fee-reports">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Scale className="w-5 h-5" />
+                    미수·정산 제보
+                  </CardTitle>
+                  <p className="text-sm text-zinc-600">
+                    공개 제보 양식으로 접수된 미수·정산 지연 사례를 확인합니다
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <Scale className="w-16 h-16 text-zinc-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-zinc-900 mb-2">미수·정산 제보</h3>
+                    <p className="text-zinc-600 mb-6">
+                      댄서·크리에이터로부터 접수된 제보 목록을 열람할 수 있습니다.
+                    </p>
+                    <Button
+                      onClick={() => router.push('/admin/fee-reports')}
+                      className="flex items-center gap-2"
+                    >
+                      <Scale className="w-4 h-4" />
+                      미수·정산 제보 관리로 이동
                     </Button>
                   </div>
                 </CardContent>

@@ -186,9 +186,12 @@ export function ContactSection() {
 
           {/* 간단한 문의 폼 */}
           <div className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
               <h3 className="text-2xl font-semibold">{t('contact.form.title')}</h3>
-              <a href="/inquiries" className="text-sm px-3 py-2 rounded bg-white text-black border border-white hover:bg-gray-100">문의게시판으로 이동</a>
+              <div className="flex flex-wrap gap-2">
+                <a href="/inquiries" className="text-sm px-3 py-2 rounded bg-white text-black border border-white hover:bg-gray-100">문의게시판으로 이동</a>
+                <a href="/report" className="text-sm px-3 py-2 rounded bg-zinc-800 text-white border border-zinc-600 hover:bg-zinc-700">{t('footer.report')}</a>
+              </div>
             </div>
             <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
               {/* 기본 정보 */}

@@ -49,7 +49,7 @@ function doPost(e) {
 ${data.inquiry}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-이 메일은 grigoent.com 웹사이트를 통해 자동으로 발송되었습니다.
+이 메일은 grigoent.co.kr 웹사이트를 통해 자동으로 발송되었습니다.
       `.trim();
       
     } else if (data.type === 'artist_proposal') {
@@ -85,7 +85,7 @@ ${data.inquiry}
 • 요구사항: ${data.requirements || '없음'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-이 메일은 grigoent.com 웹사이트를 통해 자동으로 발송되었습니다.
+이 메일은 grigoent.co.kr 웹사이트를 통해 자동으로 발송되었습니다.
       `.trim();
       
     } else if (data.type === 'team_proposal') {
@@ -121,7 +121,7 @@ ${data.inquiry}
 • 요구사항: ${data.requirements || '없음'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-이 메일은 grigoent.com 웹사이트를 통해 자동으로 발송되었습니다.
+이 메일은 grigoent.co.kr 웹사이트를 통해 자동으로 발송되었습니다.
       `.trim();
       
     } else if (data.type === 'general_proposal') {
@@ -156,7 +156,7 @@ ${data.inquiry}
 • 요구사항: ${data.requirements || '없음'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-이 메일은 grigoent.com 웹사이트를 통해 자동으로 발송되었습니다.
+이 메일은 grigoent.co.kr 웹사이트를 통해 자동으로 발송되었습니다.
       `.trim();
       
     } else {

@@ -42,6 +42,11 @@ export function Footer() {
                   {t('nav.contact')}
                 </Link>
               </li>
+              <li>
+                <Link href="/report" className="text-zinc-300 hover:text-white transition-colors">
+                  {t('footer.report')}
+                </Link>
+              </li>
             </ul>
           </div>
 
