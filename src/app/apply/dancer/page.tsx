@@ -75,42 +75,32 @@ function Kicker({ children }: { children: React.ReactNode }) {
 
 function SectionBlock({
   step,
-  kicker,
   title,
   done,
-  current,
   children,
 }: {
   step: number
-  kicker: string
   title: string
   done?: boolean
-  current?: boolean
   children: React.ReactNode
 }) {
   return (
-    <section className="relative border-t border-zinc-900/90 pt-10 first:border-t-0 first:pt-0">
-      <div className="grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-[180px_1fr]">
-        <div className="flex md:block">
-          <div className="flex items-start gap-3">
-            <span className="font-mono text-2xl font-semibold leading-none tracking-tight text-black md:text-3xl">
-              {String(step).padStart(2, '0')}
-            </span>
-            <span
-              className={cn(
-                'mt-1 inline-block h-2 w-2 shrink-0 rounded-full transition-colors',
-                done ? 'bg-black' : current ? 'border border-black bg-white' : 'border border-zinc-300 bg-white',
-              )}
-              aria-hidden
-            />
-          </div>
-          <div className="ml-4 md:ml-0 md:mt-4">
-            <Kicker>{kicker}</Kicker>
-            <h2 className="mt-1 text-lg font-semibold tracking-tight text-black">{title}</h2>
-          </div>
-        </div>
-        <div>{children}</div>
-      </div>
+    <section className="border-t border-black pt-10">
+      <header className="mb-6 flex items-baseline gap-4">
+        <span className="font-mono text-sm font-semibold tabular-nums text-black">
+          {String(step).padStart(2, '0')}
+        </span>
+        <h2 className="flex-1 text-lg font-semibold tracking-tight text-black sm:text-xl">
+          {title}
+        </h2>
+        {done ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-black">
+            <Check className="h-3 w-3" strokeWidth={2.5} />
+            done
+          </span>
+        ) : null}
+      </header>
+      <div>{children}</div>
     </section>
   )
 }
@@ -431,60 +421,40 @@ export default function DancerApplyPage() {
       <main>
         {/* ───────────── HERO — pure black, type only ───────────── */}
         <section className="border-b border-black bg-black text-white">
-          <div className="mx-auto max-w-5xl px-6 pb-20 pt-28 sm:px-10 sm:pb-28 sm:pt-36">
-            <div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/60">
-              <span className="h-px w-8 bg-white/60" aria-hidden />
+          <div className="mx-auto max-w-3xl break-keep px-6 py-20 sm:px-8 sm:py-24">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/60">
               {t('applyDancer.heroKicker')}
-            </div>
+            </p>
 
-            <h1 className="mt-8 text-balance text-[2.5rem] font-black leading-[0.98] tracking-[-0.02em] sm:text-[4rem] md:text-[4.75rem]">
+            <h1 className="mt-6 text-balance text-[1.9rem] font-bold leading-[1.2] tracking-tight sm:text-4xl md:text-[2.75rem] md:leading-[1.15]">
               {t('applyDancer.pageTitle')}
             </h1>
 
-            <p className="mt-8 max-w-2xl text-[15px] leading-[1.7] text-white/70 sm:text-base">
+            <p className="mt-6 max-w-xl text-[15px] leading-[1.7] text-white/70">
               {t('applyDancer.subtitle')}
             </p>
-
-            <div className="mt-16 grid gap-y-4 text-sm sm:grid-cols-[repeat(4,max-content)] sm:gap-x-10 sm:gap-y-0">
-              {[
-                t('applyDancer.areaAds'),
-                t('applyDancer.areaBroadcast'),
-                t('applyDancer.areaChoreo'),
-                t('applyDancer.areaLive'),
-              ].map((label, i) => (
-                <div key={i} className="flex items-baseline gap-3">
-                  <span className="font-mono text-[10px] font-semibold text-white/50">
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                  <span className="text-white/80">{label.split(':')[0]}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </section>
 
         {/* ───────────── STICKY PROGRESS RAIL ───────────── */}
-        <div className="sticky top-16 z-30 border-b border-black bg-white">
-          <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3.5 sm:px-10">
-            <div className="flex items-center gap-1 text-[11px]">
-              <span className="font-mono font-semibold text-black">
+        <div className="sticky top-16 z-30 border-b border-zinc-200 bg-white">
+          <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-6 py-3 sm:px-8">
+            <div className="flex items-baseline gap-1.5 text-[11px]">
+              <span className="font-mono font-semibold tabular-nums text-black">
                 {String(currentStep).padStart(2, '0')}
               </span>
-              <span className="mx-2 text-zinc-400">/</span>
-              <span className="font-mono text-zinc-500">04</span>
-              <span className="ml-3 hidden text-zinc-300 sm:inline" aria-hidden>
-                │
-              </span>
-              <span className="ml-3 hidden font-medium text-black sm:inline">{currentTitle}</span>
+              <span className="text-zinc-400">/</span>
+              <span className="font-mono tabular-nums text-zinc-500">04</span>
+              <span className="ml-3 font-medium text-black">{currentTitle}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {[doneBasic, doneProfile, doneVisa, doneCareer].map((d, i) => (
                 <span
                   key={i}
                   aria-label={sectionLabels[i]}
                   className={cn(
-                    'h-[3px] w-8 transition-colors sm:w-10',
-                    d ? 'bg-black' : i + 1 === currentStep ? 'bg-zinc-400' : 'bg-zinc-200',
+                    'h-0.5 w-6 transition-colors sm:w-8',
+                    d ? 'bg-black' : 'bg-zinc-200',
                   )}
                 />
               ))}
@@ -496,17 +466,11 @@ export default function DancerApplyPage() {
         <form
           onSubmit={handleSubmit}
           noValidate
-          className="mx-auto max-w-5xl px-6 py-16 sm:px-10 sm:py-24"
+          className="mx-auto max-w-2xl px-6 py-14 sm:px-8 sm:py-20"
         >
           <div className="space-y-14">
             {/* STEP 1 */}
-            <SectionBlock
-              step={1}
-              kicker="SECTION / BASIC"
-              title={t('applyDancer.sectionBasic')}
-              done={doneBasic}
-              current={currentStep === 1}
-            >
+            <SectionBlock step={1} title={t('applyDancer.sectionBasic')} done={doneBasic}>
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div data-field="stageName">
                   <LabelRow htmlFor="stage_name" required>{t('applyDancer.stageName')}</LabelRow>
@@ -623,13 +587,7 @@ export default function DancerApplyPage() {
             </SectionBlock>
 
             {/* STEP 2 */}
-            <SectionBlock
-              step={2}
-              kicker="SECTION / PROFILE"
-              title={t('applyDancer.sectionProfile')}
-              done={doneProfile}
-              current={currentStep === 2}
-            >
+            <SectionBlock step={2} title={t('applyDancer.sectionProfile')} done={doneProfile}>
               {/* profile photo */}
               <div data-field="profilePhoto" className="mb-10">
                 <LabelRow required>{t('applyDancer.profilePhoto')}</LabelRow>
@@ -828,13 +786,7 @@ export default function DancerApplyPage() {
             </SectionBlock>
 
             {/* STEP 3 */}
-            <SectionBlock
-              step={3}
-              kicker="SECTION / NATIONALITY"
-              title={t('applyDancer.sectionVisa')}
-              done={doneVisa}
-              current={currentStep === 3}
-            >
+            <SectionBlock step={3} title={t('applyDancer.sectionVisa')} done={doneVisa}>
               <label className="flex cursor-pointer items-start gap-3 border border-zinc-300 bg-white p-4 transition-colors hover:border-black">
                 <input
                   type="checkbox"
@@ -924,13 +876,7 @@ export default function DancerApplyPage() {
             </SectionBlock>
 
             {/* STEP 4 */}
-            <SectionBlock
-              step={4}
-              kicker="SECTION / CREDITS"
-              title={t('applyDancer.sectionCareer')}
-              done={doneCareer}
-              current={currentStep === 4}
-            >
+            <SectionBlock step={4} title={t('applyDancer.sectionCareer')} done={doneCareer}>
               <div data-field="careers">
                 <div className="mb-1.5 flex items-center justify-between">
                   <LabelRow required>{t('applyDancer.careers')}</LabelRow>
@@ -1019,50 +965,45 @@ export default function DancerApplyPage() {
           </div>
 
           {/* SUBMIT */}
-          <div className="mt-16 border-t border-black pt-10">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-[180px_1fr]">
-              <div className="hidden md:block" />
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <Kicker>
-                    {doneCount === totalSteps
-                      ? language === 'ko' ? '제출 준비 완료' : 'Ready to submit'
-                      : language === 'ko' ? '누락된 항목 있음' : 'Missing fields'}
-                  </Kicker>
-                  <p className="mt-1 font-mono text-xs text-zinc-500">
-                    {String(doneCount).padStart(2, '0')} / 0{totalSteps}
-                  </p>
-                </div>
-                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-11 rounded-none border-zinc-300 bg-white text-black hover:border-black hover:bg-white"
-                    onClick={() => router.push('/')}
-                    disabled={loading}
-                  >
-                    {t('applyDancer.cancel')}
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="group h-11 min-w-[12rem] rounded-none bg-black font-semibold tracking-wide text-white hover:bg-zinc-800"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {t('applyDancer.sending')}
-                      </>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        {t('applyDancer.submit')}
-                        <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
+          <div className="mt-14 flex flex-col gap-4 border-t border-black pt-8 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <Kicker>
+                {doneCount === totalSteps
+                  ? language === 'ko' ? '제출 준비 완료' : 'Ready to submit'
+                  : language === 'ko' ? '누락된 항목 있음' : 'Missing fields'}
+              </Kicker>
+              <p className="mt-1.5 font-mono text-xs tabular-nums text-zinc-500">
+                {String(doneCount).padStart(2, '0')} / 0{totalSteps}
+              </p>
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-none border-zinc-300 bg-white text-black hover:border-black hover:bg-white"
+                onClick={() => router.push('/')}
+                disabled={loading}
+              >
+                {t('applyDancer.cancel')}
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="group h-11 min-w-[11rem] rounded-none bg-black font-semibold tracking-wide text-white hover:bg-zinc-800"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t('applyDancer.sending')}
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    {t('applyDancer.submit')}
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </>
+                )}
+              </Button>
             </div>
           </div>
 
