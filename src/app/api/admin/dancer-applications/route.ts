@@ -8,7 +8,7 @@ function getServiceRole() {
 }
 
 async function assertAdmin() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const server = createClient(cookieStore)
   const { data: auth, error: authErr } = await server.auth.getUser()
   const userId = auth.user?.id

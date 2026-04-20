@@ -19,7 +19,7 @@ function isSafeStoragePath(path: string): boolean {
 }
 
 export async function GET(request: NextRequest) {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const server = createClient(cookieStore)
   const { data: auth, error: authErr } = await server.auth.getUser()
   const userId = auth.user?.id

@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params
   // 관리자 여부 확인
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const server = createClient(cookieStore)
   const { data: auth } = await server.auth.getUser()
   let isAdmin = false
@@ -57,7 +57,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!content) return NextResponse.json({ error: 'missing_content' }, { status: 400 })
 
   // 관리자 확인 (간단 체크: users.type==='admin')
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const server = createClient(cookieStore)
   const { data: auth } = await server.auth.getUser()
   const userId = auth.user?.id
