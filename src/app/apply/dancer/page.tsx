@@ -17,14 +17,6 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import {
   Send,
   Loader2,
   Check,
@@ -166,6 +158,8 @@ export default function DancerApplyPage() {
   const [visaDetails, setVisaDetails] = useState('')
   const [careers, setCareers] = useState<string[]>([''])
   const [privacyConsent, setPrivacyConsent] = useState(false)
+  const [tosExpanded, setTosExpanded] = useState(false)
+  const [ppExpanded, setPpExpanded] = useState(false)
 
   const koreaNationalityLabel = t('applyDancer.nationalityKorea')
 
@@ -918,31 +912,67 @@ export default function DancerApplyPage() {
                 {errors.careers ? <FieldError id="err-careers" message={errors.careers} /> : <FieldHint>{t('applyDancer.careersHint')}</FieldHint>}
               </div>
 
-              <div className="mt-10 border border-zinc-300 p-5">
-                <div className="flex items-center justify-between gap-2">
+              <div className="mt-10 border border-zinc-300">
+                <div className="border-b border-zinc-200 px-5 py-4">
                   <Kicker>{t('applyDancer.termsTitle')}</Kicker>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <button type="button" className="text-xs font-medium text-black underline underline-offset-4 hover:no-underline">
-                        {t('applyDancer.privacyViewDetail')}
-                      </button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-lg">
-                      <DialogHeader>
-                        <DialogTitle>{t('applyDancer.termsTitle')}</DialogTitle>
-                        <DialogDescription asChild>
-                          <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">
-                            {t('applyDancer.termsBody')}
-                          </div>
-                        </DialogDescription>
-                      </DialogHeader>
-                    </DialogContent>
-                  </Dialog>
                 </div>
-                <p className="mt-3 text-xs leading-relaxed text-zinc-600 sm:text-sm">{t('applyDancer.termsBody')}</p>
+
+                {/* 이용약관 */}
+                <div className="border-b border-zinc-200 px-5 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-800">
+                      {t('applyDancer.tosTitle')}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setTosExpanded((v) => !v)}
+                      className="shrink-0 text-xs font-medium text-black underline underline-offset-4 hover:no-underline"
+                    >
+                      {tosExpanded ? t('applyDancer.showLess') : t('applyDancer.showMore')}
+                    </button>
+                  </div>
+                  <div
+                    className={cn(
+                      'mt-3 overflow-hidden text-xs leading-relaxed text-zinc-600 transition-all',
+                      tosExpanded ? 'max-h-[32rem] overflow-y-auto' : 'max-h-[4.5rem]',
+                    )}
+                  >
+                    <p className={cn('whitespace-pre-wrap', !tosExpanded && 'line-clamp-3')}>
+                      {tosExpanded ? t('applyDancer.tosFull') : t('applyDancer.tosShort')}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 개인정보처리방침 */}
+                <div className="border-b border-zinc-200 px-5 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-800">
+                      {t('applyDancer.ppTitle')}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setPpExpanded((v) => !v)}
+                      className="shrink-0 text-xs font-medium text-black underline underline-offset-4 hover:no-underline"
+                    >
+                      {ppExpanded ? t('applyDancer.showLess') : t('applyDancer.showMore')}
+                    </button>
+                  </div>
+                  <div
+                    className={cn(
+                      'mt-3 overflow-hidden text-xs leading-relaxed text-zinc-600 transition-all',
+                      ppExpanded ? 'max-h-[32rem] overflow-y-auto' : 'max-h-[4.5rem]',
+                    )}
+                  >
+                    <p className={cn('whitespace-pre-wrap', !ppExpanded && 'line-clamp-3')}>
+                      {ppExpanded ? t('applyDancer.ppFull') : t('applyDancer.ppShort')}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 동의 체크박스 */}
                 <label
                   data-field="privacyConsent"
-                  className="mt-4 flex cursor-pointer items-start gap-3 border-t border-zinc-200 pt-4"
+                  className="flex cursor-pointer items-start gap-3 px-5 py-4"
                 >
                   <input
                     type="checkbox"
@@ -951,11 +981,13 @@ export default function DancerApplyPage() {
                     onChange={(e) => setPrivacyConsent(e.target.checked)}
                     aria-invalid={!!errors.privacyConsent}
                   />
-                  <span className="text-sm font-medium text-black">
+                  <span className="text-sm font-medium leading-snug text-black">
                     {t('applyDancer.privacyConsent')} <Req />
                   </span>
                 </label>
-                <FieldError id="err-consent" message={errors.privacyConsent} />
+                <div className="px-5 pb-4">
+                  <FieldError id="err-consent" message={errors.privacyConsent} />
+                </div>
               </div>
             </SectionBlock>
           </div>
