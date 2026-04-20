@@ -1,8 +1,8 @@
 'use client'
 
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 
-type Language = 'ko' | 'en'
+export type Language = 'ko' | 'en' | 'ja'
 
 interface LanguageContextType {
   language: Language
@@ -11,6 +11,20 @@ interface LanguageContextType {
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
+
+const STORAGE_KEY = 'grigo:lang'
+const SUPPORTED: Language[] = ['ko', 'en', 'ja']
+
+function readInitialLang(): Language {
+  if (typeof window === 'undefined') return 'ko'
+  try {
+    const v = window.localStorage.getItem(STORAGE_KEY)
+    if (v && (SUPPORTED as string[]).includes(v)) return v as Language
+  } catch {
+    /* ignore */
+  }
+  return 'ko'
+}
 
 // 번역 데이터
 const translations = {
@@ -141,6 +155,12 @@ const translations = {
     'applyDancer.successTicket': '접수 번호',
     'applyDancer.backHome': '홈으로',
     'applyDancer.viewAgain': '다시 지원하기',
+    'applyDancer.portfolioFilePlaceholder': '클릭해서 파일 선택 — PDF / PNG / JPG · 4MB 이하',
+    'applyDancer.remove': '제거',
+    'applyDancer.readyToSubmit': '제출 준비 완료',
+    'applyDancer.missingFields': '누락된 항목 있음',
+    'applyDancer.nationalityKorea': '대한민국',
+    'applyDancer.regionOverseas': '해외',
 
     // 헤더
     'header.signin': 'Sign In',
@@ -148,13 +168,13 @@ const translations = {
     'header.mypage': 'My Page',
     'header.signout': 'Sign Out',
     'header.admin': 'Admin',
-    
+
     // Hero Section
     'hero.main1': 'DANCE',
     'hero.main2': 'WITH',
     'hero.main3': 'PASSION',
     'hero.subtitle': '그리고 엔터테인먼트 // A GLOBAL DANCE COMPANY',
-    
+
     // About Section
     'about.title': 'About Us',
     'about.subtitle': '글로벌 댄스 컴퍼니',
@@ -171,14 +191,14 @@ const translations = {
     'about.services.casting.desc': '최고의 댄서들과의 협업',
     'about.services.production': '공연 제작',
     'about.services.production.desc': '완벽한 공연 제작 및 연출',
-    
+
     // Artists Section
     'artists.title': 'Our Artists',
     'artists.subtitle': '세계적인 안무가들과 댄서들',
     'artists.description': '최고의 실력과 창의성을 가진 아티스트들과 함께\n특별한 순간을 만들어보세요.',
     'artists.viewall': '전체 보기',
     'artists.loading': '로딩 중...',
-    
+
     // Works Section
     'works.title': 'Our Works',
     'works.subtitle': '우리 댄서들이 참여한 다양한 프로젝트들을 확인해보세요.\n각각의 작품은 열정과 창의성이 담긴 결과물입니다.',
@@ -201,7 +221,7 @@ const translations = {
     'works.services.competition.desc': '댄스 대회 주최, 운영 및 다양한 행사 기획',
     'works.empty.title': '아직 등록된 대표작이 없습니다',
     'works.empty.description': '댄서들이 대표작을 등록하면 여기에 표시됩니다.',
-    
+
     // Contact Section
     'contact.title': 'Contact Us',
     'contact.subtitle': '프로젝트에 대해 문의하거나 댄서와의 협업을 원하시면\n언제든지 연락주세요.',
@@ -225,7 +245,7 @@ const translations = {
     'contact.form.error.submission': '문의 제출에 실패했습니다',
     'contact.form.success': '문의가 성공적으로 전송되었습니다',
     'contact.form.error.general': '문의 전송 중 오류가 발생했습니다',
-    
+
     // Footer
     'footer.company.name': '(주) 그리고 엔터테인먼트',
     'footer.description': '글로벌 댄스 컴퍼니로, 안무제작부터 댄서섭외까지 모든 것을 담당합니다.\n최고의 안무가들과 댄서들을 연결하여 세계적인 공연을 만들어갑니다.',
@@ -236,7 +256,7 @@ const translations = {
     'footer.contact.phone': '+82) 02-6229-9229',
     'footer.contact.address2': '(주) 그리고 엔터테인먼트',
     'footer.copyright': '© 2024 (주) 그리고 엔터테인먼트. All rights reserved.',
-    
+
     // Proposal
     'proposal.title': '프로젝트 제안',
     'proposal.subtitle': '프로젝트에 대한 제안을 보내주세요',
@@ -251,7 +271,7 @@ const translations = {
     'proposal.anonymous.email': '이메일',
     'proposal.anonymous.phone': '전화번호',
     'proposal.anonymous.submit': '익명으로 제안하기',
-    
+
     // General Proposal Section
     'proposal.general.title': '프로젝트 제안',
     'proposal.general.subtitle': '프로젝트 유형에 따라 적절한 제안 방법을 선택하세요',
@@ -264,7 +284,7 @@ const translations = {
     'proposal.general.general.title': '일반 제안',
     'proposal.general.general.desc': '기타 프로젝트 제안을 원하시는 경우',
     'proposal.general.general.button': '제안하기',
-    
+
     // Common
     'common.loading': '로딩 중...',
     'common.error': '오류가 발생했습니다',
@@ -400,6 +420,12 @@ const translations = {
     'applyDancer.successTicket': 'Ticket number',
     'applyDancer.backHome': 'Back to home',
     'applyDancer.viewAgain': 'Submit another',
+    'applyDancer.portfolioFilePlaceholder': 'Click to select — PDF / PNG / JPG · up to 4MB',
+    'applyDancer.remove': 'Remove',
+    'applyDancer.readyToSubmit': 'Ready to submit',
+    'applyDancer.missingFields': 'Missing fields',
+    'applyDancer.nationalityKorea': 'Republic of Korea',
+    'applyDancer.regionOverseas': 'Overseas',
 
     // Header
     'header.signin': 'Sign In',
@@ -407,13 +433,13 @@ const translations = {
     'header.mypage': 'My Page',
     'header.signout': 'Sign Out',
     'header.admin': 'Admin',
-    
+
     // Hero Section
     'hero.main1': 'DANCE',
     'hero.main2': 'WITH',
     'hero.main3': 'PASSION',
     'hero.subtitle': 'GRIGO ENTERTAINMENT // A GLOBAL DANCE COMPANY',
-    
+
     // About Section
     'about.title': 'About Us',
     'about.subtitle': 'Global Dance Company',
@@ -430,14 +456,14 @@ const translations = {
     'about.services.casting.desc': 'Collaboration with the best dancers',
     'about.services.production': 'Performance Production',
     'about.services.production.desc': 'Perfect performance production and direction',
-    
+
     // Artists Section
     'artists.title': 'Our Artists',
     'artists.subtitle': 'World-class Choreographers and Dancers',
     'artists.description': 'Create special moments with artists who have\nthe best skills and creativity.',
     'artists.viewall': 'View All',
     'artists.loading': 'Loading...',
-    
+
     // Works Section
     'works.title': 'Our Works',
     'works.subtitle': 'Discover various projects our dancers have participated in.\nEach work is a result filled with passion and creativity.',
@@ -447,7 +473,7 @@ const translations = {
     'works.refresh.loading': 'Refreshing...',
     'works.refresh.button': 'Refresh',
     'works.services.kpop.title': 'K-POP & Album Choreography',
-    'works.services.kpop.desc': 'Choreography for idol groups and solo artists\' title tracks and album songs',
+    'works.services.kpop.desc': "Choreography for idol groups and solo artists' title tracks and album songs",
     'works.services.movie.title': 'Film & Advertisement Choreography',
     'works.services.movie.desc': 'Choreography production and performance for films, dramas, and commercials',
     'works.services.broadcast.title': 'Broadcasting & Event Appearances',
@@ -460,7 +486,7 @@ const translations = {
     'works.services.competition.desc': 'Dance competition hosting, operation, and various event planning',
     'works.empty.title': 'No featured works yet',
     'works.empty.description': 'Featured works will appear here once dancers register them.',
-    
+
     // Contact Section
     'contact.title': 'Contact Us',
     'contact.subtitle': 'Contact us anytime for project inquiries\nor collaboration with dancers.',
@@ -484,7 +510,7 @@ const translations = {
     'contact.form.error.submission': 'Failed to submit inquiry',
     'contact.form.success': 'Inquiry sent successfully',
     'contact.form.error.general': 'An error occurred while sending the inquiry',
-    
+
     // Footer
     'footer.company.name': 'GRIGO Entertainment Co., Ltd.',
     'footer.description': 'As a global dance company, we handle everything from choreography to dancer casting.\nWe connect the best choreographers and dancers to create world-class performances.',
@@ -495,7 +521,7 @@ const translations = {
     'footer.contact.phone': '+82) 02-6229-9229',
     'footer.contact.address2': 'GRIGO Entertainment Co., Ltd.',
     'footer.copyright': '© 2024 GRIGO Entertainment. All rights reserved.',
-    
+
     // Proposal
     'proposal.title': 'Project Proposal',
     'proposal.subtitle': 'Send us your project proposal',
@@ -510,7 +536,7 @@ const translations = {
     'proposal.anonymous.email': 'Email',
     'proposal.anonymous.phone': 'Phone',
     'proposal.anonymous.submit': 'Send Anonymous Proposal',
-    
+
     // General Proposal Section
     'proposal.general.title': 'Project Proposal',
     'proposal.general.subtitle': 'Choose the appropriate proposal method based on your project type',
@@ -523,19 +549,303 @@ const translations = {
     'proposal.general.general.title': 'General Proposal',
     'proposal.general.general.desc': 'For other project proposals',
     'proposal.general.general.button': 'Send Proposal',
-    
+
     // Common
     'common.loading': 'Loading...',
     'common.error': 'An error occurred',
     'common.success': 'Successfully processed',
-  }
-}
+  },
+  ja: {
+    // Navigation
+    'nav.home': 'Home',
+    'nav.about': 'About us',
+    'nav.artists': 'Artists',
+    'nav.works': 'Our Works',
+    'nav.contact': 'Contact us',
+    'nav.dancerApply': 'Agency',
+
+    // Dancer agency pool
+    'applyDancer.pageTitle': 'GRIGO Entertainment ダンサーエージェンシープール募集',
+    'applyDancer.title': '応募フォーム',
+    'applyDancer.subtitle':
+      'プロフィール・ポートフォリオをご登録いただくとデータベースに反映され、プロジェクトの内容に合わせて個別にご連絡いたします。',
+    'applyDancer.noticeIntro':
+      '専属マネジメント中心で運営してまいりましたGRIGO Entertainmentが、これまで築いてきたインフラを基にエージェンシー事業へと領域を拡大いたします。\n\n広告・放送・振付制作・公演キャスティングなど、さまざまなプロジェクトでご一緒できる実力あるダンスチーム／ダンサーの皆さまのプロフィールを募集いたします。\n\nご提出いただいた情報はデータベースとして構築し、各プロジェクトに最適なマッチングを行ったうえで個別にご連絡差し上げます。',
+    'applyDancer.noticeClosing':
+      '現場のリアルを理解し、ダンサーの価値を知るパートナーとして、皆さまのビジネス機会をともに育ててまいります。\n\n多くのご関心・ご応募をお待ちしております。',
+    'applyDancer.areaTitle': '1. 募集領域',
+    'applyDancer.areaAds': '広告・キャンペーン: ブランドCM、バイラル映像、ルックブック、紙面モデル 等',
+    'applyDancer.areaBroadcast': '放送・メディア: テレビ番組、ウェブ番組、ミュージックビデオ出演 等',
+    'applyDancer.areaChoreo': '振付制作: アーティスト振付、広告・企業プロモーションの振付ディレクション',
+    'applyDancer.areaLive': '公演・イベントキャスティング: 企業イベント、フェス、国内外の公演プロジェクト 等',
+    'applyDancer.howTitle': '2. 応募方法',
+    'applyDancer.howBody':
+      '下記フォームにプロフィール（ポートフォリオ）リンクと、ご自身／チームの主な実績（振付制作、出演歴 等）をご記入ください。',
+    'applyDancer.processTitle': '3. マッチングプロセス',
+    'applyDancer.process1': 'プロフィール受付: 随時データベース登録',
+    'applyDancer.process2': 'プロジェクトマッチング: クライアント（制作会社・広告主）の要望に応じたマッチング',
+    'applyDancer.process3': '個別連絡: プロジェクトごとの条件・スケジュール調整後にキャスティングご連絡',
+    'applyDancer.signoff':
+      'GRIGO Entertainmentは、ダンサーの皆さまが本来のパフォーマンスに集中できる環境づくりに努めてまいります。ありがとうございます。',
+    'applyDancer.privacy':
+      '収集・利用目的: エージェンシープール登録、プロジェクトマッチングおよびキャスティングご連絡。保有期間: 目的達成後は速やかに破棄します（法令上保管が必要な場合はその期間まで保管）。同意されない場合は応募ができない場合があります。',
+    'applyDancer.fullName': '氏名',
+    'applyDancer.stageName': '活動名',
+    'applyDancer.phone': '電話番号',
+    'applyDancer.birthDate': '生年月日',
+    'applyDancer.gender': '性別',
+    'applyDancer.genderMale': '男性',
+    'applyDancer.genderFemale': '女性',
+    'applyDancer.genderOther': 'その他',
+    'applyDancer.genderPreferNot': '回答しない',
+    'applyDancer.genderPlaceholder': '選択',
+    'applyDancer.height': '身長 (cm)',
+    'applyDancer.heightHint': '数字のみご入力ください。',
+    'applyDancer.portfolio': 'ポートフォリオ',
+    'applyDancer.portfolioUrlLabel': 'ポートフォリオリンク（任意)',
+    'applyDancer.portfolioFileLabel': 'ポートフォリオファイル添付（任意)',
+    'applyDancer.portfolioHint':
+      'Notion・Google Drive・SNSなどアクセス可能なURL。https:// がない場合は自動で付与されます。',
+    'applyDancer.portfolioFileHint':
+      'PDF・JPG・JPEG・PNGのみ。最大4MBまで。容量が大きい場合は contact@grigoent.co.kr までメールでお送りください。',
+    'applyDancer.portfolioEitherHint': 'リンクまたはファイルのいずれか1つ以上をご提出ください。',
+    'applyDancer.errorPortfolioRequired': 'ポートフォリオのリンクまたはファイルのいずれか1つは必須です。',
+    'applyDancer.errorPortfolioFileType': '許可されている形式は PDF・JPG・PNG のみです。',
+    'applyDancer.errorPortfolioFileSize':
+      '添付ファイルは4MB以下にしてください。容量超過の場合は contact@grigoent.co.kr までお送りください。',
+    'applyDancer.errorPortfolioUpload': 'ファイルのアップロードに失敗しました。しばらくしてから再度お試しいただくか、リンクのみでご提出ください。',
+    'applyDancer.instagram': 'Instagram ID',
+    'applyDancer.instagramHint': '@ の有無どちらでも入力可能です。',
+    'applyDancer.agency': '所属事務所',
+    'applyDancer.agencyHint': '所属がない場合は空欄のままで構いません。',
+    'applyDancer.nationalityLabel': '国籍',
+    'applyDancer.koreanNational': '大韓民国籍です',
+    'applyDancer.foreignCountry': '国籍（国名)',
+    'applyDancer.foreignCountryHint': '韓国籍以外の方はご入力ください。',
+    'applyDancer.visaQuestion': 'ビザの有無',
+    'applyDancer.visaYes': 'あり',
+    'applyDancer.visaNo': 'なし',
+    'applyDancer.visaDetails': 'ビザ情報および有効期限',
+    'applyDancer.visaDetailsHint': 'ビザの種類・番号（任意）・有効期限などをご記入ください。',
+    'applyDancer.careers': '主な経歴',
+    'applyDancer.careersHint':
+      '振付制作、レッスン、ダンサー出演、公演、審査、ワークショップ、放送出演、広告などを改行区切りでご記入ください。',
+    'applyDancer.privacyConsent': '個人情報の収集・利用に同意します',
+    'applyDancer.termsTitle': '個人情報の収集・利用について',
+    'applyDancer.termsBody':
+      '収集項目: 活動名、氏名、連絡先、生年月日、性別、身長、経歴、ポートフォリオURL、Instagram、所属事務所、国籍、ビザ関連情報（該当時）。利用目的: エージェンシープールのDB構築、プロジェクトマッチング・キャスティング、ご本人確認およびご連絡。第三者提供: 当社が進めるプロジェクトのクライアント（制作会社・広告主 等）へ、マッチング目的で必要な範囲で提供される場合があります。利用期間: 目的達成まで。ただし関係法令で保管期間の定めがある場合は当該期間に従います。同意は任意ですが、同意いただけない場合はご応募を承ることができません。',
+    'applyDancer.cancel': 'キャンセル',
+    'applyDancer.submit': '応募書類を送信',
+    'applyDancer.sending': '送信中...',
+    'applyDancer.success': '応募書類を受け付けました。マッチングが発生次第ご連絡いたします。',
+    'applyDancer.errorRequired':
+      '必須項目・経歴・同意をご確認ください。外国籍の方はビザ情報も入力が必要です。',
+    'applyDancer.errorSubmit': '送信に失敗しました。しばらくしてから再度お試しください。',
+    'applyDancer.emailWarn': '受付は完了しましたが、ご案内メールの送信に失敗している可能性があります。',
+    'applyDancer.errorHeight': '身長は120〜220の範囲で数字を入力してください。',
+    'applyDancer.errorPortfolioUrl': '有効なポートフォリオURLを入力してください。',
+    'applyDancer.errorForeignCountry': '国籍（国名）をご入力ください。',
+    'applyDancer.errorVisaDetails': 'ビザがある場合は情報・有効期限をご入力ください。',
+    'applyDancer.heroKicker': 'GRIGO ENTERTAINMENT',
+    'applyDancer.sectionBasic': '基本情報',
+    'applyDancer.sectionProfile': 'プロフィール・リンク',
+    'applyDancer.sectionVisa': '国籍・ビザ',
+    'applyDancer.sectionCareer': '経歴',
+    'applyDancer.requiredHint': '* は必須項目です。',
+    'applyDancer.email': 'メールアドレス',
+    'applyDancer.emailHint': '契約・募集のご案内はメールでお送りします。',
+    'applyDancer.errorEmail': '有効なメールアドレスを入力してください。',
+    'applyDancer.residenceRegion': '居住地域',
+    'applyDancer.residenceRegionHint': '撮影・リハーサル場所のマッチングに利用します。',
+    'applyDancer.residenceRegionPlaceholder': '市・道を選択',
+    'applyDancer.specialties': '得意ジャンル',
+    'applyDancer.specialtiesHint': '1つ以上選択してください（最大10個）。',
+    'applyDancer.errorSpecialties': '得意ジャンルを1つ以上選択してください。',
+    'applyDancer.profilePhoto': 'プロフィール写真',
+    'applyDancer.profilePhotoHint': 'JPG/PNG/WebP · 3MB以下。顔がはっきりと写った写真を推奨します。',
+    'applyDancer.profilePhotoReplace': '写真を変更',
+    'applyDancer.profilePhotoSelect': '写真を選択',
+    'applyDancer.errorProfilePhoto': 'プロフィール写真を選択してください。',
+    'applyDancer.errorProfilePhotoSize': 'プロフィール写真は3MB以下にしてください。',
+    'applyDancer.errorProfilePhotoType': 'プロフィール写真はJPG/PNG/WebP形式のみです。',
+    'applyDancer.stepLabel': 'ステップ',
+    'applyDancer.step1': '基本',
+    'applyDancer.step2': 'プロフィール',
+    'applyDancer.step3': '国籍・ビザ',
+    'applyDancer.step4': '経歴・送信',
+    'applyDancer.careerAdd': '+ 経歴項目を追加',
+    'applyDancer.careerRemove': '削除',
+    'applyDancer.careerPlaceholder': '例）2024 · SM Ent. 新曲MV メインダンサー',
+    'applyDancer.portfolioTabUrl': 'リンク',
+    'applyDancer.portfolioTabFile': 'ファイル',
+    'applyDancer.privacyViewDetail': '全文を見る',
+    'applyDancer.summarySaving': '送信中です。しばらくお待ちください…',
+    'applyDancer.successTitle': '応募書類を受け付けました',
+    'applyDancer.successBody': 'プロフィールをデータベースに登録いたしました。マッチングが発生次第、ご登録いただいたメールアドレス・電話番号へ個別にご案内いたします。',
+    'applyDancer.successTicket': '受付番号',
+    'applyDancer.backHome': 'ホームへ',
+    'applyDancer.viewAgain': 'もう一度応募する',
+    'applyDancer.portfolioFilePlaceholder': 'クリックしてファイルを選択 — PDF / PNG / JPG · 4MB以下',
+    'applyDancer.remove': '削除',
+    'applyDancer.readyToSubmit': '送信の準備ができました',
+    'applyDancer.missingFields': '未入力の項目があります',
+    'applyDancer.nationalityKorea': '大韓民国',
+    'applyDancer.regionOverseas': '海外',
+
+    // Header
+    'header.signin': 'サインイン',
+    'header.signup': 'サインアップ',
+    'header.mypage': 'マイページ',
+    'header.signout': 'サインアウト',
+    'header.admin': '管理者',
+
+    // Hero Section
+    'hero.main1': 'DANCE',
+    'hero.main2': 'WITH',
+    'hero.main3': 'PASSION',
+    'hero.subtitle': 'GRIGO ENTERTAINMENT // A GLOBAL DANCE COMPANY',
+
+    // About Section
+    'about.title': 'About Us',
+    'about.subtitle': 'グローバルダンスカンパニー',
+    'about.mission': '私たちは世界的な振付師とダンサーをつなぎ\n革新的で感動的なパフォーマンスを生み出します。',
+    'about.stats.title': 'Our Numbers',
+    'about.stats.projects': 'プロジェクト',
+    'about.stats.artists': 'アーティスト',
+    'about.stats.countries': 'カ国',
+    'about.stats.years': '年の実績',
+    'about.services.title': 'Our Services',
+    'about.services.choreography': '振付制作',
+    'about.services.choreography.desc': 'クリエイティブで革新的な振付制作',
+    'about.services.casting': 'ダンサーキャスティング',
+    'about.services.casting.desc': '一流ダンサーとのコラボレーション',
+    'about.services.production': '公演プロデュース',
+    'about.services.production.desc': '完成度の高い公演の制作と演出',
+
+    // Artists Section
+    'artists.title': 'Our Artists',
+    'artists.subtitle': '世界的な振付師とダンサー',
+    'artists.description': '最高の実力と創造性を備えたアーティストとともに\n特別な瞬間を生み出しましょう。',
+    'artists.viewall': 'すべて見る',
+    'artists.loading': '読み込み中...',
+
+    // Works Section
+    'works.title': 'Our Works',
+    'works.subtitle': '当社のダンサーが参加した多彩なプロジェクトをご覧ください。\nそれぞれの作品には情熱と創造性が込められています。',
+    'works.recently': 'Recently',
+    'works.error.title': 'データを読み込めませんでした',
+    'works.error.retry': '再試行',
+    'works.refresh.loading': '更新中...',
+    'works.refresh.button': '更新',
+    'works.services.kpop.title': 'K-POP・アルバム振付制作',
+    'works.services.kpop.desc': 'アイドルグループ、ソロアーティストのタイトル曲および収録曲の振付制作',
+    'works.services.movie.title': '映画・広告振付',
+    'works.services.movie.desc': '映画・ドラマ・CMの振付制作および出演',
+    'works.services.broadcast.title': '放送・イベント出演',
+    'works.services.broadcast.desc': 'テレビ番組・コンサート・イベントへのダンサー／チームキャスティング',
+    'works.services.workshop.title': '海外・国内ワークショップ',
+    'works.services.workshop.desc': '世界各地でのK-POPダンスレッスン・ワークショップ',
+    'works.services.challenge.title': 'ダンスチャレンジ',
+    'works.services.challenge.desc': '商品・空間・アルバムのプロモーション用ダンスチャレンジ制作',
+    'works.services.competition.title': 'ダンスコンペティション・イベント',
+    'works.services.competition.desc': 'ダンス大会の主催・運営および各種イベントの企画',
+    'works.empty.title': 'まだ登録された代表作がありません',
+    'works.empty.description': 'ダンサーが代表作を登録するとここに表示されます。',
+
+    // Contact Section
+    'contact.title': 'Contact Us',
+    'contact.subtitle': 'プロジェクトのお問い合わせやダンサーとのコラボレーションをご希望の方は\nお気軽にご連絡ください。',
+    'contact.getintouch': 'Get in Touch',
+    'contact.address': 'ソウル特別市麻浦区城池3キル55、3階',
+    'contact.company': '株式会社グリゴエンターテインメント',
+    'contact.email': 'Email',
+    'contact.phone': 'Phone',
+    'contact.businesshours': 'Business Hours',
+    'contact.businesshours.weekday': '月〜金: 9:00 AM - 6:00 PM',
+    'contact.businesshours.weekend': '土〜日: 10:00 AM - 4:00 PM',
+    'contact.sendmessage': 'Send Message',
+    'contact.form.title': 'お問い合わせ',
+    'contact.form.name': 'お名前',
+    'contact.form.contact': 'メールアドレス または 電話番号',
+    'contact.form.inquiry': 'お問い合わせ内容',
+    'contact.form.send': '送信する',
+    'contact.form.sending': '送信中...',
+    'contact.form.error.required': 'すべての項目を入力してください',
+    'contact.form.error.invalid': '正しいメールアドレスまたは電話番号を入力してください',
+    'contact.form.error.submission': 'お問い合わせの送信に失敗しました',
+    'contact.form.success': 'お問い合わせを送信しました',
+    'contact.form.error.general': '送信中にエラーが発生しました',
+
+    // Footer
+    'footer.company.name': '株式会社グリゴエンターテインメント',
+    'footer.description': 'グローバルダンスカンパニーとして、振付制作からダンサーキャスティングまでを担います。\n一流の振付師とダンサーをつなぎ、世界水準の公演を生み出します。',
+    'footer.quicklinks': 'Quick Links',
+    'footer.report': '未払い・精算の通報',
+    'footer.contact': 'Contact',
+    'footer.contact.email': 'contact@grigoent.co.kr',
+    'footer.contact.phone': '+82) 02-6229-9229',
+    'footer.contact.address2': '株式会社グリゴエンターテインメント',
+    'footer.copyright': '© 2024 株式会社グリゴエンターテインメント. All rights reserved.',
+
+    // Proposal
+    'proposal.title': 'プロジェクト提案',
+    'proposal.subtitle': 'プロジェクトのご提案をお送りください',
+    'proposal.form.title': 'プロジェクト名',
+    'proposal.form.description': 'プロジェクト詳細',
+    'proposal.form.budget': '予算',
+    'proposal.form.deadline': '希望納期',
+    'proposal.form.submit': '提案を送信',
+    'proposal.anonymous.title': '匿名での提案',
+    'proposal.anonymous.subtitle': 'ログインなしで提案できます',
+    'proposal.anonymous.name': 'お名前',
+    'proposal.anonymous.email': 'メールアドレス',
+    'proposal.anonymous.phone': '電話番号',
+    'proposal.anonymous.submit': '匿名で提案する',
+
+    // General Proposal Section
+    'proposal.general.title': 'プロジェクト提案',
+    'proposal.general.subtitle': 'プロジェクトの種類に合わせて提案方法を選んでください',
+    'proposal.general.individual.title': '個人ダンサー',
+    'proposal.general.individual.desc': '個人ダンサーとのコラボレーションをご希望の方',
+    'proposal.general.individual.button': 'ダンサーを探す',
+    'proposal.general.team.title': 'ダンスチーム',
+    'proposal.general.team.desc': 'ダンスチームとのコラボレーションをご希望の方',
+    'proposal.general.team.button': 'チームを探す',
+    'proposal.general.general.title': '一般提案',
+    'proposal.general.general.desc': 'その他のプロジェクト提案をご希望の方',
+    'proposal.general.general.button': '提案する',
+
+    // Common
+    'common.loading': '読み込み中...',
+    'common.error': 'エラーが発生しました',
+    'common.success': '正常に処理されました',
+  },
+} as const
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>('ko')
+  const [language, setLanguageState] = useState<Language>(readInitialLang)
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang)
+    try {
+      if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_KEY, lang)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // SSR과 첫 클라이언트 렌더링 hydration 후 동기화
+  useEffect(() => {
+    const stored = readInitialLang()
+    if (stored !== language) setLanguageState(stored)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const t = (key: string): string => {
-    return (translations[language] as Record<string, string>)[key] || key
+    const current = translations[language] as Record<string, string>
+    const en = translations.en as Record<string, string>
+    const ko = translations.ko as Record<string, string>
+    return current[key] ?? en[key] ?? ko[key] ?? key
   }
 
   return (
@@ -551,4 +861,4 @@ export function useLanguage() {
     throw new Error('useLanguage must be used within a LanguageProvider')
   }
   return context
-} 
+}

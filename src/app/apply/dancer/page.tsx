@@ -38,7 +38,7 @@ import {
 import { toast } from 'sonner'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { cn } from '@/lib/utils'
-import { DANCE_SPECIALTIES } from '@/lib/dancer-specialties'
+import { DANCE_SPECIALTIES, specialtyLabel } from '@/lib/dancer-specialties'
 import { RESIDENCE_OPTIONS, KOREA_REGIONS, OVERSEAS_OPTION } from '@/lib/dancer-regions'
 
 type Gender = 'male' | 'female' | 'other' | 'prefer_not'
@@ -167,7 +167,7 @@ export default function DancerApplyPage() {
   const [careers, setCareers] = useState<string[]>([''])
   const [privacyConsent, setPrivacyConsent] = useState(false)
 
-  const koreaNationalityLabel = language === 'ko' ? '대한민국' : 'Republic of Korea'
+  const koreaNationalityLabel = t('applyDancer.nationalityKorea')
 
   useEffect(() => {
     return () => {
@@ -403,7 +403,7 @@ export default function DancerApplyPage() {
   }
 
   const regionLabel = (r: string) => {
-    if (r === OVERSEAS_OPTION) return language === 'ko' ? '해외' : 'Overseas'
+    if (r === OVERSEAS_OPTION) return t('applyDancer.regionOverseas')
     return r
   }
 
@@ -671,7 +671,7 @@ export default function DancerApplyPage() {
                         )}
                       >
                         {active ? <Check className="mr-1 h-3 w-3" /> : null}
-                        {language === 'ko' ? s.label_ko : s.label_en}
+                        {specialtyLabel(s.value, language)}
                       </button>
                     )
                   })}
@@ -724,11 +724,7 @@ export default function DancerApplyPage() {
                       )}
                     >
                       <FileUp className="h-4 w-4" />
-                      {portfolioFileName
-                        ? portfolioFileName
-                        : language === 'ko'
-                          ? '클릭해서 파일 선택 — PDF / PNG / JPG · 4MB 이하'
-                          : 'Click to select — PDF / PNG / JPG · up to 4MB'}
+                      {portfolioFileName ? portfolioFileName : t('applyDancer.portfolioFilePlaceholder')}
                     </button>
                     <input
                       ref={portfolioFileRef}
@@ -746,7 +742,7 @@ export default function DancerApplyPage() {
                         }}
                         className="mt-2 text-xs font-medium text-black underline underline-offset-4 hover:no-underline"
                       >
-                        {language === 'ko' ? '제거' : 'Remove'}
+                        {t('applyDancer.remove')}
                       </button>
                     ) : (
                       <FieldHint>{t('applyDancer.portfolioFileHint')}</FieldHint>
@@ -968,9 +964,7 @@ export default function DancerApplyPage() {
           <div className="mt-14 flex flex-col gap-4 border-t border-black pt-8 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <Kicker>
-                {doneCount === totalSteps
-                  ? language === 'ko' ? '제출 준비 완료' : 'Ready to submit'
-                  : language === 'ko' ? '누락된 항목 있음' : 'Missing fields'}
+                {doneCount === totalSteps ? t('applyDancer.readyToSubmit') : t('applyDancer.missingFields')}
               </Kicker>
               <p className="mt-1.5 font-mono text-xs tabular-nums text-zinc-500">
                 {String(doneCount).padStart(2, '0')} / 0{totalSteps}
