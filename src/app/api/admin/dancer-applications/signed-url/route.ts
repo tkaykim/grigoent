@@ -11,7 +11,7 @@ function getServiceRole() {
 
 function isSafeStoragePath(path: string): boolean {
   if (!path || path.includes('..') || path.includes('\\')) return false
-  if (!path.startsWith('applications/')) return false
+  if (!path.startsWith('applications/') && !path.startsWith('profiles/')) return false
   const parts = path.split('/')
   if (parts.length !== 3) return false
   const uuid = parts[1]
