@@ -1,52 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/server'
+import { assertAdminFromRequest } from '@/lib/admin-auth'
 
 function getServiceRole() {
   return createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 }
 
-async function assertAdmin() {
-  const cookieStore = await cookies()
-  const server = createClient(cookieStore)
-  const { data: auth, error: authErr } = await server.auth.getUser()
-  const userId = auth.user?.id
-  if (authErr || !userId) {
-    console.error('[admin/dancer-applications] auth failed:', authErr?.message, 'userId:', userId)
-    return { ok: false as const, status: 401, error: 'unauthorized', detail: authErr?.message }
-  }
-  const { data: profile, error: profileErr } = await server
-    .from('users')
-    .select('type')
-    .eq('id', userId)
-    .maybeSingle()
-  if (profileErr) {
-    console.error('[admin/dancer-applications] profile query error:', profileErr.message)
-    return { ok: false as const, status: 500, error: 'profile_lookup_failed', detail: profileErr.message }
-  }
-  if (profile?.type !== 'admin') {
-    console.warn('[admin/dancer-applications] non-admin attempt. userId:', userId, 'profile.type:', profile?.type)
-    return { ok: false as const, status: 403, error: 'forbidden', detail: `type=${profile?.type ?? 'null'}` }
-  }
-  return { ok: true as const, userId }
-}
-
 const VALID_STATUSES = new Set(['pending', 'in_review', 'accepted', 'rejected', 'hold'])
 
 export async function GET(request: NextRequest) {
-  const auth = await assertAdmin()
+  const auth = await assertAdminFromRequest(request, 'admin/dancer-applications')
   if (!auth.ok) {
-    return NextResponse.json(
-      { error: auth.error, detail: (auth as { detail?: string }).detail ?? undefined },
-      { status: auth.status },
-    )
-  }
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json(
-      { error: 'missing_service_role_key', detail: 'SUPABASE_SERVICE_ROLE_KEY env not set' },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: auth.error, detail: auth.detail }, { status: auth.status })
   }
 
   const url = request.nextUrl

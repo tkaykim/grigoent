@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/server'
+import { assertAdminFromRequest } from '@/lib/admin-auth'
 
 const VALID_STATUSES = new Set(['pending', 'in_review', 'accepted', 'rejected', 'hold'])
 
@@ -9,24 +8,9 @@ function getServiceRole() {
   return createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 }
 
-async function assertAdmin() {
-  const cookieStore = await cookies()
-  const server = createClient(cookieStore)
-  const { data: auth, error: authErr } = await server.auth.getUser()
-  const userId = auth.user?.id
-  if (authErr || !userId) return { ok: false as const, status: 401, error: 'unauthorized' }
-  const { data: profile, error: profileErr } = await server
-    .from('users')
-    .select('type')
-    .eq('id', userId)
-    .maybeSingle()
-  if (profileErr || profile?.type !== 'admin') return { ok: false as const, status: 403, error: 'forbidden' }
-  return { ok: true as const, userId }
-}
-
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const auth = await assertAdmin()
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
+  const auth = await assertAdminFromRequest(request, 'admin/dancer-applications[id]')
+  if (!auth.ok) return NextResponse.json({ error: auth.error, detail: auth.detail }, { status: auth.status })
 
   const { id } = await context.params
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
@@ -67,7 +51,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     .single()
 
   if (error) {
-    console.error('dancer_applications patch error:', error)
+    console.error('[admin/dancer-applications[id]] patch error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 

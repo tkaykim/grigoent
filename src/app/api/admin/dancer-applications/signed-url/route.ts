@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/server'
+import { assertAdminFromRequest } from '@/lib/admin-auth'
 
 const BUCKET = 'dancer-portfolio-files'
 
@@ -19,23 +18,8 @@ function isSafeStoragePath(path: string): boolean {
 }
 
 export async function GET(request: NextRequest) {
-  const cookieStore = await cookies()
-  const server = createClient(cookieStore)
-  const { data: auth, error: authErr } = await server.auth.getUser()
-  const userId = auth.user?.id
-  if (authErr || !userId) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  }
-
-  const { data: profile, error: profileErr } = await server
-    .from('users')
-    .select('type')
-    .eq('id', userId)
-    .maybeSingle()
-
-  if (profileErr || profile?.type !== 'admin') {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
-  }
+  const auth = await assertAdminFromRequest(request, 'admin/dancer-applications/signed-url')
+  if (!auth.ok) return NextResponse.json({ error: auth.error, detail: auth.detail }, { status: auth.status })
 
   const rawPath = request.nextUrl.searchParams.get('path')
   if (!rawPath) {
@@ -55,7 +39,7 @@ export async function GET(request: NextRequest) {
   const svc = getServiceRole()
   const { data, error } = await svc.storage.from(BUCKET).createSignedUrl(path, 600)
   if (error || !data?.signedUrl) {
-    console.error('signed portfolio url:', error)
+    console.error('[admin/dancer-applications/signed-url] sign error:', error)
     return NextResponse.json({ error: error?.message || 'sign_failed' }, { status: 500 })
   }
 

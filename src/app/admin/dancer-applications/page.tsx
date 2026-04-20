@@ -40,6 +40,15 @@ import {
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { DANCE_SPECIALTIES, specialtyLabel } from '@/lib/dancer-specialties'
+import { supabase } from '@/lib/supabase'
+
+async function authFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token
+  const headers = new Headers(init.headers)
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+  return fetch(input, { ...init, headers })
+}
 
 type ReviewStatus = 'pending' | 'in_review' | 'accepted' | 'rejected' | 'hold'
 
@@ -188,9 +197,8 @@ export default function AdminDancerApplicationsPage() {
         if (specialty !== 'all') params.set('specialty', specialty)
         params.set('limit', String(PAGE_SIZE))
         params.set('offset', String(nextOffset))
-        const res = await fetch(`/api/admin/dancer-applications?${params.toString()}`, {
+        const res = await authFetch(`/api/admin/dancer-applications?${params.toString()}`, {
           cache: 'no-store',
-          credentials: 'include',
         })
         const rawText = await res.text()
         let json: ListResponse | { error?: string; message?: string } | null = null
@@ -241,9 +249,7 @@ export default function AdminDancerApplicationsPage() {
   const getSignedUrl = useCallback(async (path: string): Promise<string | null> => {
     if (photoUrlCache[path]) return photoUrlCache[path]
     try {
-      const res = await fetch(`/api/admin/dancer-applications/signed-url?path=${encodeURIComponent(path)}`, {
-        credentials: 'include',
-      })
+      const res = await authFetch(`/api/admin/dancer-applications/signed-url?path=${encodeURIComponent(path)}`)
       const json = await res.json()
       if (!res.ok || !json.url) return null
       setPhotoUrlCache((prev) => ({ ...prev, [path]: json.url }))
@@ -281,9 +287,8 @@ export default function AdminDancerApplicationsPage() {
     async (id: string, update: { review_status?: ReviewStatus; review_note?: string | null }) => {
       setSavingId(id)
       try {
-        const res = await fetch(`/api/admin/dancer-applications/${id}`, {
+        const res = await authFetch(`/api/admin/dancer-applications/${id}`, {
           method: 'PATCH',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(update),
         })
