@@ -21,7 +21,7 @@ const translations = {
     'nav.artists': 'Artists',
     'nav.works': 'Our Works',
     'nav.contact': 'Contact us',
-    'nav.dancerApply': '에이전시 풀',
+    'nav.dancerApply': 'Agency',
 
     // 댄서 에이전시 풀 모집
     'applyDancer.pageTitle': '그리고 엔터테인먼트 댄서 에이전시 풀 모집',
@@ -29,9 +29,9 @@ const translations = {
     'applyDancer.subtitle':
       '프로필·포트폴리오를 등록해 주시면 데이터베이스에 반영되며, 프로젝트 성격에 맞춰 개별 연락드립니다.',
     'applyDancer.noticeIntro':
-      '그동안 전속 매니지먼트 형태로만 운영되던 그리고 엔터테인먼트가 쌓아온 인프라를 바탕으로 에이전시 사업 영역을 확장하게 되었습니다. 광고, 방송, 안무 제작, 공연 섭외 등 다양한 프로젝트에서 함께 시너지를 낼 역량 있는 댄스팀·댄서분들의 프로필을 모집합니다. 제출해 주신 정보는 데이터베이스로 구축되어, 각 프로젝트에 최적화된 매칭을 통해 개별적으로 연락드릴 예정입니다.',
+      '그동안 전속 매니지먼트 형태로만 운영되던 그리고 엔터테인먼트가 쌓아온 인프라를 바탕으로 에이전시 사업 영역을 확장하게 되었습니다.\n\n광고, 방송, 안무 제작, 공연 섭외 등 다양한 프로젝트에서 함께 시너지를 낼 역량 있는 댄스팀·댄서분들의 프로필을 모집합니다.\n\n제출해 주신 정보는 데이터베이스로 구축되어, 각 프로젝트에 최적화된 매칭을 통해 개별적으로 연락드릴 예정입니다.',
     'applyDancer.noticeClosing':
-      '현장의 목소리를 이해하고 댄서의 가치를 잘 아는 파트너로서, 여러분의 비즈니스 기회를 함께 만들어가고자 합니다. 많은 관심과 지원 부탁드립니다.',
+      '현장의 목소리를 이해하고 댄서의 가치를 잘 아는 파트너로서, 여러분의 비즈니스 기회를 함께 만들어가고자 합니다.\n\n많은 관심과 지원 부탁드립니다.',
     'applyDancer.areaTitle': '1. 모집 영역',
     'applyDancer.areaAds': '광고 및 캠페인: 브랜드 CF, 바이럴 영상, 룩북 및 지면 모델 등',
     'applyDancer.areaBroadcast': '방송 및 미디어: TV 프로그램, 웹 예능, 뮤직비디오 출연 등',
@@ -59,8 +59,18 @@ const translations = {
     'applyDancer.genderPlaceholder': '선택',
     'applyDancer.height': '키 (cm)',
     'applyDancer.heightHint': '숫자만 입력해 주세요.',
-    'applyDancer.portfolio': '포트폴리오(프로필) 링크',
-    'applyDancer.portfolioHint': '노션, 구글 드라이브, SNS 링크 등 접근 가능한 URL을 입력해 주세요. https:// 가 없으면 자동으로 붙입니다.',
+    'applyDancer.portfolio': '포트폴리오',
+    'applyDancer.portfolioUrlLabel': '포트폴리오 링크 (선택)',
+    'applyDancer.portfolioFileLabel': '포트폴리오 파일 첨부 (선택)',
+    'applyDancer.portfolioHint': '노션, 구글 드라이브, SNS 등 접근 가능한 URL. https:// 가 없으면 자동으로 붙습니다.',
+    'applyDancer.portfolioFileHint':
+      'PDF, JPG, JPEG, PNG만 가능합니다. 최대 4MB입니다. 용량이 더 큰 경우 포트폴리오를 contact@grigoent.co.kr 로 메일로 보내 주세요.',
+    'applyDancer.portfolioEitherHint': '링크와 파일 중 하나 이상을 제출해 주세요.',
+    'applyDancer.errorPortfolioRequired': '포트폴리오 링크 또는 파일 중 하나는 필수입니다.',
+    'applyDancer.errorPortfolioFileType': '허용 형식은 PDF, JPG, PNG만 가능합니다.',
+    'applyDancer.errorPortfolioFileSize':
+      '첨부 파일은 4MB 이하여야 합니다. 용량이 초과되는 경우 포트폴리오를 contact@grigoent.co.kr 로 보내 주세요.',
+    'applyDancer.errorPortfolioUpload': '파일 업로드에 실패했습니다. 잠시 후 다시 시도하거나 링크만으로 제출해 보세요.',
     'applyDancer.instagram': '인스타그램 아이디',
     'applyDancer.instagramHint': '@ 없이 입력하거나 @를 포함해도 됩니다.',
     'applyDancer.agency': '소속사',
@@ -92,6 +102,12 @@ const translations = {
     'applyDancer.errorPortfolioUrl': '올바른 포트폴리오 URL을 입력해 주세요.',
     'applyDancer.errorForeignCountry': '국적(국가명)을 입력해 주세요.',
     'applyDancer.errorVisaDetails': '비자가 있는 경우 정보·만료일을 입력해 주세요.',
+    'applyDancer.heroKicker': 'GRIGO ENTERTAINMENT',
+    'applyDancer.sectionBasic': '기본 정보',
+    'applyDancer.sectionProfile': '프로필 · 링크',
+    'applyDancer.sectionVisa': '국적 · 비자',
+    'applyDancer.sectionCareer': '경력',
+    'applyDancer.requiredHint': '* 표시는 필수 항목입니다.',
     
     // 헤더
     'header.signin': 'Sign In',
@@ -228,7 +244,7 @@ const translations = {
     'nav.artists': 'Artists',
     'nav.works': 'Our Works',
     'nav.contact': 'Contact us',
-    'nav.dancerApply': 'Agency pool',
+    'nav.dancerApply': 'Agency',
 
     // Dancer agency pool
     'applyDancer.pageTitle': 'GRIGO Entertainment — dancer agency pool',
@@ -236,9 +252,9 @@ const translations = {
     'applyDancer.subtitle':
       'Register your profile and portfolio for our database. We will contact you individually when projects match your profile.',
     'applyDancer.noticeIntro':
-      'GRIGO Entertainment is expanding its agency services using the infrastructure we have built through exclusive management. We are collecting profiles from capable dance teams and dancers for advertising, broadcast, choreography, and performance casting. Submissions are stored in a database and used for optimized matching per project.',
+      'GRIGO Entertainment is expanding its agency services on the infrastructure we have built through exclusive management.\n\nWe are collecting profiles from capable dance teams and dancers for advertising, broadcast, choreography, and performance casting.\n\nSubmissions are stored in a database and used for optimized matching per project, and we will contact you individually.',
     'applyDancer.noticeClosing':
-      'We understand the field and the value of dancers, and we want to build business opportunities together. Thank you for your interest.',
+      'We understand the field and the value of dancers, and we want to build business opportunities together.\n\nThank you for your interest and applications.',
     'applyDancer.areaTitle': '1. Areas',
     'applyDancer.areaAds': 'Advertising & campaigns: brand CF, viral content, lookbooks, print, etc.',
     'applyDancer.areaBroadcast': 'Broadcast & media: TV, web shows, music videos, etc.',
@@ -267,9 +283,19 @@ const translations = {
     'applyDancer.genderPlaceholder': 'Select',
     'applyDancer.height': 'Height (cm)',
     'applyDancer.heightHint': 'Numbers only.',
-    'applyDancer.portfolio': 'Portfolio / profile link',
+    'applyDancer.portfolio': 'Portfolio',
+    'applyDancer.portfolioUrlLabel': 'Portfolio link (optional)',
+    'applyDancer.portfolioFileLabel': 'Portfolio file (optional)',
     'applyDancer.portfolioHint':
       'A reachable URL (Notion, Drive, social, etc.). https:// will be added if missing.',
+    'applyDancer.portfolioFileHint':
+      'PDF, JPG, JPEG, or PNG only. Max 4MB. If your file is larger, email your portfolio to contact@grigoent.co.kr.',
+    'applyDancer.portfolioEitherHint': 'Please provide at least one of a link or a file.',
+    'applyDancer.errorPortfolioRequired': 'A portfolio link or file is required.',
+    'applyDancer.errorPortfolioFileType': 'Only PDF, JPG, and PNG files are allowed.',
+    'applyDancer.errorPortfolioFileSize':
+      'Attachments must be 4MB or smaller. If the file exceeds the limit, send your portfolio to contact@grigoent.co.kr.',
+    'applyDancer.errorPortfolioUpload': 'File upload failed. Try again later, or submit with a link only.',
     'applyDancer.instagram': 'Instagram handle',
     'applyDancer.instagramHint': 'With or without the @ symbol.',
     'applyDancer.agency': 'Agency',
@@ -302,6 +328,12 @@ const translations = {
     'applyDancer.errorPortfolioUrl': 'Please enter a valid portfolio URL.',
     'applyDancer.errorForeignCountry': 'Please enter your nationality (country).',
     'applyDancer.errorVisaDetails': 'If you have a visa, please enter details including expiry.',
+    'applyDancer.heroKicker': 'GRIGO ENTERTAINMENT',
+    'applyDancer.sectionBasic': 'Basic information',
+    'applyDancer.sectionProfile': 'Profile & links',
+    'applyDancer.sectionVisa': 'Nationality & visa',
+    'applyDancer.sectionCareer': 'Credits',
+    'applyDancer.requiredHint': 'Fields marked with * are required.',
     
     // Header
     'header.signin': 'Sign In',

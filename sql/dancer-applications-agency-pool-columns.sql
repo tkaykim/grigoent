@@ -23,3 +23,8 @@ comment on column public.dancer_applications.is_korean_national is '대한민국
 comment on column public.dancer_applications.has_visa is '비자 보유(외국인만, 국적이 한국이면 null)';
 comment on column public.dancer_applications.visa_details is '비자 종류·만료일 등';
 comment on column public.dancer_applications.privacy_consent is '개인정보 활용 동의';
+
+alter table public.dancer_applications
+  add column if not exists portfolio_file_path text;
+
+comment on column public.dancer_applications.portfolio_file_path is 'Storage dancer-portfolio-files 버킷 내 경로';

@@ -13,6 +13,7 @@ create table if not exists public.dancer_applications (
   gender text,
   height_cm integer,
   portfolio_url text,
+  portfolio_file_path text,
   agency_name text,
   nationality text,
   is_korean_national boolean,

@@ -1,6 +1,16 @@
+import { randomUUID } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
+
+export const runtime = 'nodejs'
+export const maxDuration = 60
+
+const BUCKET = 'dancer-portfolio-files'
+/** Vercel Hobby 요청 본문 한도(약 4.5MB) 이하로 맞춤 */
+const MAX_FILE_BYTES = 4 * 1024 * 1024
+const ALLOWED_MIME = new Set(['application/pdf', 'image/jpeg', 'image/png'])
+const ALLOWED_EXT = new Set(['pdf', 'jpg', 'jpeg', 'png'])
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -10,17 +20,79 @@ function normalizeInstagram(raw: string) {
   return raw.trim().replace(/^@+/, '')
 }
 
-const bodySchema = z
-  .object({
-    full_name: z.string().trim().min(1).max(200),
-    stage_name: z.string().trim().min(1).max(200),
-    phone: z.string().trim().min(5).max(80),
-    birth_date: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .refine((s) => !Number.isNaN(Date.parse(`${s}T00:00:00Z`)), { message: 'invalid_date' }),
-    gender: z.enum(['male', 'female', 'other', 'prefer_not']),
-    height_cm: z.coerce.number().int().min(120).max(220),
+function extFromFilename(name: string): string {
+  const m = /\.([a-zA-Z0-9]+)$/.exec(name.trim())
+  return m ? m[1].toLowerCase() : ''
+}
+
+function safeStorageFileName(name: string): string {
+  const base = name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_+/g, '_').slice(0, 100)
+  return base || 'portfolio'
+}
+
+function validatePortfolioFile(file: File): { ok: true } | { ok: false; error: string } {
+  if (file.size > MAX_FILE_BYTES) {
+    return { ok: false, error: 'file_too_large' }
+  }
+  const ext = extFromFilename(file.name)
+  if (!ALLOWED_EXT.has(ext)) {
+    return { ok: false, error: 'file_type' }
+  }
+  const type = file.type || ''
+  if (type && !ALLOWED_MIME.has(type)) {
+    return { ok: false, error: 'file_type' }
+  }
+  return { ok: true }
+}
+
+function visaRefine(data: VisaRefinable, ctx: z.RefinementCtx) {
+  if (data.is_korean_national) {
+    if (data.has_visa !== null && data.has_visa !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['has_visa'], message: 'visa_not_applicable' })
+    }
+    if (data.visa_details && data.visa_details.length > 0) {
+      ctx.addIssue({ code: 'custom', path: ['visa_details'], message: 'visa_not_applicable' })
+    }
+  } else {
+    if (data.has_visa === null || data.has_visa === undefined) {
+      ctx.addIssue({ code: 'custom', path: ['has_visa'], message: 'visa_required' })
+    }
+    if (data.has_visa === true) {
+      if (!data.visa_details || data.visa_details.length < 2) {
+        ctx.addIssue({ code: 'custom', path: ['visa_details'], message: 'visa_details_required' })
+      }
+    }
+  }
+}
+
+type VisaRefinable = {
+  is_korean_national: boolean
+  has_visa?: boolean | null
+  visa_details?: string | null
+}
+
+const identityBase = z.object({
+  full_name: z.string().trim().min(1).max(200),
+  stage_name: z.string().trim().min(1).max(200),
+  phone: z.string().trim().min(5).max(80),
+  birth_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine((s) => !Number.isNaN(Date.parse(`${s}T00:00:00Z`)), { message: 'invalid_date' }),
+  gender: z.enum(['male', 'female', 'other', 'prefer_not']),
+  height_cm: z.coerce.number().int().min(120).max(220),
+  instagram_handle: z.string().trim().min(1).max(100),
+  careers: z.array(z.string()).max(40),
+  agency_name: z.string().trim().max(200).optional().nullable(),
+  is_korean_national: z.boolean(),
+  nationality: z.string().trim().min(1).max(120),
+  has_visa: z.boolean().optional().nullable(),
+  visa_details: z.string().trim().max(1000).optional().nullable(),
+  privacy_consent: z.literal(true),
+})
+
+const jsonBodySchema = identityBase
+  .extend({
     portfolio_url: z
       .string()
       .trim()
@@ -28,39 +100,185 @@ const bodySchema = z
       .max(2000)
       .transform((s) => (/^https?:\/\//i.test(s) ? s : `https://${s}`))
       .pipe(z.string().url()),
-    instagram_handle: z.string().trim().min(1).max(100),
-    careers: z.array(z.string()).max(40),
-    agency_name: z.string().trim().max(200).optional().nullable(),
-    is_korean_national: z.boolean(),
-    nationality: z.string().trim().min(1).max(120),
-    has_visa: z.boolean().optional().nullable(),
-    visa_details: z.string().trim().max(1000).optional().nullable(),
-    privacy_consent: z.literal(true),
   })
-  .superRefine((data, ctx) => {
-    if (data.is_korean_national) {
-      if (data.has_visa !== null && data.has_visa !== undefined) {
-        ctx.addIssue({ code: 'custom', path: ['has_visa'], message: 'visa_not_applicable' })
-      }
-      if (data.visa_details && data.visa_details.length > 0) {
-        ctx.addIssue({ code: 'custom', path: ['visa_details'], message: 'visa_not_applicable' })
-      }
-    } else {
-      if (data.has_visa === null || data.has_visa === undefined) {
-        ctx.addIssue({ code: 'custom', path: ['has_visa'], message: 'visa_required' })
-      }
-      if (data.has_visa === true) {
-        if (!data.visa_details || data.visa_details.length < 2) {
-          ctx.addIssue({ code: 'custom', path: ['visa_details'], message: 'visa_details_required' })
-        }
-      }
+  .superRefine(visaRefine)
+
+const multipartIdentitySchema = identityBase
+  .extend({
+    portfolio_url: z.string().max(2000).optional(),
+  })
+  .superRefine(visaRefine)
+
+function parseBool(v: FormDataEntryValue | null): boolean | null {
+  if (v === null || v === undefined) return null
+  const s = String(v).toLowerCase()
+  if (s === 'true' || s === '1' || s === 'on') return true
+  if (s === 'false' || s === '0') return false
+  return null
+}
+
+function normalizeOptionalUrl(raw: string): string | null {
+  const t = raw.trim()
+  if (t.length < 4) return null
+  const u = /^https?:\/\//i.test(t) ? t : `https://${t}`
+  try {
+    void new URL(u)
+    return u
+  } catch {
+    return null
+  }
+}
+
+async function handleMultipart(request: NextRequest) {
+  let form: FormData
+  try {
+    form = await request.formData()
+  } catch {
+    return NextResponse.json({ error: 'invalid_multipart' }, { status: 400 })
+  }
+
+  const portfolio_url_raw = String(form.get('portfolio_url') ?? '').trim()
+  const file = form.get('portfolio_file')
+  const portfolioFile = file instanceof File && file.size > 0 ? file : null
+
+  const normalizedUrl = normalizeOptionalUrl(portfolio_url_raw)
+  if (portfolio_url_raw.length > 0 && !normalizedUrl) {
+    return NextResponse.json({ error: 'invalid_portfolio_url' }, { status: 400 })
+  }
+
+  if (!normalizedUrl && !portfolioFile) {
+    return NextResponse.json({ error: 'portfolio_required' }, { status: 400 })
+  }
+
+  if (portfolioFile) {
+    const chk = validatePortfolioFile(portfolioFile)
+    if (!chk.ok) {
+      return NextResponse.json({ error: chk.error }, { status: 400 })
     }
+  }
+
+  const careers_text = String(form.get('careers') ?? '')
+  const careers = careers_text
+    .split(/\r?\n/)
+    .map((c) => c.trim())
+    .filter(Boolean)
+  if (careers.length < 1 || careers.some((c) => c.length > 800)) {
+    return NextResponse.json({ error: 'careers_required' }, { status: 400 })
+  }
+
+  const isKoreanNational = parseBool(form.get('is_korean_national')) === true
+  const hasVisaRaw = form.get('has_visa')
+  const has_visa = isKoreanNational
+    ? null
+    : hasVisaRaw === null || String(hasVisaRaw) === ''
+      ? null
+      : parseBool(hasVisaRaw) === true
+        ? true
+        : parseBool(hasVisaRaw) === false
+          ? false
+          : null
+
+  const parsed = multipartIdentitySchema.safeParse({
+    full_name: String(form.get('full_name') ?? '').trim(),
+    stage_name: String(form.get('stage_name') ?? '').trim(),
+    phone: String(form.get('phone') ?? '').trim(),
+    birth_date: String(form.get('birth_date') ?? '').trim(),
+    gender: String(form.get('gender') ?? '').trim(),
+    height_cm: String(form.get('height_cm') ?? ''),
+    portfolio_url: portfolio_url_raw,
+    instagram_handle: String(form.get('instagram_handle') ?? '').trim(),
+    careers,
+    agency_name: String(form.get('agency_name') ?? '').trim() || null,
+    is_korean_national: isKoreanNational,
+    nationality: String(form.get('nationality') ?? '').trim(),
+    has_visa,
+    visa_details:
+      isKoreanNational || has_visa !== true ? null : String(form.get('visa_details') ?? '').trim() || null,
+    privacy_consent: parseBool(form.get('privacy_consent')) === true,
   })
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'validation_error', details: parsed.error.flatten() }, { status: 400 })
+  }
+
+  const d = parsed.data
+  const instagram_handle = normalizeInstagram(d.instagram_handle)
+  if (!/^[a-zA-Z0-9._]+$/.test(instagram_handle)) {
+    return NextResponse.json({ error: 'invalid_instagram' }, { status: 400 })
+  }
+
+  const agency_name =
+    d.agency_name && String(d.agency_name).trim().length > 0 ? String(d.agency_name).trim() : null
+
+  const isKorean = d.is_korean_national
+  const has_visa_final = isKorean ? null : d.has_visa ?? null
+  const visa_details_final = isKorean || !has_visa_final ? null : (d.visa_details ?? '').trim() || null
+
+  const supabase = getSupabase()
+
+  let portfolio_file_path: string | null = null
+  if (portfolioFile) {
+    const objectPath = `applications/${randomUUID()}/${safeStorageFileName(portfolioFile.name)}`
+    const buf = Buffer.from(await portfolioFile.arrayBuffer())
+    const ext = extFromFilename(portfolioFile.name)
+    const mimeFromExt =
+      ext === 'pdf' ? 'application/pdf' : ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'application/octet-stream'
+    const contentType =
+      portfolioFile.type && ALLOWED_MIME.has(portfolioFile.type) ? portfolioFile.type : mimeFromExt
+    const { error: upErr } = await supabase.storage.from(BUCKET).upload(objectPath, buf, {
+      contentType,
+      upsert: false,
+    })
+    if (upErr) {
+      console.error('portfolio storage upload error:', upErr)
+      return NextResponse.json({ error: 'upload_failed', message: upErr.message }, { status: 500 })
+    }
+    portfolio_file_path = objectPath
+  }
+
+  const { data, error } = await supabase
+    .from('dancer_applications')
+    .insert({
+      full_name: d.full_name,
+      stage_name: d.stage_name,
+      birth_date: d.birth_date,
+      instagram_handle,
+      careers,
+      phone: d.phone,
+      gender: d.gender,
+      height_cm: d.height_cm,
+      portfolio_url: normalizedUrl,
+      portfolio_file_path,
+      agency_name,
+      nationality: d.nationality.trim(),
+      is_korean_national: isKorean,
+      has_visa: has_visa_final,
+      visa_details: visa_details_final,
+      privacy_consent: true,
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    if (portfolio_file_path) {
+      await supabase.storage.from(BUCKET).remove([portfolio_file_path]).catch(() => {})
+    }
+    console.error('dancer_applications insert error:', error)
+    return NextResponse.json({ error: 'insert_failed', message: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ id: data.id, portfolio_file_path }, { status: 201 })
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const ct = request.headers.get('content-type') || ''
+    if (ct.includes('multipart/form-data')) {
+      return handleMultipart(request)
+    }
+
     const json = await request.json()
-    const parsed = bodySchema.safeParse(json)
+    const parsed = jsonBodySchema.safeParse(json)
     if (!parsed.success) {
       return NextResponse.json({ error: 'validation_error', details: parsed.error.flatten() }, { status: 400 })
     }
@@ -99,6 +317,7 @@ export async function POST(request: NextRequest) {
         gender: parsed.data.gender,
         height_cm: parsed.data.height_cm,
         portfolio_url: parsed.data.portfolio_url,
+        portfolio_file_path: null,
         agency_name,
         nationality: parsed.data.nationality.trim(),
         is_korean_national: isKorean,

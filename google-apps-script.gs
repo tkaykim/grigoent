@@ -161,10 +161,11 @@ ${data.inquiry}
       
     } else if (data.type === 'dancer_application') {
       // 댄서 에이전시 풀 / 지원 신청
+      var hasPortfolio = (data.portfolio_url && String(data.portfolio_url).trim()) || data.portfolio_file_path;
       if (!data.full_name || !data.stage_name || !data.birth_date || !data.instagram_handle ||
           !data.careers || !Array.isArray(data.careers) || data.careers.length < 1 ||
           !data.phone || !data.gender || data.height_cm === undefined || data.height_cm === null ||
-          !data.portfolio_url || !data.nationality || data.is_korean_national === undefined ||
+          !hasPortfolio || !data.nationality || data.is_korean_national === undefined ||
           data.privacy_consent !== true) {
         console.log('Missing required fields for dancer_application');
         return ContentService
@@ -218,7 +219,8 @@ ${data.inquiry}
         '• 생년월일: ' + data.birth_date,
         '• 성별: ' + genderLabel,
         '• 키: ' + data.height_cm + ' cm',
-        '• 포트폴리오: ' + data.portfolio_url,
+        '• 포트폴리오 URL: ' + (data.portfolio_url && String(data.portfolio_url).trim() ? data.portfolio_url : '(없음)'),
+        '• 포트폴리오 파일(Storage 경로): ' + (data.portfolio_file_path || '(없음)'),
         '• 인스타그램: @' + data.instagram_handle,
         '• 소속사: ' + (data.agency_name || '없음'),
         '• 국적: ' + data.nationality,

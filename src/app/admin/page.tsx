@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 import Papa from 'papaparse';
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger, TabsContent as UITabsContent } from '@/components/ui/tabs';
 import { SEOSettingsManager } from '@/components/dashboard/SEOSettingsManager';
-import { AlertTriangle, Users, UserCheck, FileText, Link, Receipt, Scale } from 'lucide-react'
+import { AlertTriangle, Users, UserCheck, FileText, Link, Receipt, Scale, UserPlus } from 'lucide-react'
 import { ClaimRequestModal } from '@/components/proposals/ClaimRequestModal'
 import { DirectLinkModal } from '@/components/proposals/DirectLinkModal'
 
@@ -827,7 +827,7 @@ export default function AdminPage() {
           </div>
 
           <Tabs defaultValue="pending" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 gap-1 h-auto">
+            <TabsList className="grid w-full grid-cols-3 sm:grid-cols-9 gap-1 h-auto">
               <TabsTrigger value="pending">
                 승인 대기 ({pendingUsers.length})
               </TabsTrigger>
@@ -848,6 +848,9 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger value="quotes">
                 견적서
+              </TabsTrigger>
+              <TabsTrigger value="agency-pool">
+                에이전시 풀
               </TabsTrigger>
               <TabsTrigger value="seo">
                 SEO 설정
@@ -1292,6 +1295,36 @@ export default function AdminPage() {
                     >
                       <Receipt className="w-4 h-4" />
                       견적서 관리 페이지로 이동
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="agency-pool">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserPlus className="w-5 h-5" />
+                    에이전시 풀 지원
+                  </CardTitle>
+                  <p className="text-sm text-zinc-600">
+                    공개 지원 양식으로 접수된 댄서 지원서를 확인합니다
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <UserPlus className="w-16 h-16 text-zinc-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-zinc-900 mb-2">에이전시 풀 지원</h3>
+                    <p className="text-zinc-600 mb-6">
+                      지원자 목록, 포트폴리오 링크·첨부 파일을 관리자 전용 화면에서 열람할 수 있습니다.
+                    </p>
+                    <Button
+                      onClick={() => router.push('/admin/dancer-applications')}
+                      className="flex items-center gap-2 mx-auto"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      지원 목록으로 이동
                     </Button>
                   </div>
                 </CardContent>
