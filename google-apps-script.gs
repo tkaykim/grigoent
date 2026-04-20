@@ -159,6 +159,81 @@ ${data.inquiry}
 이 메일은 grigoent.co.kr 웹사이트를 통해 자동으로 발송되었습니다.
       `.trim();
       
+    } else if (data.type === 'dancer_application') {
+      // 댄서 에이전시 풀 / 지원 신청
+      if (!data.full_name || !data.stage_name || !data.birth_date || !data.instagram_handle ||
+          !data.careers || !Array.isArray(data.careers) || data.careers.length < 1 ||
+          !data.phone || !data.gender || data.height_cm === undefined || data.height_cm === null ||
+          !data.portfolio_url || !data.nationality || data.is_korean_national === undefined ||
+          data.privacy_consent !== true) {
+        console.log('Missing required fields for dancer_application');
+        return ContentService
+          .createTextOutput(JSON.stringify({ error: 'Missing required fields' }))
+          .setMimeType(ContentService.MimeType.JSON)
+          .setHeaders(headers);
+      }
+      if (!data.is_korean_national && (data.has_visa === undefined || data.has_visa === null)) {
+        console.log('Missing visa flag for foreign national dancer_application');
+        return ContentService
+          .createTextOutput(JSON.stringify({ error: 'Missing required fields' }))
+          .setMimeType(ContentService.MimeType.JSON)
+          .setHeaders(headers);
+      }
+      if (!data.is_korean_national && data.has_visa === true && !data.visa_details) {
+        console.log('Missing visa_details for dancer_application');
+        return ContentService
+          .createTextOutput(JSON.stringify({ error: 'Missing required fields' }))
+          .setMimeType(ContentService.MimeType.JSON)
+          .setHeaders(headers);
+      }
+      
+      var careersLines = '';
+      if (Array.isArray(data.careers)) {
+        careersLines = data.careers.map(function(c, i) { return (i + 1) + '. ' + c; }).join('\n');
+      } else {
+        careersLines = String(data.careers);
+      }
+      
+      var genderKo = { male: '남성', female: '여성', other: '기타', prefer_not: '비공개' };
+      var genderLabel = genderKo[data.gender] || data.gender;
+      var visaLine = '';
+      if (data.is_korean_national) {
+        visaLine = '• 비자: 해당 없음 (대한민국 국적)';
+      } else {
+        visaLine = '• 비자 유무: ' + (data.has_visa ? '있음' : '없음');
+        if (data.has_visa && data.visa_details) {
+          visaLine += '\n• 비자 정보·만료일: ' + data.visa_details;
+        }
+      }
+      
+      subject = '[그리고 엔터테인먼트] 에이전시 풀 지원 - ' + data.stage_name;
+      body = [
+        '에이전시 풀 지원이 접수되었습니다.',
+        '',
+        '지원자 정보',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        '• 이름: ' + data.full_name,
+        '• 활동명: ' + data.stage_name,
+        '• 연락처: ' + data.phone,
+        '• 생년월일: ' + data.birth_date,
+        '• 성별: ' + genderLabel,
+        '• 키: ' + data.height_cm + ' cm',
+        '• 포트폴리오: ' + data.portfolio_url,
+        '• 인스타그램: @' + data.instagram_handle,
+        '• 소속사: ' + (data.agency_name || '없음'),
+        '• 국적: ' + data.nationality,
+        visaLine,
+        '• 개인정보 동의: 동의함',
+        '• 접수일시: ' + new Date().toLocaleString('ko-KR'),
+        '',
+        '주요 경력',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        careersLines,
+        '',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        '이 메일은 grigoent.co.kr 웹사이트를 통해 자동으로 발송되었습니다.'
+      ].join('\n');
+      
     } else {
       console.log('Invalid inquiry type:', data.type);
       return ContentService

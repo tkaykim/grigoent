@@ -23,6 +23,7 @@ export function Header() {
     { name: t('nav.about'), href: '/#about' },
     { name: t('nav.artists'), href: '/artists' },
     { name: t('nav.works'), href: '/#works' },
+    { name: t('nav.dancerApply'), href: '/apply/dancer' },
     { name: t('nav.contact'), href: '/#contact' },
   ]
 
