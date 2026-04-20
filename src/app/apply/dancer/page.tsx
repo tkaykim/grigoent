@@ -34,7 +34,6 @@ import {
   Link as LinkIcon,
   FileUp,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -45,73 +44,99 @@ import { RESIDENCE_OPTIONS, KOREA_REGIONS, OVERSEAS_OPTION } from '@/lib/dancer-
 type Gender = 'male' | 'female' | 'other' | 'prefer_not'
 type FieldErrors = Partial<Record<string, string>>
 
+/* 흑백 원칙:
+   - 컬러 포인트 일절 없음 (black / white / zinc grays only)
+   - 상태 구분은 fill / border-weight / typography로만
+   - 완료: filled black dot
+   - 필수·에러: text-black + font-semibold (빨강 없음)
+*/
+
+const inputBase =
+  'h-11 rounded-none border border-zinc-300 bg-white text-[15px] shadow-none ' +
+  'placeholder:text-zinc-400 ' +
+  'focus-visible:border-black focus-visible:ring-0 focus-visible:outline-none ' +
+  'aria-[invalid=true]:border-black aria-[invalid=true]:ring-0'
+
 function Req() {
   return (
-    <span className="text-amber-500" aria-label="필수">
+    <span className="text-black" aria-label="필수">
       *
     </span>
   )
 }
 
-// 크게 + 여유 있는 입력 필드
-const fieldInputClass = 'h-11 rounded-lg border-zinc-200 bg-white text-[15px] shadow-none focus-visible:border-zinc-900 focus-visible:ring-zinc-900/10 focus-visible:ring-4'
+function Kicker({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-500">
+      {children}
+    </p>
+  )
+}
 
-function SectionCard({
+function SectionBlock({
   step,
   kicker,
   title,
-  desc,
   done,
+  current,
   children,
 }: {
   step: number
   kicker: string
   title: string
-  desc?: string
   done?: boolean
+  current?: boolean
   children: React.ReactNode
 }) {
   return (
-    <section
-      className={cn(
-        'relative overflow-hidden rounded-2xl border bg-white transition-colors',
-        done ? 'border-emerald-200/70' : 'border-zinc-200',
-      )}
-    >
-      <div
-        className={cn(
-          'absolute inset-x-0 top-0 h-[3px] transition-colors',
-          done ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : 'bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-900',
-        )}
-      />
-      <header className="flex flex-col gap-4 border-b border-zinc-100 px-6 py-6 sm:flex-row sm:items-end sm:justify-between sm:px-8 sm:py-7">
-        <div className="flex items-start gap-4">
-          <div className="relative">
-            <span className="block font-mono text-4xl font-light leading-none text-zinc-300 sm:text-5xl">
+    <section className="relative border-t border-zinc-900/90 pt-10 first:border-t-0 first:pt-0">
+      <div className="grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-[180px_1fr]">
+        <div className="flex md:block">
+          <div className="flex items-start gap-3">
+            <span className="font-mono text-2xl font-semibold leading-none tracking-tight text-black md:text-3xl">
               {String(step).padStart(2, '0')}
             </span>
-            {done ? (
-              <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
-                <Check className="h-3 w-3" />
-              </span>
-            ) : null}
+            <span
+              className={cn(
+                'mt-1 inline-block h-2 w-2 shrink-0 rounded-full transition-colors',
+                done ? 'bg-black' : current ? 'border border-black bg-white' : 'border border-zinc-300 bg-white',
+              )}
+              aria-hidden
+            />
           </div>
-          <div className="pt-1">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">{kicker}</p>
-            <h2 className="mt-1 text-xl font-bold tracking-tight text-zinc-950 sm:text-2xl">{title}</h2>
-            {desc ? <p className="mt-1 text-sm text-zinc-500">{desc}</p> : null}
+          <div className="ml-4 md:ml-0 md:mt-4">
+            <Kicker>{kicker}</Kicker>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight text-black">{title}</h2>
           </div>
         </div>
-      </header>
-      <div className="px-6 py-7 sm:px-8 sm:py-8">{children}</div>
+        <div>{children}</div>
+      </div>
     </section>
+  )
+}
+
+function LabelRow({
+  htmlFor,
+  required,
+  children,
+}: {
+  htmlFor?: string
+  required?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <Label htmlFor={htmlFor} className="mb-1.5 flex items-center gap-1 text-[13px] font-medium text-zinc-900">
+      {children}
+      {required ? <Req /> : null}
+    </Label>
   )
 }
 
 function FieldError({ id, message }: { id: string; message?: string | null }) {
   if (!message) return null
   return (
-    <p id={id} role="alert" className="mt-1.5 text-xs font-medium text-red-600">
+    <p id={id} role="alert" className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-black">
+      <span aria-hidden className="inline-block h-0.5 w-2 bg-black" />
       {message}
     </p>
   )
@@ -119,26 +144,6 @@ function FieldError({ id, message }: { id: string; message?: string | null }) {
 
 function FieldHint({ children }: { children: React.ReactNode }) {
   return <p className="mt-1.5 text-xs text-zinc-500">{children}</p>
-}
-
-function LabelRow({
-  htmlFor,
-  children,
-  required,
-}: {
-  htmlFor?: string
-  required?: boolean
-  children: React.ReactNode
-}) {
-  return (
-    <Label
-      htmlFor={htmlFor}
-      className="mb-1.5 flex items-center gap-1 text-sm font-semibold text-zinc-800"
-    >
-      {children}
-      {required ? <Req /> : null}
-    </Label>
-  )
 }
 
 export default function DancerApplyPage() {
@@ -191,6 +196,17 @@ export default function DancerApplyPage() {
   const doneCareer = careers.some((c) => c.trim().length > 0) && privacyConsent
   const totalSteps = 4
   const doneCount = [doneBasic, doneProfile, doneVisa, doneCareer].filter(Boolean).length
+
+  const currentStep = !doneBasic ? 1 : !doneProfile ? 2 : !doneVisa ? 3 : !doneCareer ? 4 : 4
+  const currentTitle = !doneBasic
+    ? t('applyDancer.sectionBasic')
+    : !doneProfile
+      ? t('applyDancer.sectionProfile')
+      : !doneVisa
+        ? t('applyDancer.sectionVisa')
+        : !doneCareer
+          ? t('applyDancer.sectionCareer')
+          : t('applyDancer.submit')
 
   const toggleSpecialty = useCallback((value: string) => {
     setSpecialties((prev) => {
@@ -290,7 +306,7 @@ export default function DancerApplyPage() {
         void new URL(n)
         normalizedPortfolioForMail = n
       } catch {
-        /* already caught in validate */
+        /* noop */
       }
     }
 
@@ -401,141 +417,102 @@ export default function DancerApplyPage() {
     return r
   }
 
+  const sectionLabels = [
+    t('applyDancer.sectionBasic'),
+    t('applyDancer.sectionProfile'),
+    t('applyDancer.sectionVisa'),
+    t('applyDancer.sectionCareer'),
+  ]
+
   return (
-    <div className="min-h-screen bg-white text-zinc-900">
+    <div className="min-h-screen bg-white text-black selection:bg-black selection:text-white">
       <Header />
 
       <main>
-        {/* ───────────── HERO ───────────── */}
-        <section className="relative overflow-hidden bg-zinc-950 text-white">
-          {/* background accents */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-60"
-            style={{
-              backgroundImage:
-                'radial-gradient(600px circle at 20% 30%, rgba(251,191,36,0.10), transparent 50%), radial-gradient(600px circle at 80% 60%, rgba(236,72,153,0.08), transparent 50%)',
-            }}
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-[0.04]"
-            style={{
-              backgroundImage:
-                'linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)',
-              backgroundSize: '56px 56px',
-            }}
-          />
-
-          <div className="relative mx-auto max-w-5xl px-6 pb-20 pt-28 sm:px-8 sm:pb-28 sm:pt-36">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70 backdrop-blur">
-              <Sparkles className="h-3 w-3 text-amber-300" />
+        {/* ───────────── HERO — pure black, type only ───────────── */}
+        <section className="border-b border-black bg-black text-white">
+          <div className="mx-auto max-w-5xl px-6 pb-20 pt-28 sm:px-10 sm:pb-28 sm:pt-36">
+            <div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/60">
+              <span className="h-px w-8 bg-white/60" aria-hidden />
               {t('applyDancer.heroKicker')}
             </div>
 
-            <h1 className="mt-6 text-balance text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl md:text-6xl">
+            <h1 className="mt-8 text-balance text-[2.5rem] font-black leading-[0.98] tracking-[-0.02em] sm:text-[4rem] md:text-[4.75rem]">
               {t('applyDancer.pageTitle')}
             </h1>
 
-            <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg">
+            <p className="mt-8 max-w-2xl text-[15px] leading-[1.7] text-white/70 sm:text-base">
               {t('applyDancer.subtitle')}
             </p>
 
-            <div className="mt-10 flex flex-wrap gap-2 text-xs font-medium">
+            <div className="mt-16 grid gap-y-4 text-sm sm:grid-cols-[repeat(4,max-content)] sm:gap-x-10 sm:gap-y-0">
               {[
                 t('applyDancer.areaAds'),
                 t('applyDancer.areaBroadcast'),
                 t('applyDancer.areaChoreo'),
                 t('applyDancer.areaLive'),
               ].map((label, i) => (
-                <span
-                  key={i}
-                  className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-white/80 backdrop-blur"
-                >
-                  {label.split(':')[0]}
-                </span>
-              ))}
-            </div>
-
-            <div className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {[
-                { n: '01', label: t('applyDancer.process1') },
-                { n: '02', label: t('applyDancer.process2') },
-                { n: '03', label: t('applyDancer.process3') },
-              ].map((p) => (
-                <div
-                  key={p.n}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur transition-colors hover:bg-white/[0.06]"
-                >
-                  <span className="font-mono text-xs font-semibold text-amber-300">{p.n}</span>
-                  <p className="mt-3 text-sm leading-relaxed text-white/80">{p.label}</p>
+                <div key={i} className="flex items-baseline gap-3">
+                  <span className="font-mono text-[10px] font-semibold text-white/50">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <span className="text-white/80">{label.split(':')[0]}</span>
                 </div>
               ))}
             </div>
           </div>
-
-          {/* soft bottom fade */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-zinc-950/0"
-          />
         </section>
 
-        {/* ───────────── PROGRESS RAIL ───────────── */}
-        <div className="sticky top-16 z-30 border-b border-zinc-200 bg-white/85 backdrop-blur">
-          <div className="mx-auto max-w-3xl px-6 py-4 sm:px-8">
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-400">
-                  {t('applyDancer.stepLabel')} · {doneCount}/{totalSteps}
-                </p>
-                <p className="mt-0.5 truncate text-sm font-semibold text-zinc-900">
-                  {!doneBasic
-                    ? t('applyDancer.sectionBasic')
-                    : !doneProfile
-                      ? t('applyDancer.sectionProfile')
-                      : !doneVisa
-                        ? t('applyDancer.sectionVisa')
-                        : !doneCareer
-                          ? t('applyDancer.sectionCareer')
-                          : t('applyDancer.submit')}
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {[doneBasic, doneProfile, doneVisa, doneCareer].map((d, i) => (
-                  <span
-                    key={i}
-                    className={cn(
-                      'h-1.5 w-8 rounded-full transition-colors',
-                      d ? 'bg-emerald-500' : 'bg-zinc-200',
-                    )}
-                  />
-                ))}
-              </div>
+        {/* ───────────── STICKY PROGRESS RAIL ───────────── */}
+        <div className="sticky top-16 z-30 border-b border-black bg-white">
+          <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3.5 sm:px-10">
+            <div className="flex items-center gap-1 text-[11px]">
+              <span className="font-mono font-semibold text-black">
+                {String(currentStep).padStart(2, '0')}
+              </span>
+              <span className="mx-2 text-zinc-400">/</span>
+              <span className="font-mono text-zinc-500">04</span>
+              <span className="ml-3 hidden text-zinc-300 sm:inline" aria-hidden>
+                │
+              </span>
+              <span className="ml-3 hidden font-medium text-black sm:inline">{currentTitle}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {[doneBasic, doneProfile, doneVisa, doneCareer].map((d, i) => (
+                <span
+                  key={i}
+                  aria-label={sectionLabels[i]}
+                  className={cn(
+                    'h-[3px] w-8 transition-colors sm:w-10',
+                    d ? 'bg-black' : i + 1 === currentStep ? 'bg-zinc-400' : 'bg-zinc-200',
+                  )}
+                />
+              ))}
             </div>
           </div>
         </div>
 
         {/* ───────────── FORM ───────────── */}
-        <div className="bg-zinc-50/60">
-          <form
-            onSubmit={handleSubmit}
-            noValidate
-            className="mx-auto max-w-3xl space-y-6 px-4 py-10 sm:px-6 sm:py-14"
-          >
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="mx-auto max-w-5xl px-6 py-16 sm:px-10 sm:py-24"
+        >
+          <div className="space-y-14">
             {/* STEP 1 */}
-            <SectionCard
+            <SectionBlock
               step={1}
-              kicker={t('applyDancer.step1')}
+              kicker="SECTION / BASIC"
               title={t('applyDancer.sectionBasic')}
               done={doneBasic}
+              current={currentStep === 1}
             >
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div data-field="stageName">
                   <LabelRow htmlFor="stage_name" required>{t('applyDancer.stageName')}</LabelRow>
                   <Input
                     id="stage_name"
-                    className={fieldInputClass}
+                    className={inputBase}
                     value={stageName}
                     onChange={(e) => setStageName(e.target.value)}
                     aria-invalid={!!errors.stageName}
@@ -546,7 +523,7 @@ export default function DancerApplyPage() {
                   <LabelRow htmlFor="full_name" required>{t('applyDancer.fullName')}</LabelRow>
                   <Input
                     id="full_name"
-                    className={fieldInputClass}
+                    className={inputBase}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     autoComplete="name"
@@ -561,7 +538,7 @@ export default function DancerApplyPage() {
                     type="email"
                     inputMode="email"
                     autoComplete="email"
-                    className={fieldInputClass}
+                    className={inputBase}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
@@ -575,7 +552,7 @@ export default function DancerApplyPage() {
                     id="phone"
                     type="tel"
                     autoComplete="tel"
-                    className={fieldInputClass}
+                    className={inputBase}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     aria-invalid={!!errors.phone}
@@ -587,7 +564,7 @@ export default function DancerApplyPage() {
                   <Input
                     id="birth_date"
                     type="date"
-                    className={fieldInputClass}
+                    className={inputBase}
                     value={birthDate}
                     onChange={(e) => setBirthDate(e.target.value)}
                     aria-invalid={!!errors.birthDate}
@@ -597,7 +574,7 @@ export default function DancerApplyPage() {
                 <div data-field="gender">
                   <LabelRow required>{t('applyDancer.gender')}</LabelRow>
                   <Select value={gender || undefined} onValueChange={(v) => setGender(v as Gender)}>
-                    <SelectTrigger className={cn(fieldInputClass, 'w-full')} aria-invalid={!!errors.gender}>
+                    <SelectTrigger className={cn(inputBase, 'w-full')} aria-invalid={!!errors.gender}>
                       <SelectValue placeholder={t('applyDancer.genderPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -616,19 +593,21 @@ export default function DancerApplyPage() {
                       id="height"
                       inputMode="numeric"
                       placeholder="170"
-                      className={cn(fieldInputClass, 'pr-10')}
+                      className={cn(inputBase, 'pr-10')}
                       value={heightCm}
                       onChange={(e) => setHeightCm(e.target.value.replace(/[^\d]/g, ''))}
                       aria-invalid={!!errors.heightCm}
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-zinc-400">cm</span>
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-zinc-400">
+                      cm
+                    </span>
                   </div>
                   {errors.heightCm ? <FieldError id="err-height" message={errors.heightCm} /> : <FieldHint>{t('applyDancer.heightHint')}</FieldHint>}
                 </div>
                 <div data-field="residenceRegion" className="sm:col-span-2">
                   <LabelRow required>{t('applyDancer.residenceRegion')}</LabelRow>
                   <Select value={residenceRegion || undefined} onValueChange={setResidenceRegion}>
-                    <SelectTrigger className={cn(fieldInputClass, 'w-full')} aria-invalid={!!errors.residenceRegion}>
+                    <SelectTrigger className={cn(inputBase, 'w-full')} aria-invalid={!!errors.residenceRegion}>
                       <SelectValue placeholder={t('applyDancer.residenceRegionPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -641,41 +620,44 @@ export default function DancerApplyPage() {
                   {errors.residenceRegion ? <FieldError id="err-region" message={errors.residenceRegion} /> : <FieldHint>{t('applyDancer.residenceRegionHint')}</FieldHint>}
                 </div>
               </div>
-            </SectionCard>
+            </SectionBlock>
 
             {/* STEP 2 */}
-            <SectionCard
+            <SectionBlock
               step={2}
-              kicker={t('applyDancer.step2')}
+              kicker="SECTION / PROFILE"
               title={t('applyDancer.sectionProfile')}
               done={doneProfile}
+              current={currentStep === 2}
             >
               {/* profile photo */}
-              <div data-field="profilePhoto" className="mb-8">
+              <div data-field="profilePhoto" className="mb-10">
                 <LabelRow required>{t('applyDancer.profilePhoto')}</LabelRow>
                 <div className="flex items-start gap-5">
                   <button
                     type="button"
                     onClick={() => profilePhotoInputRef.current?.click()}
                     className={cn(
-                      'group relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl border-2 border-dashed transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-zinc-900/10',
-                      profilePhotoPreview ? 'border-zinc-300' : 'border-zinc-300 bg-zinc-50 hover:border-zinc-500 hover:bg-zinc-100',
-                      errors.profilePhoto && !profilePhotoPreview ? 'border-red-300 bg-red-50' : '',
+                      'group relative h-28 w-28 shrink-0 overflow-hidden border transition-colors',
+                      'focus-visible:outline-none focus-visible:border-black',
+                      profilePhotoPreview
+                        ? 'border-black'
+                        : 'border-dashed border-zinc-400 bg-zinc-50 hover:border-black hover:bg-white',
                     )}
                     aria-label={t('applyDancer.profilePhotoSelect')}
                   >
                     {profilePhotoPreview ? (
                       <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={profilePhotoPreview} alt="" className="h-full w-full object-cover" />
-                        <span className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                          <Camera className="h-6 w-6 text-white" />
+                        <img src={profilePhotoPreview} alt="" className="h-full w-full object-cover grayscale-[0.3]" />
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                          <Camera className="h-5 w-5 text-white" />
                         </span>
                       </>
                     ) : (
-                      <span className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-zinc-400 group-hover:text-zinc-600">
-                        <Camera className="h-7 w-7" aria-hidden />
-                        <span className="text-[10px] font-semibold uppercase tracking-wider">upload</span>
+                      <span className="flex h-full w-full flex-col items-center justify-center gap-1 text-zinc-500 group-hover:text-black">
+                        <Camera className="h-5 w-5" aria-hidden />
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">upload</span>
                       </span>
                     )}
                   </button>
@@ -687,7 +669,7 @@ export default function DancerApplyPage() {
                       className="hidden"
                       onChange={(e) => handleProfilePhotoChange(e.target.files?.[0] ?? null)}
                     />
-                    <p className="text-sm font-medium text-zinc-800">
+                    <p className="text-sm font-medium text-black">
                       {profilePhotoFile ? profilePhotoFile.name : t('applyDancer.profilePhotoSelect')}
                     </p>
                     <p className="mt-1 text-xs text-zinc-500">{t('applyDancer.profilePhotoHint')}</p>
@@ -695,7 +677,7 @@ export default function DancerApplyPage() {
                       <button
                         type="button"
                         onClick={() => handleProfilePhotoChange(null)}
-                        className="mt-2 text-xs font-medium text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline"
+                        className="mt-2 text-xs font-medium text-black underline underline-offset-4 hover:no-underline"
                       >
                         {t('applyDancer.careerRemove')}
                       </button>
@@ -706,12 +688,14 @@ export default function DancerApplyPage() {
               </div>
 
               {/* specialties */}
-              <div data-field="specialties" className="mb-8">
+              <div data-field="specialties" className="mb-10">
                 <div className="mb-1.5 flex items-center justify-between">
                   <LabelRow required>{t('applyDancer.specialties')}</LabelRow>
-                  <span className="text-xs tabular-nums text-zinc-400">{specialties.length}/10</span>
+                  <span className="font-mono text-[11px] tabular-nums text-zinc-500">
+                    {String(specialties.length).padStart(2, '0')} / 10
+                  </span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {DANCE_SPECIALTIES.map((s) => {
                     const active = specialties.includes(s.value)
                     return (
@@ -721,14 +705,14 @@ export default function DancerApplyPage() {
                         onClick={() => toggleSpecialty(s.value)}
                         aria-pressed={active}
                         className={cn(
-                          'inline-flex h-9 items-center rounded-full border px-4 text-sm font-medium transition-all',
-                          'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-zinc-900/10',
+                          'inline-flex h-8 items-center border px-3 text-xs font-medium transition-colors',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-1',
                           active
-                            ? 'border-zinc-900 bg-zinc-900 text-white shadow-sm hover:bg-zinc-800'
-                            : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400 hover:bg-zinc-50',
+                            ? 'border-black bg-black text-white'
+                            : 'border-zinc-300 bg-white text-zinc-800 hover:border-black hover:text-black',
                         )}
                       >
-                        {active ? <Check className="mr-1.5 h-3.5 w-3.5" /> : null}
+                        {active ? <Check className="mr-1 h-3 w-3" /> : null}
                         {language === 'ko' ? s.label_ko : s.label_en}
                       </button>
                     )
@@ -738,16 +722,22 @@ export default function DancerApplyPage() {
               </div>
 
               {/* portfolio */}
-              <div data-field="portfolio" className="mb-8">
+              <div data-field="portfolio" className="mb-10">
                 <LabelRow required>{t('applyDancer.portfolio')}</LabelRow>
                 <Tabs value={portfolioMode} onValueChange={(v) => setPortfolioMode(v as 'url' | 'file')}>
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="url" className="gap-1.5">
-                      <LinkIcon className="h-3.5 w-3.5" />
+                  <TabsList className="grid h-auto w-full grid-cols-2 rounded-none border border-zinc-300 bg-white p-0">
+                    <TabsTrigger
+                      value="url"
+                      className="gap-1.5 rounded-none border-r border-zinc-300 py-2 text-xs font-semibold uppercase tracking-wider text-zinc-600 data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-none"
+                    >
+                      <LinkIcon className="h-3 w-3" />
                       {t('applyDancer.portfolioTabUrl')}
                     </TabsTrigger>
-                    <TabsTrigger value="file" className="gap-1.5">
-                      <FileUp className="h-3.5 w-3.5" />
+                    <TabsTrigger
+                      value="file"
+                      className="gap-1.5 rounded-none py-2 text-xs font-semibold uppercase tracking-wider text-zinc-600 data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-none"
+                    >
+                      <FileUp className="h-3 w-3" />
                       {t('applyDancer.portfolioTabFile')}
                     </TabsTrigger>
                   </TabsList>
@@ -756,7 +746,7 @@ export default function DancerApplyPage() {
                       id="portfolio"
                       type="url"
                       placeholder="https://"
-                      className={fieldInputClass}
+                      className={inputBase}
                       value={portfolioUrl}
                       onChange={(e) => setPortfolioUrl(e.target.value)}
                       aria-invalid={!!errors.portfolio}
@@ -768,13 +758,19 @@ export default function DancerApplyPage() {
                       type="button"
                       onClick={() => portfolioFileRef.current?.click()}
                       className={cn(
-                        'flex w-full items-center justify-center gap-3 rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-sm text-zinc-600 transition-colors hover:border-zinc-500 hover:bg-zinc-100',
-                        'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-zinc-900/10',
-                        portfolioFileName ? 'border-solid border-emerald-300 bg-emerald-50/50 text-emerald-800' : '',
+                        'flex w-full items-center justify-center gap-3 border px-4 py-6 text-sm transition-colors',
+                        'focus-visible:outline-none focus-visible:border-black',
+                        portfolioFileName
+                          ? 'border-black bg-white text-black'
+                          : 'border-dashed border-zinc-400 bg-zinc-50 text-zinc-600 hover:border-black hover:text-black',
                       )}
                     >
-                      <FileUp className="h-5 w-5" />
-                      {portfolioFileName ? portfolioFileName : language === 'ko' ? '클릭해서 파일 선택 (PDF/PNG/JPG, 최대 4MB)' : 'Click to select file (PDF/PNG/JPG, max 4MB)'}
+                      <FileUp className="h-4 w-4" />
+                      {portfolioFileName
+                        ? portfolioFileName
+                        : language === 'ko'
+                          ? '클릭해서 파일 선택 — PDF / PNG / JPG · 4MB 이하'
+                          : 'Click to select — PDF / PNG / JPG · up to 4MB'}
                     </button>
                     <input
                       ref={portfolioFileRef}
@@ -790,7 +786,7 @@ export default function DancerApplyPage() {
                           setPortfolioFileName('')
                           if (portfolioFileRef.current) portfolioFileRef.current.value = ''
                         }}
-                        className="mt-2 text-xs font-medium text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline"
+                        className="mt-2 text-xs font-medium text-black underline underline-offset-4 hover:no-underline"
                       >
                         {language === 'ko' ? '제거' : 'Remove'}
                       </button>
@@ -810,7 +806,7 @@ export default function DancerApplyPage() {
                     <Input
                       id="instagram"
                       placeholder="username"
-                      className={cn(fieldInputClass, 'pl-8')}
+                      className={cn(inputBase, 'pl-8')}
                       value={instagram}
                       onChange={(e) => setInstagram(e.target.value.replace(/^@+/, ''))}
                       aria-invalid={!!errors.instagram}
@@ -822,26 +818,27 @@ export default function DancerApplyPage() {
                   <LabelRow htmlFor="agency">{t('applyDancer.agency')}</LabelRow>
                   <Input
                     id="agency"
-                    className={fieldInputClass}
+                    className={inputBase}
                     value={agencyName}
                     onChange={(e) => setAgencyName(e.target.value)}
                   />
                   <FieldHint>{t('applyDancer.agencyHint')}</FieldHint>
                 </div>
               </div>
-            </SectionCard>
+            </SectionBlock>
 
             {/* STEP 3 */}
-            <SectionCard
+            <SectionBlock
               step={3}
-              kicker={t('applyDancer.step3')}
+              kicker="SECTION / NATIONALITY"
               title={t('applyDancer.sectionVisa')}
               done={doneVisa}
+              current={currentStep === 3}
             >
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 transition-colors hover:border-zinc-300">
+              <label className="flex cursor-pointer items-start gap-3 border border-zinc-300 bg-white p-4 transition-colors hover:border-black">
                 <input
                   type="checkbox"
-                  className="mt-0.5 h-5 w-5 shrink-0 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-black"
                   checked={isKoreanNational}
                   onChange={(e) => {
                     setIsKoreanNational(e.target.checked)
@@ -853,18 +850,18 @@ export default function DancerApplyPage() {
                   }}
                 />
                 <div>
-                  <p className="text-sm font-semibold text-zinc-900">{t('applyDancer.koreanNational')}</p>
+                  <p className="text-sm font-medium text-black">{t('applyDancer.koreanNational')}</p>
                   <p className="mt-0.5 text-xs text-zinc-500">{t('applyDancer.nationalityLabel')}</p>
                 </div>
               </label>
 
               {!isKoreanNational && (
-                <div className="mt-5 space-y-5">
+                <div className="mt-6 space-y-5">
                   <div data-field="foreignCountry">
                     <LabelRow htmlFor="foreign_country" required>{t('applyDancer.foreignCountry')}</LabelRow>
                     <Input
                       id="foreign_country"
-                      className={fieldInputClass}
+                      className={inputBase}
                       value={foreignCountry}
                       onChange={(e) => setForeignCountry(e.target.value)}
                       autoComplete="country-name"
@@ -873,7 +870,7 @@ export default function DancerApplyPage() {
                     {errors.foreignCountry ? <FieldError id="err-foreign" message={errors.foreignCountry} /> : <FieldHint>{t('applyDancer.foreignCountryHint')}</FieldHint>}
                   </div>
                   <fieldset data-field="hasVisa">
-                    <legend className="mb-1.5 text-sm font-semibold text-zinc-800">
+                    <legend className="mb-1.5 text-[13px] font-medium text-zinc-900">
                       {t('applyDancer.visaQuestion')} <Req />
                     </legend>
                     <div className="grid grid-cols-2 gap-2">
@@ -894,11 +891,11 @@ export default function DancerApplyPage() {
                             }}
                             aria-pressed={active}
                             className={cn(
-                              'inline-flex h-11 items-center justify-center rounded-lg border px-4 text-sm font-medium transition-all',
-                              'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-zinc-900/10',
+                              'inline-flex h-11 items-center justify-center border px-4 text-sm font-medium transition-colors',
+                              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-1',
                               active
-                                ? 'border-zinc-900 bg-zinc-900 text-white'
-                                : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400',
+                                ? 'border-black bg-black text-white'
+                                : 'border-zinc-300 bg-white text-zinc-800 hover:border-black hover:text-black',
                             )}
                           >
                             {opt.label}
@@ -916,7 +913,7 @@ export default function DancerApplyPage() {
                         value={visaDetails}
                         onChange={(e) => setVisaDetails(e.target.value)}
                         rows={3}
-                        className="min-h-[6rem] resize-y rounded-lg border-zinc-200 text-[15px] shadow-none focus-visible:border-zinc-900 focus-visible:ring-4 focus-visible:ring-zinc-900/10"
+                        className={cn(inputBase, 'h-auto min-h-[6rem] resize-y py-2')}
                         aria-invalid={!!errors.visaDetails}
                       />
                       {errors.visaDetails ? <FieldError id="err-visa" message={errors.visaDetails} /> : <FieldHint>{t('applyDancer.visaDetailsHint')}</FieldHint>}
@@ -924,67 +921,67 @@ export default function DancerApplyPage() {
                   )}
                 </div>
               )}
-            </SectionCard>
+            </SectionBlock>
 
             {/* STEP 4 */}
-            <SectionCard
+            <SectionBlock
               step={4}
-              kicker={t('applyDancer.step4')}
+              kicker="SECTION / CREDITS"
               title={t('applyDancer.sectionCareer')}
               done={doneCareer}
+              current={currentStep === 4}
             >
               <div data-field="careers">
                 <div className="mb-1.5 flex items-center justify-between">
                   <LabelRow required>{t('applyDancer.careers')}</LabelRow>
-                  <span className="text-xs tabular-nums text-zinc-400">{careers.filter((c) => c.trim()).length}</span>
+                  <span className="font-mono text-[11px] tabular-nums text-zinc-500">
+                    {String(careers.filter((c) => c.trim()).length).padStart(2, '0')} / 40
+                  </span>
                 </div>
-                <div className="space-y-2">
+                <ul className="divide-y divide-zinc-200 border border-zinc-300">
                   {careers.map((c, i) => (
-                    <div key={i} className="group flex items-center gap-2">
-                      <span className="flex h-11 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 font-mono text-xs font-semibold text-zinc-500">
+                    <li key={i} className="flex items-stretch">
+                      <span className="flex w-12 shrink-0 items-center justify-center bg-zinc-50 font-mono text-xs font-semibold text-zinc-500">
                         {String(i + 1).padStart(2, '0')}
                       </span>
-                      <Input
+                      <input
+                        type="text"
                         value={c}
                         onChange={(e) => setCareers((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))}
                         placeholder={t('applyDancer.careerPlaceholder')}
-                        className={fieldInputClass}
+                        className="h-11 min-w-0 flex-1 border-0 bg-white px-3 text-[15px] text-black placeholder:text-zinc-400 focus-visible:bg-zinc-50 focus-visible:outline-none"
                       />
                       {careers.length > 1 ? (
-                        <Button
+                        <button
                           type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="shrink-0 text-zinc-400 hover:bg-red-50 hover:text-red-600"
                           onClick={() => setCareers((prev) => prev.filter((_, idx) => idx !== i))}
                           aria-label={t('applyDancer.careerRemove')}
+                          className="flex w-11 shrink-0 items-center justify-center text-zinc-400 transition-colors hover:bg-black hover:text-white"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </Button>
+                        </button>
                       ) : null}
-                    </div>
+                    </li>
                   ))}
-                </div>
-                <Button
+                </ul>
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 rounded-full"
                   onClick={() => setCareers((prev) => (prev.length >= 40 ? prev : [...prev, '']))}
                   disabled={careers.length >= 40}
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-black underline underline-offset-4 hover:no-underline disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <Plus className="mr-1.5 h-4 w-4" />
+                  <Plus className="h-3.5 w-3.5" />
                   {t('applyDancer.careerAdd')}
-                </Button>
+                </button>
                 {errors.careers ? <FieldError id="err-careers" message={errors.careers} /> : <FieldHint>{t('applyDancer.careersHint')}</FieldHint>}
               </div>
 
-              <div className="mt-8 rounded-xl border border-zinc-200 bg-zinc-50/60 p-5">
+              <div className="mt-10 border border-zinc-300 p-5">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">{t('applyDancer.termsTitle')}</p>
+                  <Kicker>{t('applyDancer.termsTitle')}</Kicker>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <button type="button" className="text-xs font-medium text-zinc-600 underline underline-offset-4 hover:text-zinc-900">
+                      <button type="button" className="text-xs font-medium text-black underline underline-offset-4 hover:no-underline">
                         {t('applyDancer.privacyViewDetail')}
                       </button>
                     </DialogTrigger>
@@ -1003,39 +1000,44 @@ export default function DancerApplyPage() {
                 <p className="mt-3 text-xs leading-relaxed text-zinc-600 sm:text-sm">{t('applyDancer.termsBody')}</p>
                 <label
                   data-field="privacyConsent"
-                  className="mt-4 flex cursor-pointer items-start gap-3 rounded-lg border border-zinc-200 bg-white p-3 transition-colors hover:border-zinc-300"
+                  className="mt-4 flex cursor-pointer items-start gap-3 border-t border-zinc-200 pt-4"
                 >
                   <input
                     type="checkbox"
-                    className="mt-0.5 h-5 w-5 shrink-0 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-black"
                     checked={privacyConsent}
                     onChange={(e) => setPrivacyConsent(e.target.checked)}
                     aria-invalid={!!errors.privacyConsent}
                   />
-                  <span className="text-sm font-medium text-zinc-800">
+                  <span className="text-sm font-medium text-black">
                     {t('applyDancer.privacyConsent')} <Req />
                   </span>
                 </label>
                 <FieldError id="err-consent" message={errors.privacyConsent} />
               </div>
-            </SectionCard>
+            </SectionBlock>
+          </div>
 
-            {/* SUBMIT */}
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-950 p-6 text-white sm:p-8">
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/40">{t('applyDancer.stepLabel')} · {doneCount}/{totalSteps}</p>
-                  <p className="mt-1.5 text-lg font-semibold tracking-tight sm:text-xl">
+          {/* SUBMIT */}
+          <div className="mt-16 border-t border-black pt-10">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-[180px_1fr]">
+              <div className="hidden md:block" />
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <Kicker>
                     {doneCount === totalSteps
-                      ? language === 'ko' ? '모두 준비되었습니다. 제출하시겠어요?' : "You're all set — ready to submit?"
-                      : language === 'ko' ? '누락된 항목을 채워주세요.' : 'Please fill in the missing fields.'}
+                      ? language === 'ko' ? '제출 준비 완료' : 'Ready to submit'
+                      : language === 'ko' ? '누락된 항목 있음' : 'Missing fields'}
+                  </Kicker>
+                  <p className="mt-1 font-mono text-xs text-zinc-500">
+                    {String(doneCount).padStart(2, '0')} / 0{totalSteps}
                   </p>
                 </div>
                 <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-11 rounded-full border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white"
+                    className="h-11 rounded-none border-zinc-300 bg-white text-black hover:border-black hover:bg-white"
                     onClick={() => router.push('/')}
                     disabled={loading}
                   >
@@ -1044,7 +1046,7 @@ export default function DancerApplyPage() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="group h-11 min-w-[12rem] rounded-full bg-amber-400 font-semibold text-zinc-950 hover:bg-amber-300"
+                    className="group h-11 min-w-[12rem] rounded-none bg-black font-semibold tracking-wide text-white hover:bg-zinc-800"
                   >
                     {loading ? (
                       <>
@@ -1062,10 +1064,10 @@ export default function DancerApplyPage() {
                 </div>
               </div>
             </div>
+          </div>
 
-            <p className="pt-2 text-center text-xs leading-relaxed text-zinc-500">{t('applyDancer.signoff')}</p>
-          </form>
-        </div>
+          <p className="pt-10 text-center text-xs leading-relaxed text-zinc-500">{t('applyDancer.signoff')}</p>
+        </form>
       </main>
 
       <Footer />

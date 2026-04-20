@@ -85,11 +85,11 @@ const GENDER_LABEL: Record<string, string> = {
 }
 
 const STATUS_META: Record<ReviewStatus, { label: string; className: string; icon: typeof Clock }> = {
-  pending: { label: '검토 대기', className: 'bg-zinc-100 text-zinc-700 border-zinc-200', icon: Clock },
-  in_review: { label: '검토 중', className: 'bg-blue-50 text-blue-700 border-blue-200', icon: AlertTriangle },
-  accepted: { label: '채택', className: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
-  rejected: { label: '반려', className: 'bg-red-50 text-red-700 border-red-200', icon: XCircle },
-  hold: { label: '보류', className: 'bg-amber-50 text-amber-700 border-amber-200', icon: PauseCircle },
+  pending: { label: '검토 대기', className: 'border-zinc-300 bg-white text-zinc-600', icon: Clock },
+  in_review: { label: '검토 중', className: 'border-zinc-400 bg-zinc-50 text-zinc-900', icon: AlertTriangle },
+  accepted: { label: '채택', className: 'border-black bg-black text-white', icon: CheckCircle2 },
+  rejected: { label: '반려', className: 'border-black bg-white text-black line-through decoration-1', icon: XCircle },
+  hold: { label: '보류', className: 'border-dashed border-zinc-500 bg-white text-zinc-600', icon: PauseCircle },
 }
 
 const PAGE_SIZE = 20
@@ -100,11 +100,11 @@ function StatusBadge({ status }: { status: ReviewStatus }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium',
+        'inline-flex items-center gap-1 border px-2 py-0.5 text-xs font-medium',
         meta.className,
       )}
     >
-      <Icon className="h-3 w-3" />
+      <Icon className="h-3 w-3" strokeWidth={1.75} />
       {meta.label}
     </span>
   )
@@ -438,7 +438,7 @@ export default function AdminDancerApplicationsPage() {
                 <Loader2 className="h-4 w-4 animate-spin" /> 불러오는 중…
               </div>
             ) : error ? (
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm font-semibold text-black">{error}</p>
             ) : items.length === 0 ? (
               <div className="rounded-lg border border-dashed border-zinc-300 bg-white p-10 text-center text-sm text-zinc-500">
                 접수된 지원이 없습니다.

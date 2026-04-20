@@ -16,30 +16,37 @@ function SuccessBody() {
 
   return (
     <main className="pt-16">
-      <div className="mx-auto max-w-xl px-5 py-16 sm:py-24">
-        <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center shadow-sm sm:p-10">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-            <CheckCircle2 className="h-8 w-8" />
+      <div className="mx-auto max-w-xl px-6 py-20 sm:py-28">
+        <div className="border-t border-black pt-12 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center border border-black">
+            <CheckCircle2 className="h-5 w-5 text-black" strokeWidth={1.5} />
           </div>
-          <h1 className="mt-6 text-xl font-semibold tracking-tight text-zinc-950 sm:text-2xl">
+          <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-500">
+            {t('applyDancer.successTicket')}
+          </p>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-black sm:text-3xl">
             {t('applyDancer.successTitle')}
           </h1>
-          <p className="mt-3 text-sm leading-relaxed text-zinc-600 sm:text-[15px] sm:leading-[1.75]">
+          <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-zinc-600 sm:text-[15px] sm:leading-[1.75]">
             {t('applyDancer.successBody')}
           </p>
 
           {ticket ? (
-            <div className="mt-6 inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-xs text-zinc-700">
-              <span className="text-zinc-400">{t('applyDancer.successTicket')}</span>
-              <span className="font-semibold text-zinc-900">{ticket}</span>
+            <div className="mx-auto mt-8 inline-flex items-center gap-3 border border-black px-4 py-2 font-mono text-xs tracking-wider text-black">
+              <span className="text-zinc-500">#</span>
+              <span className="font-semibold">{ticket}</span>
             </div>
           ) : null}
 
-          <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-center sm:gap-3">
-            <Button variant="outline" asChild>
+          <div className="mt-10 flex flex-col-reverse gap-2 sm:flex-row sm:justify-center sm:gap-3">
+            <Button
+              variant="outline"
+              className="rounded-none border-zinc-300 bg-white text-black hover:border-black hover:bg-white"
+              asChild
+            >
               <Link href="/apply/dancer">{t('applyDancer.viewAgain')}</Link>
             </Button>
-            <Button asChild>
+            <Button className="rounded-none bg-black text-white hover:bg-zinc-800" asChild>
               <Link href="/">{t('applyDancer.backHome')}</Link>
             </Button>
           </div>
