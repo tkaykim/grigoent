@@ -516,7 +516,7 @@ export default function DancerApplyPage() {
                   <Input
                     id="birth_date"
                     type="date"
-                    className={inputBase}
+                    className={cn(inputBase, '[color-scheme:light]')}
                     value={birthDate}
                     onChange={(e) => setBirthDate(e.target.value)}
                     aria-invalid={!!errors.birthDate}
