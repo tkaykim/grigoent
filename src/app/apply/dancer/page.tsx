@@ -169,28 +169,24 @@ export default function DancerApplyPage() {
     }
   }, [profilePhotoPreview])
 
-  const doneBasic = Boolean(
+  const doneBasicFields = Boolean(
     stageName.trim() && fullName.trim() && email.trim() && phone.trim() && birthDate && gender && heightCm && residenceRegion,
   )
-  const doneProfile = Boolean(
+  const doneVisa = isKoreanNational || (foreignCountry.trim().length >= 2 && hasVisa !== null && (hasVisa === false || visaDetails.trim().length >= 2))
+  const doneSection1 = doneBasicFields && doneVisa
+
+  const doneProfileFields = Boolean(
     profilePhotoFile && specialties.length > 0 && instagram.trim() &&
     ((portfolioMode === 'url' && portfolioUrl.trim()) || (portfolioMode === 'file' && portfolioFileName)),
   )
-  const doneVisa = isKoreanNational || (foreignCountry.trim().length >= 2 && hasVisa !== null && (hasVisa === false || visaDetails.trim().length >= 2))
-  const doneCareer = careers.some((c) => c.trim().length > 0) && privacyConsent
-  const totalSteps = 4
-  const doneCount = [doneBasic, doneProfile, doneVisa, doneCareer].filter(Boolean).length
+  const doneCareers = careers.some((c) => c.trim().length > 0) && privacyConsent
+  const doneSection2 = doneProfileFields && doneCareers
 
-  const currentStep = !doneBasic ? 1 : !doneProfile ? 2 : !doneVisa ? 3 : !doneCareer ? 4 : 4
-  const currentTitle = !doneBasic
-    ? t('applyDancer.sectionBasic')
-    : !doneProfile
-      ? t('applyDancer.sectionProfile')
-      : !doneVisa
-        ? t('applyDancer.sectionVisa')
-        : !doneCareer
-          ? t('applyDancer.sectionCareer')
-          : t('applyDancer.submit')
+  const totalSteps = 2
+  const doneCount = [doneSection1, doneSection2].filter(Boolean).length
+
+  const currentStep = !doneSection1 ? 1 : !doneSection2 ? 2 : 2
+  const currentTitle = !doneSection1 ? t('applyDancer.sectionBasic') : t('applyDancer.sectionProfile')
 
   const toggleSpecialty = useCallback((value: string) => {
     setSpecialties((prev) => {
@@ -404,8 +400,6 @@ export default function DancerApplyPage() {
   const sectionLabels = [
     t('applyDancer.sectionBasic'),
     t('applyDancer.sectionProfile'),
-    t('applyDancer.sectionVisa'),
-    t('applyDancer.sectionCareer'),
   ]
 
   return (
@@ -438,11 +432,11 @@ export default function DancerApplyPage() {
                 {String(currentStep).padStart(2, '0')}
               </span>
               <span className="text-zinc-400">/</span>
-              <span className="font-mono tabular-nums text-zinc-500">04</span>
+              <span className="font-mono tabular-nums text-zinc-500">02</span>
               <span className="ml-3 font-medium text-black">{currentTitle}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              {[doneBasic, doneProfile, doneVisa, doneCareer].map((d, i) => (
+              {[doneSection1, doneSection2].map((d, i) => (
                 <span
                   key={i}
                   aria-label={sectionLabels[i]}
@@ -463,8 +457,8 @@ export default function DancerApplyPage() {
           className="mx-auto max-w-2xl px-6 py-14 sm:px-8 sm:py-20"
         >
           <div className="space-y-14">
-            {/* STEP 1 */}
-            <SectionBlock step={1} title={t('applyDancer.sectionBasic')} done={doneBasic}>
+            {/* ── SECTION 1: 기본 정보 + 국적·비자 ── */}
+            <SectionBlock step={1} title={t('applyDancer.sectionBasic')} done={doneSection1}>
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div data-field="stageName">
                   <LabelRow htmlFor="stage_name" required>{t('applyDancer.stageName')}</LabelRow>
@@ -578,11 +572,104 @@ export default function DancerApplyPage() {
                   {errors.residenceRegion ? <FieldError id="err-region" message={errors.residenceRegion} /> : <FieldHint>{t('applyDancer.residenceRegionHint')}</FieldHint>}
                 </div>
               </div>
+
+              {/* 국적·비자 서브섹션 */}
+              <div className="mt-8 border-t border-zinc-200 pt-8">
+                <Kicker>{t('applyDancer.sectionVisa')}</Kicker>
+                <div className="mt-4">
+                  <label className="flex cursor-pointer items-start gap-3 border border-zinc-300 bg-white p-4 transition-colors hover:border-black">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-black"
+                      checked={isKoreanNational}
+                      onChange={(e) => {
+                        setIsKoreanNational(e.target.checked)
+                        if (e.target.checked) {
+                          setForeignCountry('')
+                          setHasVisa(null)
+                          setVisaDetails('')
+                        }
+                      }}
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-black">{t('applyDancer.koreanNational')}</p>
+                      <p className="mt-0.5 text-xs text-zinc-500">{t('applyDancer.nationalityLabel')}</p>
+                    </div>
+                  </label>
+
+                  {!isKoreanNational && (
+                    <div className="mt-5 space-y-5">
+                      <div data-field="foreignCountry">
+                        <LabelRow htmlFor="foreign_country" required>{t('applyDancer.foreignCountry')}</LabelRow>
+                        <Input
+                          id="foreign_country"
+                          className={inputBase}
+                          value={foreignCountry}
+                          onChange={(e) => setForeignCountry(e.target.value)}
+                          autoComplete="country-name"
+                          aria-invalid={!!errors.foreignCountry}
+                        />
+                        {errors.foreignCountry ? <FieldError id="err-foreign" message={errors.foreignCountry} /> : <FieldHint>{t('applyDancer.foreignCountryHint')}</FieldHint>}
+                      </div>
+                      <fieldset data-field="hasVisa">
+                        <legend className="mb-1.5 text-[13px] font-medium text-zinc-900">
+                          {t('applyDancer.visaQuestion')} <Req />
+                        </legend>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(
+                            [
+                              { val: true, label: t('applyDancer.visaYes') },
+                              { val: false, label: t('applyDancer.visaNo') },
+                            ] as const
+                          ).map((opt) => {
+                            const active = hasVisa === opt.val
+                            return (
+                              <button
+                                type="button"
+                                key={String(opt.val)}
+                                onClick={() => {
+                                  setHasVisa(opt.val)
+                                  if (opt.val === false) setVisaDetails('')
+                                }}
+                                aria-pressed={active}
+                                className={cn(
+                                  'inline-flex h-11 items-center justify-center border px-4 text-sm font-medium transition-colors',
+                                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-1',
+                                  active
+                                    ? 'border-black bg-black text-white'
+                                    : 'border-zinc-300 bg-white text-zinc-800 hover:border-black hover:text-black',
+                                )}
+                              >
+                                {opt.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <FieldError id="err-has_visa" message={errors.hasVisa} />
+                      </fieldset>
+                      {hasVisa === true && (
+                        <div data-field="visaDetails">
+                          <LabelRow htmlFor="visa_details" required>{t('applyDancer.visaDetails')}</LabelRow>
+                          <Textarea
+                            id="visa_details"
+                            value={visaDetails}
+                            onChange={(e) => setVisaDetails(e.target.value)}
+                            rows={3}
+                            className={cn(inputBase, 'h-auto min-h-[6rem] resize-y py-2')}
+                            aria-invalid={!!errors.visaDetails}
+                          />
+                          {errors.visaDetails ? <FieldError id="err-visa" message={errors.visaDetails} /> : <FieldHint>{t('applyDancer.visaDetailsHint')}</FieldHint>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </SectionBlock>
 
-            {/* STEP 2 */}
-            <SectionBlock step={2} title={t('applyDancer.sectionProfile')} done={doneProfile}>
-              {/* profile photo */}
+            {/* ── SECTION 2: 프로필 + 경력 + 동의 ── */}
+            <SectionBlock step={2} title={t('applyDancer.sectionProfile')} done={doneSection2}>
+              {/* 프로필 사진 */}
               <div data-field="profilePhoto" className="mb-10">
                 <LabelRow required>{t('applyDancer.profilePhoto')}</LabelRow>
                 <div className="flex items-start gap-5">
@@ -639,7 +726,7 @@ export default function DancerApplyPage() {
                 </div>
               </div>
 
-              {/* specialties */}
+              {/* 전문 장르 */}
               <div data-field="specialties" className="mb-10">
                 <div className="mb-1.5 flex items-center justify-between">
                   <LabelRow required>{t('applyDancer.specialties')}</LabelRow>
@@ -673,7 +760,7 @@ export default function DancerApplyPage() {
                 {errors.specialties ? <FieldError id="err-specialties" message={errors.specialties} /> : <FieldHint>{t('applyDancer.specialtiesHint')}</FieldHint>}
               </div>
 
-              {/* portfolio */}
+              {/* 포트폴리오 */}
               <div data-field="portfolio" className="mb-10">
                 <LabelRow required>{t('applyDancer.portfolio')}</LabelRow>
                 <Tabs value={portfolioMode} onValueChange={(v) => setPortfolioMode(v as 'url' | 'file')}>
@@ -746,6 +833,7 @@ export default function DancerApplyPage() {
                 <FieldError id="err-portfolio" message={errors.portfolio} />
               </div>
 
+              {/* 인스타그램 + 소속사 */}
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div data-field="instagram">
                   <LabelRow htmlFor="instagram" required>{t('applyDancer.instagram')}</LabelRow>
@@ -773,151 +861,62 @@ export default function DancerApplyPage() {
                   <FieldHint>{t('applyDancer.agencyHint')}</FieldHint>
                 </div>
               </div>
-            </SectionBlock>
 
-            {/* STEP 3 */}
-            <SectionBlock step={3} title={t('applyDancer.sectionVisa')} done={doneVisa}>
-              <label className="flex cursor-pointer items-start gap-3 border border-zinc-300 bg-white p-4 transition-colors hover:border-black">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-black"
-                  checked={isKoreanNational}
-                  onChange={(e) => {
-                    setIsKoreanNational(e.target.checked)
-                    if (e.target.checked) {
-                      setForeignCountry('')
-                      setHasVisa(null)
-                      setVisaDetails('')
-                    }
-                  }}
-                />
-                <div>
-                  <p className="text-sm font-medium text-black">{t('applyDancer.koreanNational')}</p>
-                  <p className="mt-0.5 text-xs text-zinc-500">{t('applyDancer.nationalityLabel')}</p>
-                </div>
-              </label>
-
-              {!isKoreanNational && (
-                <div className="mt-6 space-y-5">
-                  <div data-field="foreignCountry">
-                    <LabelRow htmlFor="foreign_country" required>{t('applyDancer.foreignCountry')}</LabelRow>
-                    <Input
-                      id="foreign_country"
-                      className={inputBase}
-                      value={foreignCountry}
-                      onChange={(e) => setForeignCountry(e.target.value)}
-                      autoComplete="country-name"
-                      aria-invalid={!!errors.foreignCountry}
-                    />
-                    {errors.foreignCountry ? <FieldError id="err-foreign" message={errors.foreignCountry} /> : <FieldHint>{t('applyDancer.foreignCountryHint')}</FieldHint>}
+              {/* 경력 서브섹션 */}
+              <div className="mt-8 border-t border-zinc-200 pt-8">
+                <Kicker>{t('applyDancer.sectionCareer')}</Kicker>
+                <div className="mt-4" data-field="careers">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <LabelRow required>{t('applyDancer.careers')}</LabelRow>
+                    <span className="font-mono text-[11px] tabular-nums text-zinc-500">
+                      {String(careers.filter((c) => c.trim()).length).padStart(2, '0')} / 40
+                    </span>
                   </div>
-                  <fieldset data-field="hasVisa">
-                    <legend className="mb-1.5 text-[13px] font-medium text-zinc-900">
-                      {t('applyDancer.visaQuestion')} <Req />
-                    </legend>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(
-                        [
-                          { val: true, label: t('applyDancer.visaYes') },
-                          { val: false, label: t('applyDancer.visaNo') },
-                        ] as const
-                      ).map((opt) => {
-                        const active = hasVisa === opt.val
-                        return (
+                  <ul className="divide-y divide-zinc-200 border border-zinc-300">
+                    {careers.map((c, i) => (
+                      <li key={i} className="flex items-stretch">
+                        <span className="flex w-12 shrink-0 items-center justify-center bg-zinc-50 font-mono text-xs font-semibold text-zinc-500">
+                          {String(i + 1).padStart(2, '0')}
+                        </span>
+                        <input
+                          type="text"
+                          value={c}
+                          onChange={(e) => setCareers((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))}
+                          placeholder={t('applyDancer.careerPlaceholder')}
+                          className="h-11 min-w-0 flex-1 border-0 bg-white px-3 text-[15px] text-black placeholder:text-zinc-400 focus-visible:bg-zinc-50 focus-visible:outline-none"
+                        />
+                        {careers.length > 1 ? (
                           <button
                             type="button"
-                            key={String(opt.val)}
-                            onClick={() => {
-                              setHasVisa(opt.val)
-                              if (opt.val === false) setVisaDetails('')
-                            }}
-                            aria-pressed={active}
-                            className={cn(
-                              'inline-flex h-11 items-center justify-center border px-4 text-sm font-medium transition-colors',
-                              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-1',
-                              active
-                                ? 'border-black bg-black text-white'
-                                : 'border-zinc-300 bg-white text-zinc-800 hover:border-black hover:text-black',
-                            )}
+                            onClick={() => setCareers((prev) => prev.filter((_, idx) => idx !== i))}
+                            aria-label={t('applyDancer.careerRemove')}
+                            className="flex w-11 shrink-0 items-center justify-center text-zinc-400 transition-colors hover:bg-black hover:text-white"
                           >
-                            {opt.label}
+                            <Trash2 className="h-4 w-4" />
                           </button>
-                        )
-                      })}
-                    </div>
-                    <FieldError id="err-has_visa" message={errors.hasVisa} />
-                  </fieldset>
-                  {hasVisa === true && (
-                    <div data-field="visaDetails">
-                      <LabelRow htmlFor="visa_details" required>{t('applyDancer.visaDetails')}</LabelRow>
-                      <Textarea
-                        id="visa_details"
-                        value={visaDetails}
-                        onChange={(e) => setVisaDetails(e.target.value)}
-                        rows={3}
-                        className={cn(inputBase, 'h-auto min-h-[6rem] resize-y py-2')}
-                        aria-invalid={!!errors.visaDetails}
-                      />
-                      {errors.visaDetails ? <FieldError id="err-visa" message={errors.visaDetails} /> : <FieldHint>{t('applyDancer.visaDetailsHint')}</FieldHint>}
-                    </div>
-                  )}
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={() => setCareers((prev) => (prev.length >= 40 ? prev : [...prev, '']))}
+                    disabled={careers.length >= 40}
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-black underline underline-offset-4 hover:no-underline disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    {t('applyDancer.careerAdd')}
+                  </button>
+                  {errors.careers ? <FieldError id="err-careers" message={errors.careers} /> : <FieldHint>{t('applyDancer.careersHint')}</FieldHint>}
                 </div>
-              )}
-            </SectionBlock>
-
-            {/* STEP 4 */}
-            <SectionBlock step={4} title={t('applyDancer.sectionCareer')} done={doneCareer}>
-              <div data-field="careers">
-                <div className="mb-1.5 flex items-center justify-between">
-                  <LabelRow required>{t('applyDancer.careers')}</LabelRow>
-                  <span className="font-mono text-[11px] tabular-nums text-zinc-500">
-                    {String(careers.filter((c) => c.trim()).length).padStart(2, '0')} / 40
-                  </span>
-                </div>
-                <ul className="divide-y divide-zinc-200 border border-zinc-300">
-                  {careers.map((c, i) => (
-                    <li key={i} className="flex items-stretch">
-                      <span className="flex w-12 shrink-0 items-center justify-center bg-zinc-50 font-mono text-xs font-semibold text-zinc-500">
-                        {String(i + 1).padStart(2, '0')}
-                      </span>
-                      <input
-                        type="text"
-                        value={c}
-                        onChange={(e) => setCareers((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))}
-                        placeholder={t('applyDancer.careerPlaceholder')}
-                        className="h-11 min-w-0 flex-1 border-0 bg-white px-3 text-[15px] text-black placeholder:text-zinc-400 focus-visible:bg-zinc-50 focus-visible:outline-none"
-                      />
-                      {careers.length > 1 ? (
-                        <button
-                          type="button"
-                          onClick={() => setCareers((prev) => prev.filter((_, idx) => idx !== i))}
-                          aria-label={t('applyDancer.careerRemove')}
-                          className="flex w-11 shrink-0 items-center justify-center text-zinc-400 transition-colors hover:bg-black hover:text-white"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  onClick={() => setCareers((prev) => (prev.length >= 40 ? prev : [...prev, '']))}
-                  disabled={careers.length >= 40}
-                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-black underline underline-offset-4 hover:no-underline disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  {t('applyDancer.careerAdd')}
-                </button>
-                {errors.careers ? <FieldError id="err-careers" message={errors.careers} /> : <FieldHint>{t('applyDancer.careersHint')}</FieldHint>}
               </div>
 
-              <div className="mt-10 border border-zinc-300">
+              {/* 이용약관 & 동의 */}
+              <div className="mt-8 border border-zinc-300">
                 <div className="border-b border-zinc-200 px-5 py-4">
                   <Kicker>{t('applyDancer.termsTitle')}</Kicker>
                 </div>
 
-                {/* 이용약관 */}
                 <div className="border-b border-zinc-200 px-5 py-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-800">
@@ -943,7 +942,6 @@ export default function DancerApplyPage() {
                   </div>
                 </div>
 
-                {/* 개인정보처리방침 */}
                 <div className="border-b border-zinc-200 px-5 py-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-800">
@@ -969,7 +967,6 @@ export default function DancerApplyPage() {
                   </div>
                 </div>
 
-                {/* 동의 체크박스 */}
                 <label
                   data-field="privacyConsent"
                   className="flex cursor-pointer items-start gap-3 px-5 py-4"
