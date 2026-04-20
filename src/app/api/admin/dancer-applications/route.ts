@@ -13,15 +13,21 @@ async function assertAdmin() {
   const { data: auth, error: authErr } = await server.auth.getUser()
   const userId = auth.user?.id
   if (authErr || !userId) {
-    return { ok: false as const, status: 401, error: 'unauthorized' }
+    console.error('[admin/dancer-applications] auth failed:', authErr?.message, 'userId:', userId)
+    return { ok: false as const, status: 401, error: 'unauthorized', detail: authErr?.message }
   }
   const { data: profile, error: profileErr } = await server
     .from('users')
     .select('type')
     .eq('id', userId)
     .maybeSingle()
-  if (profileErr || profile?.type !== 'admin') {
-    return { ok: false as const, status: 403, error: 'forbidden' }
+  if (profileErr) {
+    console.error('[admin/dancer-applications] profile query error:', profileErr.message)
+    return { ok: false as const, status: 500, error: 'profile_lookup_failed', detail: profileErr.message }
+  }
+  if (profile?.type !== 'admin') {
+    console.warn('[admin/dancer-applications] non-admin attempt. userId:', userId, 'profile.type:', profile?.type)
+    return { ok: false as const, status: 403, error: 'forbidden', detail: `type=${profile?.type ?? 'null'}` }
   }
   return { ok: true as const, userId }
 }
@@ -30,7 +36,18 @@ const VALID_STATUSES = new Set(['pending', 'in_review', 'accepted', 'rejected', 
 
 export async function GET(request: NextRequest) {
   const auth = await assertAdmin()
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
+  if (!auth.ok) {
+    return NextResponse.json(
+      { error: auth.error, detail: (auth as { detail?: string }).detail ?? undefined },
+      { status: auth.status },
+    )
+  }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json(
+      { error: 'missing_service_role_key', detail: 'SUPABASE_SERVICE_ROLE_KEY env not set' },
+      { status: 500 },
+    )
+  }
 
   const url = request.nextUrl
   const q = (url.searchParams.get('q') ?? '').trim()
@@ -72,27 +89,35 @@ export async function GET(request: NextRequest) {
 
   const { data, error, count } = await query
   if (error) {
-    console.error('dancer_applications admin list:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[admin/dancer-applications] list query error:', error)
+    return NextResponse.json({ error: 'list_query_failed', detail: error.message }, { status: 500 })
   }
 
-  // 요약 카운트 (pending / 오늘 신규)
-  const [{ count: totalCount }, { count: pendingCount }, { count: todayCount }] = await Promise.all([
-    svc.from('dancer_applications').select('id', { count: 'exact', head: true }),
-    svc.from('dancer_applications').select('id', { count: 'exact', head: true }).eq('review_status', 'pending'),
-    svc
-      .from('dancer_applications')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
-  ])
+  // 요약 카운트 (pending / 오늘 신규) - 실패해도 메인 응답은 유지
+  let totalCount = 0, pendingCount = 0, todayCount = 0
+  try {
+    const [all, pend, today] = await Promise.all([
+      svc.from('dancer_applications').select('id', { count: 'exact', head: true }),
+      svc.from('dancer_applications').select('id', { count: 'exact', head: true }).eq('review_status', 'pending'),
+      svc
+        .from('dancer_applications')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
+    ])
+    totalCount = all.count ?? 0
+    pendingCount = pend.count ?? 0
+    todayCount = today.count ?? 0
+  } catch (err) {
+    console.error('[admin/dancer-applications] totals query error:', err)
+  }
 
   return NextResponse.json({
     items: data ?? [],
     count: count ?? 0,
     totals: {
-      all: totalCount ?? 0,
-      pending: pendingCount ?? 0,
-      today: todayCount ?? 0,
+      all: totalCount,
+      pending: pendingCount,
+      today: todayCount,
     },
   })
 }

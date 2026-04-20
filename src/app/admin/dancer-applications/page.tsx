@@ -192,14 +192,35 @@ export default function AdminDancerApplicationsPage() {
           cache: 'no-store',
           credentials: 'include',
         })
-        const json = (await res.json()) as ListResponse | { error: string }
-        if (!res.ok || 'error' in json) throw new Error('failed')
-        setTotals(json.totals)
-        setCount(json.count)
-        setItems((prev) => (opts.append ? [...prev, ...json.items] : json.items))
-        setOffset(nextOffset + json.items.length)
-      } catch {
-        setError('목록을 불러오지 못했습니다. 관리자 권한·환경 변수(SUPABASE_SERVICE_ROLE_KEY)를 확인해 주세요.')
+        const rawText = await res.text()
+        let json: ListResponse | { error?: string; message?: string } | null = null
+        try {
+          json = rawText ? JSON.parse(rawText) : null
+        } catch {
+          /* JSON 파싱 실패: rawText 그대로 사용 */
+        }
+        if (!res.ok) {
+          const detail =
+            (json && (json as { error?: string; message?: string }).error) ||
+            (json && (json as { message?: string }).message) ||
+            rawText?.slice(0, 200) ||
+            '응답 본문 비어있음'
+          console.error('[admin/dancer-applications] load failed', res.status, detail)
+          setError(`HTTP ${res.status} · ${detail}`)
+          return
+        }
+        if (!json || !('items' in json)) {
+          setError('응답 형식이 올바르지 않습니다.')
+          return
+        }
+        const listJson = json as ListResponse
+        setTotals(listJson.totals)
+        setCount(listJson.count)
+        setItems((prev) => (opts.append ? [...prev, ...listJson.items] : listJson.items))
+        setOffset(nextOffset + listJson.items.length)
+      } catch (err) {
+        console.error('[admin/dancer-applications] fetch error', err)
+        setError(err instanceof Error ? `요청 실패 · ${err.message}` : '요청 실패')
       } finally {
         setLoading(false)
         setLoadingMore(false)
