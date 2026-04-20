@@ -100,7 +100,8 @@ const translations = {
     'applyDancer.visaDetailsHint': '비자 종류, 번호(선택), 만료일 등을 적어 주세요.',
     'applyDancer.careers': '주요 경력 사항',
     'applyDancer.careersHint':
-      '안무 제작, 수업, 댄서 참여, 공연, 심사, 워크샵, 방송 출연, 광고 등 줄바꿈으로 구분해 적어 주세요.',
+      '안무 제작, 수업, 댄서 참여, 공연, 심사, 워크샵, 방송 출연, 광고 등 자유롭게 적어 주세요. 줄바꿈으로 구분하거나 한 번에 붙여 넣어도 됩니다.',
+    'applyDancer.portfolioOptional': '(선택)',
     'applyDancer.privacyConsent': '위 이용약관 및 개인정보 처리방침 전체 내용을 확인하였으며 이에 모두 동의합니다',
     'applyDancer.termsTitle': '이용약관 및 개인정보처리방침',
     'applyDancer.termsBody': '본 약관과 개인정보처리방침은 그리고 엔터테인먼트가 제공하는 댄서 에이전시 풀 서비스에 적용됩니다.',
@@ -375,7 +376,8 @@ const translations = {
     'applyDancer.visaDetailsHint': 'Visa category, expiry date, etc.',
     'applyDancer.careers': 'Key credits',
     'applyDancer.careersHint':
-      'Choreography, teaching, dance credits, shows, judging, workshops, broadcast, ads — one item per line.',
+      'Choreography, teaching, dance credits, shows, judging, workshops, broadcast, ads — feel free to paste a full block of text or write line by line.',
+    'applyDancer.portfolioOptional': '(optional)',
     'applyDancer.privacyConsent': 'I have read and agree to the Terms of Service and Privacy Policy above',
     'applyDancer.termsTitle': 'Terms of Service & Privacy Policy',
     'applyDancer.termsBody': 'These terms and privacy policy apply to the GRIGO ENTERTAINMENT dancer agency pool service.',
@@ -651,7 +653,8 @@ const translations = {
     'applyDancer.visaDetailsHint': 'ビザの種類・番号（任意）・有効期限などをご記入ください。',
     'applyDancer.careers': '主な経歴',
     'applyDancer.careersHint':
-      '振付制作、レッスン、ダンサー出演、公演、審査、ワークショップ、放送出演、広告などを改行区切りでご記入ください。',
+      '振付制作、レッスン、ダンサー出演、公演、審査、ワークショップ、放送出演、広告など、まとめて貼り付けるか、改行区切りで自由にご記入ください。',
+    'applyDancer.portfolioOptional': '（任意）',
     'applyDancer.privacyConsent': '上記の利用規約およびプライバシーポリシーの全内容を確認し、すべてに同意します',
     'applyDancer.termsTitle': '利用規約・プライバシーポリシー',
     'applyDancer.termsBody': '本規約とプライバシーポリシーは、グリゴ・エンターテインメントが提供するダンサーエージェンシープールサービスに適用されます。',

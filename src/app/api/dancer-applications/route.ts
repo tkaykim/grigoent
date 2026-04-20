@@ -113,7 +113,7 @@ const identityBase = z.object({
       message: 'invalid_specialty',
     }),
   instagram_handle: z.string().trim().min(1).max(100),
-  careers: z.array(z.string()).max(40),
+  careers: z.array(z.string()).max(200),
   agency_name: z.string().trim().max(200).optional().nullable(),
   is_korean_national: z.boolean(),
   nationality: z.string().trim().min(1).max(120),
@@ -190,10 +190,6 @@ async function handleMultipart(request: NextRequest) {
     return NextResponse.json({ error: 'invalid_portfolio_url' }, { status: 400 })
   }
 
-  if (!normalizedUrl && !portfolioFile) {
-    return NextResponse.json({ error: 'portfolio_required' }, { status: 400 })
-  }
-
   if (portfolioFile) {
     const chk = validatePortfolioFile(portfolioFile)
     if (!chk.ok) {
@@ -214,7 +210,7 @@ async function handleMultipart(request: NextRequest) {
     .split(/\r?\n/)
     .map((c) => c.trim())
     .filter(Boolean)
-  if (careers.length < 1 || careers.some((c) => c.length > 800)) {
+  if (careers.length < 1) {
     return NextResponse.json({ error: 'careers_required' }, { status: 400 })
   }
 
@@ -384,9 +380,6 @@ export async function POST(request: NextRequest) {
     const careers = parsed.data.careers.map((c) => c.trim()).filter(Boolean)
     if (careers.length < 1) {
       return NextResponse.json({ error: 'careers_required' }, { status: 400 })
-    }
-    if (careers.some((c) => c.length > 800)) {
-      return NextResponse.json({ error: 'career_too_long' }, { status: 400 })
     }
 
     const agency_name =

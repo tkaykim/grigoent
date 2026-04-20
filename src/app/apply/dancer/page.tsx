@@ -20,8 +20,6 @@ import {
   Send,
   Loader2,
   Check,
-  Plus,
-  Trash2,
   Camera,
   Link as LinkIcon,
   FileUp,
@@ -156,7 +154,7 @@ export default function DancerApplyPage() {
   const [foreignCountry, setForeignCountry] = useState('')
   const [hasVisa, setHasVisa] = useState<boolean | null>(null)
   const [visaDetails, setVisaDetails] = useState('')
-  const [careers, setCareers] = useState<string[]>([''])
+  const [careersText, setCareersText] = useState('')
   const [privacyConsent, setPrivacyConsent] = useState(false)
   const [tosExpanded, setTosExpanded] = useState(false)
   const [ppExpanded, setPpExpanded] = useState(false)
@@ -176,10 +174,9 @@ export default function DancerApplyPage() {
   const doneSection1 = doneBasicFields && doneVisa
 
   const doneProfileFields = Boolean(
-    profilePhotoFile && specialties.length > 0 && instagram.trim() &&
-    ((portfolioMode === 'url' && portfolioUrl.trim()) || (portfolioMode === 'file' && portfolioFileName)),
+    profilePhotoFile && specialties.length > 0 && instagram.trim(),
   )
-  const doneCareers = careers.some((c) => c.trim().length > 0) && privacyConsent
+  const doneCareers = careersText.trim().length > 0 && privacyConsent
   const doneSection2 = doneProfileFields && doneCareers
 
   const totalSteps = 2
@@ -233,20 +230,10 @@ export default function DancerApplyPage() {
     if (!profilePhotoFile) e.profilePhoto = t('applyDancer.errorProfilePhoto')
     if (!instagram.trim()) e.instagram = t('applyDancer.errorRequired')
 
-    const portfolioFile = portfolioFileRef.current?.files?.[0]
-    if (portfolioMode === 'url') {
-      if (!portfolioUrl.trim()) e.portfolio = t('applyDancer.errorPortfolioRequired')
-      else {
-        let n = portfolioUrl.trim()
-        if (!/^https?:\/\//i.test(n)) n = `https://${n}`
-        try {
-          void new URL(n)
-        } catch {
-          e.portfolio = t('applyDancer.errorPortfolioUrl')
-        }
-      }
-    } else {
-      if (!portfolioFile) e.portfolio = t('applyDancer.errorPortfolioRequired')
+    if (portfolioMode === 'url' && portfolioUrl.trim()) {
+      let n = portfolioUrl.trim()
+      if (!/^https?:\/\//i.test(n)) n = `https://${n}`
+      try { void new URL(n) } catch { e.portfolio = t('applyDancer.errorPortfolioUrl') }
     }
 
     if (!isKoreanNational) {
@@ -255,8 +242,7 @@ export default function DancerApplyPage() {
       if (hasVisa === true && visaDetails.trim().length < 2) e.visaDetails = t('applyDancer.errorVisaDetails')
     }
 
-    const careerList = careers.map((c) => c.trim()).filter(Boolean)
-    if (careerList.length < 1) e.careers = t('applyDancer.errorRequired')
+    if (!careersText.trim()) e.careers = t('applyDancer.errorRequired')
 
     if (!privacyConsent) e.privacyConsent = t('applyDancer.errorRequired')
     return e
@@ -276,7 +262,7 @@ export default function DancerApplyPage() {
 
     const heightNum = parseInt(heightCm.replace(/\D/g, ''), 10)
     const nationality = isKoreanNational ? koreaNationalityLabel : foreignCountry.trim()
-    const careerList = careers.map((c) => c.trim()).filter(Boolean)
+    const careerList = careersText.trim().split('\n').map((c) => c.trim()).filter(Boolean)
 
     let normalizedPortfolioForMail: string | null = null
     if (portfolioMode === 'url' && portfolioUrl.trim()) {
@@ -760,79 +746,6 @@ export default function DancerApplyPage() {
                 {errors.specialties ? <FieldError id="err-specialties" message={errors.specialties} /> : <FieldHint>{t('applyDancer.specialtiesHint')}</FieldHint>}
               </div>
 
-              {/* 포트폴리오 */}
-              <div data-field="portfolio" className="mb-10">
-                <LabelRow required>{t('applyDancer.portfolio')}</LabelRow>
-                <Tabs value={portfolioMode} onValueChange={(v) => setPortfolioMode(v as 'url' | 'file')}>
-                  <TabsList className="grid h-auto w-full grid-cols-2 rounded-none border border-zinc-300 bg-white p-0">
-                    <TabsTrigger
-                      value="url"
-                      className="gap-1.5 rounded-none border-r border-zinc-300 py-2 text-xs font-semibold uppercase tracking-wider text-zinc-600 data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-none"
-                    >
-                      <LinkIcon className="h-3 w-3" />
-                      {t('applyDancer.portfolioTabUrl')}
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="file"
-                      className="gap-1.5 rounded-none py-2 text-xs font-semibold uppercase tracking-wider text-zinc-600 data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-none"
-                    >
-                      <FileUp className="h-3 w-3" />
-                      {t('applyDancer.portfolioTabFile')}
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="url" className="mt-4">
-                    <Input
-                      id="portfolio"
-                      type="url"
-                      placeholder="https://"
-                      className={inputBase}
-                      value={portfolioUrl}
-                      onChange={(e) => setPortfolioUrl(e.target.value)}
-                      aria-invalid={!!errors.portfolio}
-                    />
-                    <FieldHint>{t('applyDancer.portfolioHint')}</FieldHint>
-                  </TabsContent>
-                  <TabsContent value="file" className="mt-4">
-                    <button
-                      type="button"
-                      onClick={() => portfolioFileRef.current?.click()}
-                      className={cn(
-                        'flex w-full items-center justify-center gap-3 border px-4 py-6 text-sm transition-colors',
-                        'focus-visible:outline-none focus-visible:border-black',
-                        portfolioFileName
-                          ? 'border-black bg-white text-black'
-                          : 'border-dashed border-zinc-400 bg-zinc-50 text-zinc-600 hover:border-black hover:text-black',
-                      )}
-                    >
-                      <FileUp className="h-4 w-4" />
-                      {portfolioFileName ? portfolioFileName : t('applyDancer.portfolioFilePlaceholder')}
-                    </button>
-                    <input
-                      ref={portfolioFileRef}
-                      type="file"
-                      accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
-                      className="hidden"
-                      onChange={(e) => setPortfolioFileName(e.target.files?.[0]?.name ?? '')}
-                    />
-                    {portfolioFileName ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPortfolioFileName('')
-                          if (portfolioFileRef.current) portfolioFileRef.current.value = ''
-                        }}
-                        className="mt-2 text-xs font-medium text-black underline underline-offset-4 hover:no-underline"
-                      >
-                        {t('applyDancer.remove')}
-                      </button>
-                    ) : (
-                      <FieldHint>{t('applyDancer.portfolioFileHint')}</FieldHint>
-                    )}
-                  </TabsContent>
-                </Tabs>
-                <FieldError id="err-portfolio" message={errors.portfolio} />
-              </div>
-
               {/* 인스타그램 + 소속사 */}
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div data-field="instagram">
@@ -862,52 +775,99 @@ export default function DancerApplyPage() {
                 </div>
               </div>
 
-              {/* 경력 서브섹션 */}
+              {/* 경력·포트폴리오 서브섹션 */}
               <div className="mt-8 border-t border-zinc-200 pt-8">
                 <Kicker>{t('applyDancer.sectionCareer')}</Kicker>
+
+                {/* 경력 */}
                 <div className="mt-4" data-field="careers">
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <LabelRow required>{t('applyDancer.careers')}</LabelRow>
-                    <span className="font-mono text-[11px] tabular-nums text-zinc-500">
-                      {String(careers.filter((c) => c.trim()).length).padStart(2, '0')} / 40
-                    </span>
-                  </div>
-                  <ul className="divide-y divide-zinc-200 border border-zinc-300">
-                    {careers.map((c, i) => (
-                      <li key={i} className="flex items-stretch">
-                        <span className="flex w-12 shrink-0 items-center justify-center bg-zinc-50 font-mono text-xs font-semibold text-zinc-500">
-                          {String(i + 1).padStart(2, '0')}
-                        </span>
-                        <input
-                          type="text"
-                          value={c}
-                          onChange={(e) => setCareers((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))}
-                          placeholder={t('applyDancer.careerPlaceholder')}
-                          className="h-11 min-w-0 flex-1 border-0 bg-white px-3 text-[15px] text-black placeholder:text-zinc-400 focus-visible:bg-zinc-50 focus-visible:outline-none"
-                        />
-                        {careers.length > 1 ? (
-                          <button
-                            type="button"
-                            onClick={() => setCareers((prev) => prev.filter((_, idx) => idx !== i))}
-                            aria-label={t('applyDancer.careerRemove')}
-                            className="flex w-11 shrink-0 items-center justify-center text-zinc-400 transition-colors hover:bg-black hover:text-white"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={() => setCareers((prev) => (prev.length >= 40 ? prev : [...prev, '']))}
-                    disabled={careers.length >= 40}
-                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-black underline underline-offset-4 hover:no-underline disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    {t('applyDancer.careerAdd')}
-                  </button>
+                  <LabelRow htmlFor="careers" required>{t('applyDancer.careers')}</LabelRow>
+                  <Textarea
+                    id="careers"
+                    value={careersText}
+                    onChange={(e) => setCareersText(e.target.value)}
+                    rows={6}
+                    placeholder={t('applyDancer.careerPlaceholder')}
+                    className={cn(inputBase, 'h-auto min-h-[9rem] resize-y py-2')}
+                    aria-invalid={!!errors.careers}
+                  />
                   {errors.careers ? <FieldError id="err-careers" message={errors.careers} /> : <FieldHint>{t('applyDancer.careersHint')}</FieldHint>}
+                </div>
+
+                {/* 포트폴리오 (선택) */}
+                <div data-field="portfolio" className="mt-6">
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <LabelRow>{t('applyDancer.portfolio')}</LabelRow>
+                    <span className="text-[11px] font-medium text-zinc-400">{t('applyDancer.portfolioOptional')}</span>
+                  </div>
+                  <Tabs value={portfolioMode} onValueChange={(v) => setPortfolioMode(v as 'url' | 'file')}>
+                    <TabsList className="grid h-auto w-full grid-cols-2 rounded-none border border-zinc-300 bg-white p-0">
+                      <TabsTrigger
+                        value="url"
+                        className="gap-1.5 rounded-none border-r border-zinc-300 py-2 text-xs font-semibold uppercase tracking-wider text-zinc-600 data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-none"
+                      >
+                        <LinkIcon className="h-3 w-3" />
+                        {t('applyDancer.portfolioTabUrl')}
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="file"
+                        className="gap-1.5 rounded-none py-2 text-xs font-semibold uppercase tracking-wider text-zinc-600 data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-none"
+                      >
+                        <FileUp className="h-3 w-3" />
+                        {t('applyDancer.portfolioTabFile')}
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="url" className="mt-4">
+                      <Input
+                        id="portfolio"
+                        type="url"
+                        placeholder="https://"
+                        className={inputBase}
+                        value={portfolioUrl}
+                        onChange={(e) => setPortfolioUrl(e.target.value)}
+                        aria-invalid={!!errors.portfolio}
+                      />
+                      <FieldHint>{t('applyDancer.portfolioHint')}</FieldHint>
+                    </TabsContent>
+                    <TabsContent value="file" className="mt-4">
+                      <button
+                        type="button"
+                        onClick={() => portfolioFileRef.current?.click()}
+                        className={cn(
+                          'flex w-full items-center justify-center gap-3 border px-4 py-6 text-sm transition-colors',
+                          'focus-visible:outline-none focus-visible:border-black',
+                          portfolioFileName
+                            ? 'border-black bg-white text-black'
+                            : 'border-dashed border-zinc-400 bg-zinc-50 text-zinc-600 hover:border-black hover:text-black',
+                        )}
+                      >
+                        <FileUp className="h-4 w-4" />
+                        {portfolioFileName ? portfolioFileName : t('applyDancer.portfolioFilePlaceholder')}
+                      </button>
+                      <input
+                        ref={portfolioFileRef}
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                        className="hidden"
+                        onChange={(e) => setPortfolioFileName(e.target.files?.[0]?.name ?? '')}
+                      />
+                      {portfolioFileName ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPortfolioFileName('')
+                            if (portfolioFileRef.current) portfolioFileRef.current.value = ''
+                          }}
+                          className="mt-2 text-xs font-medium text-black underline underline-offset-4 hover:no-underline"
+                        >
+                          {t('applyDancer.remove')}
+                        </button>
+                      ) : (
+                        <FieldHint>{t('applyDancer.portfolioFileHint')}</FieldHint>
+                      )}
+                    </TabsContent>
+                  </Tabs>
+                  <FieldError id="err-portfolio" message={errors.portfolio} />
                 </div>
               </div>
 
