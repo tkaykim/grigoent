@@ -139,6 +139,9 @@ export default function DancerApplyPage() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [birthDate, setBirthDate] = useState('')
+  const [birthYear, setBirthYear] = useState('')
+  const [birthMonth, setBirthMonth] = useState('')
+  const [birthDay, setBirthDay] = useState('')
   const [gender, setGender] = useState<Gender | ''>('')
   const [heightCm, setHeightCm] = useState('')
   const [residenceRegion, setResidenceRegion] = useState<string>('')
@@ -160,6 +163,25 @@ export default function DancerApplyPage() {
   const [ppExpanded, setPpExpanded] = useState(false)
 
   const koreaNationalityLabel = t('applyDancer.nationalityKorea')
+
+  // 월/년 변경 시 존재하지 않는 일 초기화 (예: 31일→30일짜리 월)
+  useEffect(() => {
+    if (birthYear && birthMonth && birthDay) {
+      const max = new Date(parseInt(birthYear), parseInt(birthMonth), 0).getDate()
+      if (parseInt(birthDay) > max) setBirthDay('')
+    }
+  }, [birthYear, birthMonth])
+
+  // 세 값이 모두 채워지면 YYYY-MM-DD 조합
+  useEffect(() => {
+    if (birthYear && birthMonth && birthDay) {
+      setBirthDate(
+        `${birthYear}-${birthMonth.padStart(2, '0')}-${birthDay.padStart(2, '0')}`,
+      )
+    } else {
+      setBirthDate('')
+    }
+  }, [birthYear, birthMonth, birthDay])
 
   useEffect(() => {
     return () => {
@@ -497,16 +519,55 @@ export default function DancerApplyPage() {
                   />
                   <FieldError id="err-phone" message={errors.phone} />
                 </div>
-                <div data-field="birthDate">
-                  <LabelRow htmlFor="birth_date" required>{t('applyDancer.birthDate')}</LabelRow>
-                  <Input
-                    id="birth_date"
-                    type="date"
-                    className={cn(inputBase, '[color-scheme:light]')}
-                    value={birthDate}
-                    onChange={(e) => setBirthDate(e.target.value)}
-                    aria-invalid={!!errors.birthDate}
-                  />
+                <div data-field="birthDate" className="sm:col-span-2">
+                  <LabelRow required>{t('applyDancer.birthDate')}</LabelRow>
+                  <div className="grid grid-cols-3 gap-2" aria-invalid={!!errors.birthDate}>
+                    {/* 년도 */}
+                    <Select value={birthYear || undefined} onValueChange={setBirthYear}>
+                      <SelectTrigger className={cn(inputBase, 'w-full')} aria-invalid={!!errors.birthDate}>
+                        <SelectValue placeholder={t('applyDancer.birthYearPlaceholder')} />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {Array.from({ length: 51 }, (_, i) => 2010 - i).map((y) => (
+                          <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {/* 월 */}
+                    <Select value={birthMonth || undefined} onValueChange={setBirthMonth}>
+                      <SelectTrigger className={cn(inputBase, 'w-full')} aria-invalid={!!errors.birthDate}>
+                        <SelectValue placeholder={t('applyDancer.birthMonthPlaceholder')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                          <SelectItem key={m} value={String(m)}>
+                            {String(m).padStart(2, '0')}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {/* 일 */}
+                    <Select value={birthDay || undefined} onValueChange={setBirthDay}>
+                      <SelectTrigger className={cn(inputBase, 'w-full')} aria-invalid={!!errors.birthDate}>
+                        <SelectValue placeholder={t('applyDancer.birthDayPlaceholder')} />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {Array.from(
+                          {
+                            length:
+                              birthYear && birthMonth
+                                ? new Date(parseInt(birthYear), parseInt(birthMonth), 0).getDate()
+                                : 31,
+                          },
+                          (_, i) => i + 1,
+                        ).map((d) => (
+                          <SelectItem key={d} value={String(d)}>
+                            {String(d).padStart(2, '0')}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <FieldError id="err-birth_date" message={errors.birthDate} />
                 </div>
                 <div data-field="gender">
