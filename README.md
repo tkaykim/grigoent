@@ -1,29 +1,34 @@
-# 댄서-클라이언트 플랫폼
+# 그리고 엔터테인먼트 (GRIGO Entertainment)
 
-안무가(댄서)와 클라이언트를 연결하는 전문 플랫폼입니다.
+댄서 소속사 **그리고 엔터테인먼트**의 공식 홈페이지입니다.
+소속 아티스트(댄서)의 프로필, 경력, 포트폴리오를 소개하고 외부 섭외 및 문의를 받는 창구 역할을 합니다.
+
+> **Live**: [grigoent.co.kr](https://grigoent.co.kr)
 
 ## 목차
 
-- [기술 스택](#-기술-스택)
-- [주요 기능](#-주요-기능)
-- [설치 및 설정](#-설치-및-설정)
-- [데이터베이스 스키마](#-데이터베이스-스키마)
-- [UI/UX 특징](#-uiux-특징)
-- [보안](#-보안)
-- [배포](#-배포)
-- [개발 가이드](#-개발-가이드)
-- [기여하기](#-기여하기)
-- [라이선스](#-라이선스)
-- [문의](#-문의)
+- [기술 스택](#기술-스택)
+- [주요 기능](#주요-기능)
+- [설치 및 설정](#설치-및-설정)
+- [데이터베이스 스키마](#데이터베이스-스키마)
+- [UI/UX 특징](#uiux-특징)
+- [보안](#보안)
+- [배포](#배포)
+- [개발 가이드](#개발-가이드)
+- [기여하기](#기여하기)
+- [라이선스](#라이선스)
+- [문의](#문의)
 
-## 🚀 기술 스택
+## 기술 스택
 
-- **Frontend**: Next.js 14+ (App Router), TypeScript, Tailwind CSS
+- **Frontend**: Next.js 15 (App Router, Turbopack), React 19, TypeScript
+- **Styling**: Tailwind CSS 4
 - **Backend**: Supabase (Database, Auth, Storage)
-- **UI Components**: shadcn/ui
+- **UI Components**: shadcn/ui, Radix UI
+- **Animation**: Framer Motion, Lenis (smooth scroll)
 - **Deployment**: Vercel
 
-## 📋 주요 기능
+## 주요 기능
 
 ### 사용자 관리
 - 회원가입/로그인 (Supabase Auth)
@@ -48,12 +53,12 @@
 - 마이페이지 (권한별 대시보드)
 - 관리자 페이지
 
-## 🛠 설치 및 설정
+## 설치 및 설정
 
 ### 1. 프로젝트 클론
 ```bash
-git clone <repository-url>
-cd dancer-platform
+git clone https://github.com/tkaykim/grigoent.git
+cd grigoent
 ```
 
 ### 2. 의존성 설치
@@ -83,7 +88,7 @@ Supabase 프로젝트를 생성하고 `database-schema.sql` 파일의 내용을 
 npm run dev
 ```
 
-## 📊 데이터베이스 스키마
+## 데이터베이스 스키마
 
 ### users 테이블
 - `id`: UUID (Primary Key)
@@ -116,28 +121,32 @@ npm run dev
 - `end_date`: DATE (종료일)
 - `created_at`: TIMESTAMP
 
-## 🎨 UI/UX 특징
+## UI/UX 특징
 
 - **디자인**: 흑백 모노톤 기반
 - **테마**: shadcn/ui zinc 테마
 - **반응형**: 모바일 우선 설계
 - **접근성**: 적절한 aria-label, semantic HTML 사용
 
-## 🔐 보안
+## 보안
 
 - Supabase Row Level Security (RLS) 적용
 - 사용자별 데이터 접근 제어
 - 관리자 권한 검증
 
-## 🚀 배포
+## 배포
 
-### Vercel 배포
+- **Production URL**: [grigoent.co.kr](https://grigoent.co.kr)
+- **Vercel Project**: `grigo`
+- **CI/CD**: GitHub main 브랜치 push 시 자동 배포
+
+### Vercel 배포 절차
 1. Vercel 계정 생성
 2. GitHub 저장소 연결
 3. 환경변수 설정
 4. 배포 완료
 
-## 📝 개발 가이드
+## 개발 가이드
 
 ### 컴포넌트 구조
 ```
@@ -157,7 +166,7 @@ src/
 - `/api/careers` - 경력 관리
 - `/api/admin` - 관리자 기능
 
-## 🤝 기여하기
+## 기여하기
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
@@ -165,10 +174,12 @@ src/
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 라이선스
+## 라이선스
 
 이 프로젝트는 MIT 라이선스 하에 배포됩니다.
 
-## 📞 문의
+## 문의
 
-프로젝트에 대한 문의사항이 있으시면 이슈를 생성해주세요.
+- **공식 웹사이트**: [grigoent.co.kr](https://grigoent.co.kr)
+- **섭외 및 문의**: 웹사이트 Contact 페이지 이용
+- **기술 이슈**: [GitHub Issues](https://github.com/tkaykim/grigoent/issues)
