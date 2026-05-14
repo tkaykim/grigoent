@@ -20,6 +20,7 @@
 - [보안](#보안)
 - [배포](#배포)
 - [개발 가이드](#개발-가이드)
+- [트러블슈팅](#트러블슈팅)
 - [관련 문서](#관련-문서)
 - [기여하기](#기여하기)
 - [라이선스](#라이선스)
@@ -36,10 +37,15 @@
 | **Backend** | Supabase (Database, Auth, Storage) |
 | **UI Components** | shadcn/ui, Radix UI, Lucide Icons |
 | **Animation** | Framer Motion, Lenis (smooth scroll) |
+| **Carousel** | Embla Carousel |
+| **Image Viewer** | PhotoSwipe |
 | **Form** | React Hook Form, Zod |
+| **CSV 처리** | PapaParse |
 | **Drag & Drop** | dnd-kit |
 | **Email** | Nodemailer |
 | **PDF** | @react-pdf/renderer, pdfkit |
+| **인증 보조** | bcryptjs |
+| **SEO** | next-seo |
 | **Analytics** | Vercel Analytics |
 | **Deployment** | Vercel |
 
@@ -74,6 +80,7 @@
 - 댄서 노출 순서 관리 (Drag & Drop)
 - 통계 대시보드
 - 댄서 지원서 심사
+- CSV 대량 경력 등록
 
 ### 페이지 구성
 - 홈페이지 (Hero 영상, About, Artists, Works, Contact)
@@ -92,23 +99,31 @@
 - npm 또는 yarn
 
 ### 1. 프로젝트 클론
+
 ```bash
 git clone https://github.com/tkaykim/grigoent.git
 cd grigoent
 ```
 
 ### 2. 의존성 설치
+
 ```bash
 npm install
 ```
 
 ### 3. 환경변수 설정
-`.env.local` 파일을 생성하고 [환경변수](#환경변수) 섹션 참조
+
+`.env.local` 파일을 생성하고 [환경변수](#환경변수) 섹션을 참조하세요.
 
 ### 4. Supabase 데이터베이스 설정
-Supabase 프로젝트를 생성하고 `sql/` 폴더의 SQL 파일들을 순서대로 실행
+
+Supabase 프로젝트를 생성한 후, `sql/` 폴더의 SQL 파일들을 순서대로 실행하세요.
+
+> **참고**: `sql/` 폴더의 파일 순서는 파일명의 숫자 접두사를 따릅니다.
+> (예: `01_users.sql` → `02_careers.sql` → ...)
 
 ### 5. 개발 서버 실행
+
 ```bash
 npm run dev
 ```
@@ -123,27 +138,42 @@ npm run dev
 
 ```env
 # Supabase (필수)
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 
 # 사이트 URL
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
-# 이메일 발송 (Nodemailer - 선택)
+# 이메일 발송 (Nodemailer - 견적서 기능 사용 시 필수)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=
-SMTP_PASS=
+SMTP_USER=<gmail-address>
+SMTP_PASS=<gmail-app-password>
 
 # 관리자 알림 수신 이메일 (선택)
-ADMIN_EMAIL=
+ADMIN_EMAIL=<admin-email>
 
 # Google Apps Script 웹훅 (Contact Form용 - 선택)
-NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL=
+NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL=<apps-script-web-app-url>
 ```
 
-> **참고**: SMTP 설정은 견적서 발송 기능에 필요합니다. Gmail 사용 시 앱 비밀번호를 생성하여 `SMTP_PASS`에 설정하세요.
+### 환경변수 상세 설명
+
+| 변수명 | 필수 여부 | 설명 |
+|--------|-----------|------|
+| `NEXT_PUBLIC_SUPABASE_URL` | 필수 | Supabase 프로젝트 URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 필수 | Supabase 익명 키 (공개) |
+| `SUPABASE_SERVICE_ROLE_KEY` | 필수 | Supabase 서비스 롤 키 (서버 전용, 절대 노출 금지) |
+| `NEXT_PUBLIC_SITE_URL` | 필수 | 사이트 기본 URL (로컬: `http://localhost:3000`) |
+| `SMTP_HOST` | 견적서 기능 | SMTP 서버 호스트 |
+| `SMTP_PORT` | 견적서 기능 | SMTP 포트 (보통 587) |
+| `SMTP_USER` | 견적서 기능 | SMTP 계정 (Gmail 주소) |
+| `SMTP_PASS` | 견적서 기능 | Gmail 앱 비밀번호 (2단계 인증 설정 후 발급) |
+| `ADMIN_EMAIL` | 선택 | 관리자 알림 수신 이메일 |
+| `NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL` | 선택 | Contact Form Google Sheets 연동 웹훅 URL |
+
+> **Gmail 앱 비밀번호 발급**: Google 계정 → 보안 → 2단계 인증 활성화 → 앱 비밀번호 생성
 
 ---
 
@@ -180,7 +210,7 @@ grigoent/
 │       ├── supabase/           # Supabase 클라이언트
 │       ├── email.ts            # 이메일 발송
 │       └── admin-auth.ts       # 관리자 인증
-├── sql/                        # 데이터베이스 스키마
+├── sql/                        # 데이터베이스 스키마 SQL
 ├── public/                     # 정적 파일
 ├── docs/                       # 추가 문서
 └── google-apps-script.gs       # Contact Form 웹훅 스크립트
@@ -191,6 +221,7 @@ grigoent/
 ## 데이터베이스 스키마
 
 ### users 테이블
+
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | `id` | UUID | Primary Key |
@@ -200,9 +231,9 @@ grigoent/
 | `phone` | TEXT | 연락처 |
 | `profile_image` | TEXT | 프로필 이미지 URL |
 | `slug` | TEXT | URL용 슬러그 (Unique) |
-| `type` | TEXT | 사용자 유형 |
+| `type` | TEXT | 사용자 유형 (`general` / `dancer` / `client` / `manager` / `admin`) |
 | `pending_type` | TEXT | 승인 대기 유형 |
-| `display_order` | INTEGER | 노출 순서 |
+| `display_order` | INTEGER | 노출 순서 (관리자 Drag & Drop으로 조정) |
 | `introduction` | TEXT | 소개 |
 | `instagram_url` | TEXT | Instagram URL |
 | `twitter_url` | TEXT | Twitter URL |
@@ -210,22 +241,23 @@ grigoent/
 | `created_at` | TIMESTAMP | 생성일시 |
 
 ### career_entries 테이블
+
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | `id` | UUID | Primary Key |
-| `user_id` | UUID | users 참조 |
-| `category` | TEXT | 경력 카테고리 |
+| `user_id` | UUID | users 참조 (FK) |
+| `category` | TEXT | 경력 카테고리 (`안무제작` / `댄서참여` / `광고진행` / `TV프로그램` / `워크샵`) |
 | `title` | TEXT | 제목 |
-| `video_url` | TEXT | 영상 URL |
-| `poster_url` | TEXT | 포스터 URL |
-| `is_featured` | BOOLEAN | 대표작 여부 |
+| `video_url` | TEXT | 영상 URL (YouTube 등) |
+| `poster_url` | TEXT | 포스터 이미지 URL |
+| `is_featured` | BOOLEAN | 대표작 여부 (카테고리별 최대 2개) |
 | `description` | TEXT | 설명 |
 | `country` | TEXT | 진행국가 |
 | `start_date` | DATE | 시작일 |
 | `end_date` | DATE | 종료일 |
 | `created_at` | TIMESTAMP | 생성일시 |
 
-> 추가 테이블 스키마는 `sql/` 폴더의 SQL 파일 참조
+> 전체 테이블 스키마(teams, team_members, proposals, quotes 등)는 `sql/` 폴더의 SQL 파일을 참조하세요.
 
 ---
 
@@ -264,6 +296,7 @@ grigoent/
 - **접근성**: 적절한 aria-label, semantic HTML 사용
 - **애니메이션**: Framer Motion을 활용한 부드러운 전환 효과
 - **스크롤**: Lenis를 활용한 smooth scroll
+- **이미지 뷰어**: PhotoSwipe를 활용한 갤러리 라이트박스
 
 ---
 
@@ -272,7 +305,7 @@ grigoent/
 - Supabase Row Level Security (RLS) 적용
 - 사용자별 데이터 접근 제어
 - 관리자 권한 검증
-- Service Role Key는 서버 사이드에서만 사용
+- **Service Role Key는 서버 사이드에서만 사용** (클라이언트 노출 금지)
 
 ---
 
@@ -281,15 +314,17 @@ grigoent/
 | 항목 | 값 |
 |------|------|
 | **Production URL** | [grigoent.co.kr](https://grigoent.co.kr) |
-| **Vercel Project** | `grigo` |
-| **CI/CD** | GitHub main 브랜치 push 시 자동 배포 |
+| **Vercel Project** | `grigo` (이름 주의: 저장소명 `grigoent`와 다름) |
+| **CI/CD** | GitHub `main` 브랜치 push 시 자동 배포 |
 
 ### Vercel 배포 절차
-1. Vercel 계정에서 GitHub 저장소 연결
+
+1. Vercel 계정에서 GitHub 저장소(`tkaykim/grigoent`) 연결
 2. 환경변수 설정 (Settings > Environment Variables)
-3. main 브랜치 push 시 자동 배포
+3. `main` 브랜치 push 시 자동 배포
 
 ### Preview 배포
+
 - PR 생성 시 자동으로 Preview URL 생성
 - 패턴: `grigoent-git-<branch>-grigoents-projects.vercel.app`
 
@@ -298,21 +333,76 @@ grigoent/
 ## 개발 가이드
 
 ### 스크립트
+
 ```bash
 npm run dev      # 개발 서버 실행 (Turbopack)
-npm run build    # 프로덕션 빌드
+npm run build    # 프로덕션 빌드 (--no-lint 옵션 사용, 빌드 시 ESLint 미실행)
 npm run start    # 프로덕션 서버 실행
-npm run lint     # ESLint 실행
+npm run lint     # ESLint 실행 (개발 중 수동 검사)
 ```
 
+> **빌드 참고**: `npm run build`는 `--no-lint` 옵션을 사용합니다.
+> 코드 품질 검사는 `npm run lint`로 별도 실행하거나, PR 전에 수동으로 확인하세요.
+
 ### 코드 컨벤션
+
 - TypeScript strict mode
 - ESLint + Next.js 권장 규칙
-- 컴포넌트는 PascalCase, 유틸리티는 camelCase
+- **컴포넌트**: PascalCase (예: `ArtistCard.tsx`)
+- **유틸리티 함수**: camelCase (예: `formatDate.ts`)
+- **페이지/라우트**: kebab-case (Next.js App Router 관례)
+- **상수**: UPPER_SNAKE_CASE
 
-### 새 컴포넌트 추가
+### 새 shadcn/ui 컴포넌트 추가
+
 ```bash
 npx shadcn-ui@latest add <component-name>
+```
+
+### 브랜치 전략
+
+| 브랜치 | 역할 |
+|--------|------|
+| `main` | 프로덕션 배포 기준. 직접 push 금지. |
+| `feature/<name>` | 새 기능 개발 |
+| `fix/<name>` | 버그 수정 |
+| `docs/<name>` | 문서 작업 |
+
+---
+
+## 트러블슈팅
+
+### 개발 서버가 실행되지 않을 때
+
+```bash
+# Node.js 버전 확인 (20 이상 필요)
+node -v
+
+# node_modules 재설치
+rm -rf node_modules .next
+npm install
+npm run dev
+```
+
+### Supabase 연결 오류
+
+- `.env.local` 파일에 `NEXT_PUBLIC_SUPABASE_URL`과 `NEXT_PUBLIC_SUPABASE_ANON_KEY`가 올바르게 설정됐는지 확인
+- Supabase 대시보드 → Settings → API에서 키 재확인
+
+### 이메일 발송이 안 될 때
+
+- Gmail 앱 비밀번호 사용 여부 확인 (일반 비밀번호 사용 불가)
+- Gmail → 보안 → 2단계 인증 활성화 후 앱 비밀번호 발급 필요
+- 자세한 설정은 [Contact Form 이메일 설정](./CONTACT_EMAIL_SETUP.md) 참조
+
+### 빌드 오류
+
+```bash
+# TypeScript 타입 오류 확인
+npx tsc --noEmit
+
+# ESLint 오류 확인
+npm run lint
 ```
 
 ---
@@ -323,16 +413,29 @@ npx shadcn-ui@latest add <component-name>
 - [대량 경력 등록 가이드](./BULK_CAREER_REGISTRATION_GUIDE.md)
 - [사용자 권한 규칙](./USER_PERMISSIONS_RULES.md)
 - [다국어 번역 TODO](./LANGUAGE_TRANSLATION_TODO.md)
+- [이메일/웹훅 수수료 리포트](./docs/email-webhook-fee-reports.md)
 
 ---
 
 ## 기여하기
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. 저장소를 포크합니다
+2. 기능 브랜치를 생성합니다 (`git checkout -b feature/기능명`)
+3. 변경사항을 커밋합니다 (`git commit -m 'feat: 기능 설명'`)
+4. 브랜치에 푸시합니다 (`git push origin feature/기능명`)
+5. Pull Request를 생성합니다
+
+### 커밋 메시지 컨벤션
+
+| 타입 | 설명 |
+|------|------|
+| `feat` | 새 기능 추가 |
+| `fix` | 버그 수정 |
+| `docs` | 문서 변경 |
+| `style` | 코드 포맷·스타일 변경 (로직 변경 없음) |
+| `refactor` | 리팩터링 |
+| `test` | 테스트 추가/수정 |
+| `chore` | 빌드·설정 파일 변경 |
 
 ---
 
