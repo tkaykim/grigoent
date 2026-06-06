@@ -55,9 +55,36 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // GEO/AEO: schema.org JSON-LD (Organization + WebSite)
+  const SITE = "https://grigoent.co.kr";
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${SITE}/#organization`,
+        name: "그리고 엔터테인먼트",
+        alternateName: "GRIGO Entertainment",
+        url: SITE,
+        email: "contact@grigoent.co.kr",
+        description:
+          "댄서·안무가 섭외, 안무 제작, 뮤직비디오·광고 댄스, 공연·브랜디드 협업 댄스 엔터테인먼트.",
+        areaServed: "KR",
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${SITE}/#website`,
+        url: SITE,
+        name: "그리고 엔터테인먼트",
+        inLanguage: "ko-KR",
+        publisher: { "@id": `${SITE}/#organization` },
+      },
+    ],
+  };
   return (
     <html lang="ko">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <AuthProvider>
           <LanguageProvider>
             {children}
