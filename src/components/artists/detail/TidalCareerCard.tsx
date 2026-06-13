@@ -38,7 +38,8 @@ export function TidalCareerCard({
     }
     
     if (career.video_url && isValidYouTubeUrl(career.video_url)) {
-      return getThumbnailFromUrl(career.video_url)
+      // 카드 표시 크기(256×160)에는 mqdefault(320×180, ~15KB)면 충분 — maxres(~120KB)는 5배 과대
+      return getThumbnailFromUrl(career.video_url, 'medium')
     }
     
     return null
@@ -79,6 +80,8 @@ export function TidalCareerCard({
           <img
             src={thumbnail}
             alt={career.title}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
           />
         ) : (

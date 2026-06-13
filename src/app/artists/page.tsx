@@ -31,157 +31,85 @@ export default function ArtistsPage() {
     // eslint-disable-next-line
   }, [])
 
+  // 4개 쿼리를 1회 병렬 왕복으로 — 기존 3단계 순차(순서표 → 유저·팀 → 팀멤버) 대비 모바일 체감 개선 (2026-06-13)
   const fetchAll = async () => {
     setLoading(true)
     setRetryCount(0)
     try {
-      // 통합 순서 테이블에서 순서 데이터 가져오기
-      const { data: orderItems, error: orderError } = await supabase
-        .from('display_order_items')
-        .select('*')
-        .order('display_order', { ascending: true })
-
-      if (orderError) {
-        console.error('순서 데이터 로드 오류:', orderError)
-        // 순서 테이블이 없으면 기존 방식으로 로드
-        await fetchWithLegacyMethod()
-        return
-      }
-
-      if (!orderItems || orderItems.length === 0) {
-        // 순서 테이블이 비어있으면 기존 방식으로 로드
-        await fetchWithLegacyMethod()
-        return
-      }
-
-      // 아티스트와 팀 ID 분리
-      const artistIds = orderItems
-        .filter(item => item.item_type === 'artist')
-        .map(item => item.item_id)
-      
-      const teamIds = orderItems
-        .filter(item => item.item_type === 'team')
-        .map(item => item.item_id)
-
-      // 아티스트와 팀 데이터 가져오기
-      const [artistsResult, teamsResult] = await Promise.all([
+      const [orderRes, artistsRes, teamsRes, membersRes] = await Promise.all([
+        supabase
+          .from('display_order_items')
+          .select('*')
+          .order('display_order', { ascending: true }),
         supabase
           .from('users')
           .select('*')
           .eq('type', 'dancer')
-          .in('id', artistIds),
+          .order('display_order', { ascending: true })
+          .order('created_at', { ascending: true }),
         supabase
           .from('teams')
           .select('*')
           .eq('status', 'active')
-          .in('id', teamIds)
+          .order('display_order', { ascending: true })
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('team_members')
+          .select('user_id, team:teams!inner(id, name, name_en, status)')
+          .eq('team.status', 'active') as unknown as Promise<{ data: any[] }>,
       ])
 
-      if (artistsResult.error || teamsResult.error) {
-        console.error('데이터 로드 오류:', artistsResult.error || teamsResult.error)
-        await fetchWithLegacyMethod()
-        return
+      const artists = (artistsRes as any).data ?? []
+      const teams = (teamsRes as any).data ?? []
+      const orderItems = (orderRes as any).error ? [] : ((orderRes as any).data ?? [])
+      const members = (membersRes as any).data ?? []
+
+      // 아티스트별 소속팀 맵
+      const artistTeamsMap: Record<string, { name: string; name_en: string }[]> = {}
+      for (const m of members) {
+        if (!artistTeamsMap[m.user_id]) artistTeamsMap[m.user_id] = []
+        if (Array.isArray(m.team)) {
+          artistTeamsMap[m.user_id].push(...(m.team.map((t: any) => ({ name: t.name, name_en: t.name_en })) as { name: string; name_en: string }[]))
+        } else if (m.team) {
+          artistTeamsMap[m.user_id].push({ name: m.team.name, name_en: m.team.name_en } as { name: string; name_en: string })
+        }
       }
 
-      // 순서 테이블의 순서대로 아티스트와 팀 정렬
-      const orderedArtists: User[] = []
-      const orderedTeams: Team[] = []
-      const orderedItems: Array<{type: 'artist' | 'team', data: User | Team}> = []
-
-      orderItems.forEach(orderItem => {
-        if (orderItem.item_type === 'artist') {
-          const artist = artistsResult.data?.find(a => a.id === orderItem.item_id)
-          if (artist) {
-            orderedArtists.push(artist)
-            orderedItems.push({ type: 'artist', data: artist })
-          }
-        } else if (orderItem.item_type === 'team') {
-          const team = teamsResult.data?.find(t => t.id === orderItem.item_id)
-          if (team) {
-            orderedTeams.push(team)
-            orderedItems.push({ type: 'team', data: team })
-          }
-        }
-      })
-
-      // 팀 멤버(아티스트별 소속팀 맵만 사용)
-      let artistTeamsMap: Record<string, { name: string; name_en: string }[]> = {}
-      if (orderedTeams && orderedTeams.length > 0) {
-        const teamIds = orderedTeams.map(t => t.id)
-        const { data: members } = await supabase
-          .from('team_members')
-          .select('user_id, team:teams(id, name, name_en)')
-          .in('team_id', teamIds) as { data: any[] }
-        if (members) {
-          for (const m of members) {
-            // 아티스트별 소속팀 맵
-            if (!artistTeamsMap[m.user_id]) artistTeamsMap[m.user_id] = []
-            if (Array.isArray(m.team)) {
-              artistTeamsMap[m.user_id].push(...(m.team.map((t: any) => ({ name: t.name, name_en: t.name_en })) as { name: string; name_en: string }[]))
-            } else if (m.team) {
-              artistTeamsMap[m.user_id].push({ name: m.team.name, name_en: m.team.name_en } as { name: string; name_en: string })
+      if (orderItems.length > 0) {
+        // 순서 테이블 기준 정렬
+        const orderedArtists: User[] = []
+        const orderedTeams: Team[] = []
+        const ordered: Array<{type: 'artist' | 'team', data: User | Team}> = []
+        orderItems.forEach((orderItem: any) => {
+          if (orderItem.item_type === 'artist') {
+            const artist = artists.find((a: User) => a.id === orderItem.item_id)
+            if (artist) {
+              orderedArtists.push(artist)
+              ordered.push({ type: 'artist', data: artist })
+            }
+          } else if (orderItem.item_type === 'team') {
+            const team = teams.find((t: Team) => t.id === orderItem.item_id)
+            if (team) {
+              orderedTeams.push(team)
+              ordered.push({ type: 'team', data: team })
             }
           }
-        }
+        })
+        setAllArtists(orderedArtists)
+        setAllTeams(orderedTeams)
+        setOrderedItems(ordered)
+      } else {
+        // 순서 테이블이 없거나 비었으면 기본 정렬 그대로
+        setAllArtists(artists)
+        setAllTeams(teams)
+        setOrderedItems([])
       }
-
-      setAllArtists(orderedArtists)
-      setAllTeams(orderedTeams)
-      setOrderedItems(orderedItems)
       setArtistTeamsMap(artistTeamsMap)
     } catch (e) {
+      console.error('아티스트 목록 로드 오류:', e)
       setRetryCount(prev => prev + 1)
-      if (retryCount + 1 >= 3) {
-        setLoading(false)
-      }
     } finally {
       setLoading(false)
-    }
-  }
-
-  // 기존 방식으로 데이터 로드 (순서 테이블이 없을 때 사용)
-  const fetchWithLegacyMethod = async () => {
-    try {
-      // 아티스트(개인)
-      const { data: artists } = await supabase
-        .from('users')
-        .select('*')
-        .eq('type', 'dancer')
-        .order('display_order', { ascending: true })
-        .order('created_at', { ascending: true })
-      // 팀
-      const { data: teams } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('status', 'active')
-        .order('display_order', { ascending: true })
-        .order('created_at', { ascending: false })
-      // 팀 멤버(아티스트별 소속팀 맵만 사용)
-      let artistTeamsMap: Record<string, { name: string; name_en: string }[]> = {}
-      if (teams && teams.length > 0) {
-        const teamIds = teams.map(t => t.id)
-        const { data: members } = await supabase
-          .from('team_members')
-          .select('user_id, team:teams(id, name, name_en)')
-          .in('team_id', teamIds) as { data: any[] }
-        if (members) {
-          for (const m of members) {
-            // 아티스트별 소속팀 맵
-            if (!artistTeamsMap[m.user_id]) artistTeamsMap[m.user_id] = []
-            if (Array.isArray(m.team)) {
-              artistTeamsMap[m.user_id].push(...(m.team.map((t: any) => ({ name: t.name, name_en: t.name_en })) as { name: string; name_en: string }[]))
-            } else if (m.team) {
-              artistTeamsMap[m.user_id].push({ name: m.team.name, name_en: m.team.name_en } as { name: string; name_en: string })
-            }
-          }
-        }
-      }
-      setAllArtists(artists || [])
-      setAllTeams(teams || [])
-      setOrderedItems([]) // 기존 방식에서는 순서 아이템을 사용하지 않음
-      setArtistTeamsMap(artistTeamsMap)
-    } catch (e) {
-      console.error('기존 방식 데이터 로드 오류:', e)
     }
   }
 
