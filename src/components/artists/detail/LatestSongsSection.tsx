@@ -27,7 +27,8 @@ export function LatestSongsSection({ careers, onVideoOpen, className = '', isAdm
   const getCareerThumbnail = (career: CareerEntry) => {
     if (career.poster_url) return career.poster_url
     if (career.video_url && isValidYouTubeUrl(career.video_url)) {
-      return getThumbnailFromUrl(career.video_url)
+      // 64×64 표시에 maxres(1280px, ~120KB)는 과대 — mqdefault(320px, ~15KB)로 충분
+      return getThumbnailFromUrl(career.video_url, 'medium')
     }
     return null
   }
@@ -71,7 +72,7 @@ export function LatestSongsSection({ careers, onVideoOpen, className = '', isAdm
                         <div key={career.id} className="group flex items-center space-x-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-all duration-300 cursor-pointer w-96 h-24" onClick={() => { if (!isEditMode) onVideoOpen(career) }}>
                          <div className="flex-shrink-0 w-16 h-16 bg-gray-900 rounded-lg overflow-hidden">
                            {getCareerThumbnail(career) ? (
-                             <img src={getCareerThumbnail(career)!} alt={career.title} className="w-full h-full object-cover" />
+                             <img src={getCareerThumbnail(career)!} alt={career.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                            ) : (
                              <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
                                <Play className="w-6 h-6 text-gray-400" />
