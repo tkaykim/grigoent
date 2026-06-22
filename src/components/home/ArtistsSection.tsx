@@ -10,14 +10,21 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { User as UserIcon } from 'lucide-react'
 
-export function ArtistsSection() {
-  const [orderedItems, setOrderedItems] = useState<Array<{type: 'artist' | 'team', data: User | Team}>>([])
-  const [loading, setLoading] = useState(true)
+type OrderedItem = { type: 'artist' | 'team', data: User | Team }
+
+export function ArtistsSection({ initialItems }: { initialItems?: OrderedItem[] }) {
+  const hasInitial = !!initialItems && initialItems.length > 0
+  const [orderedItems, setOrderedItems] = useState<OrderedItem[]>(initialItems ?? [])
+  // 서버에서 데이터를 받아왔으면 즉시 표시 (클라이언트 워터폴 제거)
+  const [loading, setLoading] = useState(!hasInitial)
   const [retryCount, setRetryCount] = useState(0)
   const { t, language } = useLanguage()
 
   useEffect(() => {
+    // 서버에서 초기 데이터를 받았으면 다시 fetch하지 않음
+    if (hasInitial) return
     fetchArtists()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchArtists = async () => {

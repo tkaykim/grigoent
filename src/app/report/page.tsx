@@ -9,6 +9,9 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase'
+
+const EVIDENCE_BUCKET = 'fee-report-evidence'
 
 const WORK_OPTIONS = [
   { id: 'choreography' as const, label: '안무 제작' },
@@ -19,6 +22,27 @@ const WORK_OPTIONS = [
 ]
 
 type ClientType = 'company' | 'individual' | 'unknown'
+
+const MAX_FILES = 50 // 사실상 무제한 — 폭주 방지용 안전 백스톱
+const MAX_FILE_BYTES = 100 * 1024 * 1024 // 100MB/파일 (브라우저 직접 업로드라 Vercel 한도 무관)
+const ALLOWED_EXT = [
+  'jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif',
+  'pdf', 'doc', 'docx', 'hwp', 'hwpx', 'txt', 'rtf',
+  'xls', 'xlsx', 'csv', 'ppt', 'pptx', 'zip', '7z', 'rar', 'eml', 'msg',
+  'mp4', 'mov', 'm4v', 'webm', 'mp3', 'm4a', 'wav', 'aac', 'amr',
+]
+const ACCEPT_ATTR = ALLOWED_EXT.map((e) => `.${e}`).join(',') + ',image/*'
+
+function getExt(name: string) {
+  const i = name.lastIndexOf('.')
+  return i >= 0 ? name.slice(i + 1).toLowerCase() : ''
+}
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`
+  return `${(n / 1024 / 1024).toFixed(1)} MB`
+}
 
 export default function ReportPage() {
   const [workCategories, setWorkCategories] = useState<string[]>([])
@@ -34,9 +58,41 @@ export default function ReportPage() {
   const [consent, setConsent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([])
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
 
   const toggleWork = (id: string) => {
     setWorkCategories((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const handleAddFiles = (selected: FileList | null) => {
+    if (!selected) return
+    const incoming = Array.from(selected)
+    setEvidenceFiles((prev) => {
+      const next = [...prev]
+      for (const f of incoming) {
+        if (next.length >= MAX_FILES) {
+          toast.error(`증빙은 최대 ${MAX_FILES}개까지 첨부할 수 있습니다.`)
+          break
+        }
+        if (f.size > MAX_FILE_BYTES) {
+          toast.error(`「${f.name}」는 10MB를 초과합니다.`)
+          continue
+        }
+        if (!ALLOWED_EXT.includes(getExt(f.name))) {
+          toast.error(`「${f.name}」는 지원하지 않는 형식입니다.`)
+          continue
+        }
+        // 같은 이름·크기 중복 방지
+        if (next.some((x) => x.name === f.name && x.size === f.size)) continue
+        next.push(f)
+      }
+      return next
+    })
+  }
+
+  const removeFile = (idx: number) => {
+    setEvidenceFiles((prev) => prev.filter((_, i) => i !== idx))
   }
 
   const validateContact = (contact: string) => {
@@ -113,10 +169,41 @@ export default function ReportPage() {
         consent_accepted: true,
       }
 
+      // 1) 증빙이 있으면 브라우저가 스토리지로 직접 업로드 (서명 URL → Vercel 본문 한도 우회, 대용량·다수 OK)
+      let reportId: string | undefined
+      if (evidenceFiles.length > 0) {
+        setUploadProgress({ done: 0, total: evidenceFiles.length })
+        const urlRes = await fetch('/api/fee-reports/upload-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            files: evidenceFiles.map((f) => ({ name: f.name, size: f.size, type: f.type })),
+          }),
+        })
+        if (!urlRes.ok) {
+          throw new Error('증빙 업로드 준비에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+        }
+        const { report_id, files } = await urlRes.json()
+        reportId = report_id
+
+        for (let i = 0; i < evidenceFiles.length; i++) {
+          const target = files[i]
+          const { error: upErr } = await supabase.storage
+            .from(EVIDENCE_BUCKET)
+            .uploadToSignedUrl(target.path, target.token, evidenceFiles[i])
+          if (upErr) {
+            console.error('evidence upload:', upErr)
+            throw new Error(`증빙 「${evidenceFiles[i].name}」 업로드에 실패했습니다. 파일을 줄이거나 다시 시도해 주세요.`)
+          }
+          setUploadProgress({ done: i + 1, total: evidenceFiles.length })
+        }
+      }
+
+      // 2) 제보 본문 전송 (서버가 report_id 폴더의 실제 첨부를 수집해 저장)
       const dbRes = await fetch('/api/fee-reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, report_id: reportId }),
       })
 
       if (!dbRes.ok) {
@@ -125,39 +212,15 @@ export default function ReportPage() {
         throw new Error('제보 접수에 실패했습니다. 잠시 후 다시 시도해 주세요.')
       }
 
-      try {
-        const mailRes = await fetch('/api/email-webhook', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'unpaid_fee_report',
-            work_categories: workCategories,
-            client_type: clientType,
-            amount_note: amountNote.trim(),
-            pay_type_note: payTypeNote.trim(),
-            reporter_name: reporterName.trim(),
-            reporter_contact: reporterContact.trim(),
-            reporter_instagram: reporterInstagram.trim().startsWith('@')
-              ? reporterInstagram.trim().slice(1)
-              : reporterInstagram.trim(),
-            summary: counterpartyNote.trim().slice(0, 500),
-          }),
-        })
-        if (!mailRes.ok) {
-          console.warn('email-webhook unpaid_fee_report status:', mailRes.status)
-          toast.message('접수는 완료되었으나 알림 메일 전달에 문제가 있을 수 있습니다.')
-        }
-      } catch (mailErr) {
-        console.warn('email-webhook unpaid_fee_report:', mailErr)
-        toast.message('접수는 완료되었으나 알림 메일 전달에 문제가 있을 수 있습니다.')
-      }
-
+      // 알림은 오케스트레이터 워커가 Supabase fee_payment_reports를 폴링해 NAVER WORKS로 발송.
+      // (구 Google Apps Script/스프레드시트 경로 폐기 — Supabase가 정본 DB)
       setSubmitted(true)
       toast.success('제보가 접수되었습니다. 소중한 정보에 감사드립니다.')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '오류가 발생했습니다.')
     } finally {
       setLoading(false)
+      setUploadProgress(null)
     }
   }
 
@@ -336,6 +399,51 @@ export default function ReportPage() {
                 />
               </div>
 
+              <div>
+                <Label className="text-white">증빙 자료 첨부 (선택)</Label>
+                <p className="text-xs text-white/50 mt-1 mb-2">
+                  카카오톡 대화 캡처, 이메일, 계약서, 계산서·세금계산서, 입금내역 등 관련 자료를 갯수 제한 없이 올려 주세요.
+                  파일당 최대 100MB. (이미지·PDF·문서·한글·엑셀·영상·음성·zip 등)
+                </p>
+                <input
+                  id="evidence"
+                  type="file"
+                  multiple
+                  accept={ACCEPT_ATTR}
+                  onChange={(e) => {
+                    handleAddFiles(e.target.files)
+                    e.target.value = ''
+                  }}
+                  className="block w-full text-sm text-white/80 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-white file:text-black file:font-medium file:cursor-pointer hover:file:bg-white/90"
+                />
+                {evidenceFiles.length > 0 && (
+                  <ul className="mt-3 space-y-2">
+                    {evidenceFiles.map((f, idx) => (
+                      <li
+                        key={`${f.name}-${idx}`}
+                        className="flex items-center justify-between gap-3 rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm"
+                      >
+                        <span className="truncate text-white/85">{f.name}</span>
+                        <span className="flex items-center gap-3 shrink-0">
+                          <span className="text-xs text-white/40">{formatBytes(f.size)}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(idx)}
+                            className="text-white/50 hover:text-red-300 transition-colors"
+                            aria-label="첨부 삭제"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="text-xs text-white/40 mt-2">
+                  첨부 자료는 비공개로 저장되며, 내부 확인·법적 절차 준비 용도로만 관리자가 열람합니다.
+                </p>
+              </div>
+
               <div className="border-t border-white/10 pt-6 space-y-4">
                 <p className="text-sm text-white/90 font-medium">제보자 확인 (필수)</p>
                 <p className="text-xs text-white/55 -mt-2">
@@ -408,7 +516,11 @@ export default function ReportPage() {
                 disabled={loading}
                 className="w-full sm:w-auto bg-white text-black hover:bg-white/90"
               >
-                {loading ? '접수 중…' : '제보 보내기'}
+                {uploadProgress
+                  ? `증빙 업로드 중… (${uploadProgress.done}/${uploadProgress.total})`
+                  : loading
+                    ? '접수 중…'
+                    : '제보 보내기'}
               </Button>
             </form>
           )}

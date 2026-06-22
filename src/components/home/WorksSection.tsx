@@ -22,10 +22,12 @@ interface FeaturedWork {
   created_at: string
 }
 
-export function WorksSection() {
+export function WorksSection({ initialWorks }: { initialWorks?: FeaturedWork[] }) {
   const { t } = useLanguage()
-  const [featuredWorks, setFeaturedWorks] = useState<FeaturedWork[]>([])
-  const [loading, setLoading] = useState(true)
+  const hasInitial = !!initialWorks && initialWorks.length > 0
+  const [featuredWorks, setFeaturedWorks] = useState<FeaturedWork[]>(initialWorks ?? [])
+  // 서버에서 대표작을 받아왔으면 즉시 표시 (클라이언트 워터폴 제거)
+  const [loading, setLoading] = useState(!hasInitial)
   const [error, setError] = useState<string | null>(null)
   const [selectedWork, setSelectedWork] = useState<FeaturedWork | null>(null)
   const [showVideoModal, setShowVideoModal] = useState(false)
@@ -166,6 +168,12 @@ export function WorksSection() {
   }, [fetchFeaturedWorks])
 
   useEffect(() => {
+    // 서버에서 초기 대표작을 받았으면 마운트 시 다시 fetch하지 않음
+    if (hasInitial) {
+      lastFetchTimeRef.current = Date.now()
+      return
+    }
+
     let isMounted = true
 
     const loadData = async () => {
@@ -180,7 +188,8 @@ export function WorksSection() {
     return () => {
       isMounted = false
     }
-  }, [fetchFeaturedWorks])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasInitial])
 
   const handleManualRefresh = useCallback(async (e?: React.MouseEvent) => {
     e?.preventDefault()
