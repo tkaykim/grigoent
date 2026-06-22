@@ -21,6 +21,26 @@ type FeeReportRow = {
   reporter_contact: string | null
   reporter_instagram: string | null
   consent_accepted: boolean
+  evidence_files?: EvidenceFile[]
+}
+
+type EvidenceFile = {
+  path: string
+  name: string
+  size: number
+  type: string
+  url: string | null
+}
+
+function isImage(f: EvidenceFile) {
+  return /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(f.name)
+}
+
+function formatBytes(n: number) {
+  if (!n) return ''
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`
+  return `${(n / 1024 / 1024).toFixed(1)} MB`
 }
 
 const WORK_LABEL: Record<string, string> = {
@@ -150,6 +170,43 @@ export default function AdminFeeReportsPage() {
                             <span className="text-zinc-500">인스타그램: </span>
                             {row.reporter_instagram ? `@${row.reporter_instagram}` : '—'}
                           </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-zinc-500 uppercase">
+                            증빙 자료 {row.evidence_files?.length ? `(${row.evidence_files.length})` : ''}
+                          </p>
+                          {row.evidence_files && row.evidence_files.length > 0 ? (
+                            <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                              {row.evidence_files.map((f, i) => (
+                                <a
+                                  key={`${f.path}-${i}`}
+                                  href={f.url || '#'}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block rounded-md border border-zinc-200 bg-white p-2 hover:border-zinc-400 transition-colors"
+                                >
+                                  {isImage(f) && f.url ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                      src={f.url}
+                                      alt={f.name}
+                                      className="w-full h-28 object-cover rounded"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-28 flex items-center justify-center bg-zinc-100 rounded text-3xl">
+                                      📎
+                                    </div>
+                                  )}
+                                  <p className="mt-1 truncate text-xs text-zinc-700" title={f.name}>
+                                    {f.name}
+                                  </p>
+                                  <p className="text-[10px] text-zinc-400">{formatBytes(f.size)}</p>
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-zinc-400 mt-1">첨부 없음</p>
+                          )}
                         </div>
                       </div>
                     )}
