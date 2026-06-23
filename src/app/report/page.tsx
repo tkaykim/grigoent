@@ -238,39 +238,28 @@ export default function ReportPage() {
             제보
           </p>
 
-          <section className="space-y-4 text-white/80 text-sm leading-relaxed mb-10 border border-white/15 rounded-lg p-6 bg-white/[0.03]">
+          <section className="space-y-5 text-white/80 text-sm leading-relaxed mb-10 border border-white/15 rounded-lg p-6 bg-white/[0.03]">
             <p>
-              최근 댄서 시장에서 프로젝트를 진행한 뒤 비용 정산이 늦어지거나 받지 못하는 사례를 여럿 접해
-              왔고, 그와 관련해 법적 절차를 진행 중인 상황도 있습니다. 다만 개별 사건만으로는 사실관계를
-              넓게 파악하기 어려워, <strong className="text-white">비슷한 경험이 있는 분들의 제보</strong>를
-              모으고자 이 페이지를 마련했습니다.
+              최근 댄서 시장에서 프로젝트를 진행한 뒤 비용 정산이 늦어지거나 받지 못하는 사례를 여럿 접해 왔습니다.<br />
+              그와 관련해 법적 절차를 진행 중인 상황도 있습니다.<br />
+              개별 사건만으로는 사실관계를 넓게 파악하기 어려워, <strong className="text-white">비슷한 경험이 있는 분들의 제보</strong>를 모으고자 이 페이지를 마련했습니다.
             </p>
             <p>
-              <strong className="text-white">안무 제작, 공연, 댄서 출연, 광고</strong> 등으로 활동하셨으나
-              약정한 대금을 받지 못하셨다면, 아래 양식에 가능한 범위에서 사실관계를 적고 관련 증빙을 함께
-              첨부해 주시면 큰 도움이 됩니다.
+              <strong className="text-white">안무 제작, 공연, 댄서 출연, 광고</strong> 등으로 활동하셨으나 약정한 대금을 받지 못하셨다면, 아래 양식에 사실관계를 적고 관련 증빙을 함께 첨부해 주세요.
             </p>
-            <div className="border border-white/15 rounded-md p-4 bg-white/[0.04] text-white/75 text-xs leading-relaxed space-y-2">
-              <p>
-                접수된 내용은 사례 정리와 내부 검토의 <strong className="text-white">참고 자료</strong>로
-                활용합니다. 다만 본 제보가 <strong className="text-white">법률 자문이나 법적 절차의 대리를
-                보증하는 것은 아닙니다.</strong>
-              </p>
-              <p>
-                수집된 자료는 추후 <strong className="text-white">단체 소송이나 청구 소송 등에 활용</strong>될 수
-                있으며, 실제 활용 시에는 <strong className="text-white">반드시 제보자 본인에게 의사를 확인하고
-                조율한 뒤 진행</strong>합니다.
-              </p>
+            <div className="border border-white/15 rounded-md p-4 bg-white/[0.04] text-white/75 text-xs leading-relaxed">
+              접수된 내용은 사례 정리와 내부 검토의 <strong className="text-white">참고 자료</strong>로 활용합니다.<br />
+              다만 본 제보가 <strong className="text-white">법률 자문이나 법적 절차의 대리를 보증하는 것은 아닙니다.</strong><br />
+              수집된 자료는 추후 <strong className="text-white">단체 소송이나 청구 소송 등에 활용</strong>될 수 있습니다.<br />
+              실제 활용 시에는 <strong className="text-white">반드시 제보자 본인에게 의사를 확인하고 조율한 뒤 진행</strong>합니다.
             </div>
             <div className="border border-white/15 rounded-md p-4 bg-white/[0.04] text-white/75 text-xs leading-relaxed">
-              아래에 요청하는 <strong className="text-white">이름·연락처·인스타그램 아이디</strong>는
-              허위 제보를 줄이고 사실관계를 내부에서만 확인하기 위해 받습니다. 해당 정보는{' '}
-              <strong className="text-white">웹사이트나 대외 자료에 공개되지 않으며</strong>, 제보자 개인을
-              드러내는 형태로 사용하지 않습니다.
+              아래에 요청하는 <strong className="text-white">이름·연락처·인스타그램 아이디</strong>는 허위 제보를 줄이고 사실관계를 내부에서만 확인하기 위해 받습니다.<br />
+              해당 정보는 <strong className="text-white">웹사이트나 대외 자료에 공개되지 않으며</strong>, 제보자 개인을 드러내는 형태로 사용하지 않습니다.
             </div>
             <p className="text-white/55 text-xs">
-              확인되지 않은 추측이나 타인의 명예를 훼손할 수 있는 표현은 삼가 주시고, 사실에 기반하여
-              객관적으로 적어 주시기 바랍니다.
+              확인되지 않은 추측이나 타인의 명예를 훼손할 수 있는 표현은 삼가 주세요.<br />
+              사실에 기반하여 객관적으로 적어 주시기 바랍니다.
             </p>
           </section>
 
