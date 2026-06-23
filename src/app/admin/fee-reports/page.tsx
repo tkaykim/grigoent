@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -74,12 +75,20 @@ export default function AdminFeeReportsPage() {
     }
     const load = async () => {
       try {
-        const res = await fetch('/api/admin/fee-reports', { cache: 'no-store', credentials: 'include' })
+        // grigoent 세션은 localStorage → 서버 라우트엔 Bearer 토큰으로 신원 전달
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.access_token) {
+          throw new Error('no_session')
+        }
+        const res = await fetch('/api/admin/fee-reports', {
+          cache: 'no-store',
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
         const json = await res.json()
         if (!res.ok) throw new Error(json.error || 'failed')
         setItems(json.items || [])
       } catch {
-        setError('목록을 불러오지 못했습니다. Supabase 테이블·RLS(sql/fee-payment-reports.sql) 적용 여부를 확인해 주세요.')
+        setError('목록을 불러오지 못했습니다. 관리자 계정으로 로그인했는지 확인하거나, 잠시 후 새로고침해 주세요.')
       } finally {
         setLoading(false)
       }
