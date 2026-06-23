@@ -273,7 +273,7 @@ export default function ReportPage() {
                 </a>
                 로 메일을 보내 주세요.
               </p>
-              <Button asChild variant="outline" className="border-white/30 text-white mt-4">
+              <Button asChild className="bg-white text-black hover:bg-white/90 mt-4">
                 <Link href="/">홈으로</Link>
               </Button>
             </div>
