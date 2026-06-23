@@ -37,6 +37,25 @@ function isImage(f: EvidenceFile) {
   return /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(f.name)
 }
 
+// 이미지면 썸네일, 로드 실패(엑박)·비이미지면 📎 아이콘으로 폴백
+function EvidenceThumb({ f }: { f: EvidenceFile }) {
+  const [err, setErr] = useState(false)
+  if (isImage(f) && f.url && !err) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={f.url}
+        alt={f.name}
+        className="w-full h-28 object-cover rounded"
+        onError={() => setErr(true)}
+      />
+    )
+  }
+  return (
+    <div className="w-full h-28 flex items-center justify-center bg-zinc-100 rounded text-3xl">📎</div>
+  )
+}
+
 function formatBytes(n: number) {
   if (!n) return ''
   if (n < 1024) return `${n} B`
@@ -194,18 +213,7 @@ export default function AdminFeeReportsPage() {
                                   rel="noopener noreferrer"
                                   className="block rounded-md border border-zinc-200 bg-white p-2 hover:border-zinc-400 transition-colors"
                                 >
-                                  {isImage(f) && f.url ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                      src={f.url}
-                                      alt={f.name}
-                                      className="w-full h-28 object-cover rounded"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-28 flex items-center justify-center bg-zinc-100 rounded text-3xl">
-                                      📎
-                                    </div>
-                                  )}
+                                  <EvidenceThumb f={f} />
                                   <p className="mt-1 truncate text-xs text-zinc-700" title={f.name}>
                                     {f.name}
                                   </p>
