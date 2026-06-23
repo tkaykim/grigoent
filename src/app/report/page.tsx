@@ -337,8 +337,8 @@ export default function ReportPage() {
                   상대방·채권 관련 정보
                 </Label>
                 <p className="text-xs text-white/50 mt-1 mb-2">
-                  업체명, 담당자 표시, 연락 경로 등 알고 계신 범위에서 적어 주세요. 정확히 모르시면 그렇게
-                  적어 주셔도 됩니다.
+                  업체명, 담당자 표시, 연락 경로 등 알고 계신 범위에서 적어 주세요.<br />
+                  정확히 모르시면 그렇게 적어 주셔도 됩니다.
                 </p>
                 <Textarea
                   id="counterparty"
@@ -401,8 +401,9 @@ export default function ReportPage() {
               <div>
                 <Label className="text-white">증빙 자료 첨부 (선택)</Label>
                 <p className="text-xs text-white/50 mt-1 mb-2">
-                  카카오톡 대화 캡처, 이메일, 계약서, 계산서·세금계산서, 입금내역 등 관련 자료를 갯수 제한 없이 올려 주세요.
-                  파일당 최대 100MB. (이미지·PDF·문서·한글·엑셀·영상·음성·zip 등)
+                  카카오톡 대화 캡처, 이메일, 계약서, 계산서·세금계산서, 입금내역 등 관련 자료를 갯수 제한 없이 올려 주세요.<br />
+                  파일당 최대 100MB까지 첨부할 수 있습니다.<br />
+                  이미지·PDF·문서·한글·엑셀·영상·음성·zip 등을 지원합니다.
                 </p>
                 <input
                   id="evidence"
@@ -481,7 +482,8 @@ export default function ReportPage() {
                     인스타그램 아이디
                   </Label>
                   <p className="text-xs text-white/50 mt-1 mb-2">
-                    @ 없이 입력해도 됩니다. 공개·게시용이 아니라 내부 확인용입니다.
+                    @ 없이 입력해도 됩니다.<br />
+                    공개·게시용이 아니라 내부 확인용입니다.
                   </p>
                   <Input
                     id="repIg"
