@@ -137,6 +137,8 @@ export default function DancerApplyPage() {
   const [fullName, setFullName] = useState('')
   const [stageName, setStageName] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
   const [phone, setPhone] = useState('')
   const [birthDate, setBirthDate] = useState('')
   const [birthYear, setBirthYear] = useState('')
@@ -190,7 +192,16 @@ export default function DancerApplyPage() {
   }, [profilePhotoPreview])
 
   const doneBasicFields = Boolean(
-    stageName.trim() && fullName.trim() && email.trim() && phone.trim() && birthDate && gender && heightCm && residenceRegion,
+    stageName.trim() &&
+      fullName.trim() &&
+      email.trim() &&
+      password.length >= 8 &&
+      passwordConfirm === password &&
+      phone.trim() &&
+      birthDate &&
+      gender &&
+      heightCm &&
+      residenceRegion,
   )
   const doneVisa = isKoreanNational || (foreignCountry.trim().length >= 2 && hasVisa !== null && (hasVisa === false || visaDetails.trim().length >= 2))
   const doneSection1 = doneBasicFields && doneVisa
@@ -242,6 +253,8 @@ export default function DancerApplyPage() {
     if (!stageName.trim()) e.stageName = t('applyDancer.errorRequired')
     if (!fullName.trim()) e.fullName = t('applyDancer.errorRequired')
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) e.email = t('applyDancer.errorEmail')
+    if (password.length < 8 || password.length > 72) e.password = t('applyDancer.errorPassword')
+    if (passwordConfirm !== password) e.passwordConfirm = t('applyDancer.errorPasswordConfirm')
     if (!phone.trim()) e.phone = t('applyDancer.errorRequired')
     if (!birthDate) e.birthDate = t('applyDancer.errorRequired')
     if (!gender) e.gender = t('applyDancer.errorRequired')
@@ -302,6 +315,7 @@ export default function DancerApplyPage() {
     formData.append('full_name', fullName.trim())
     formData.append('stage_name', stageName.trim())
     formData.append('email', email.trim())
+    formData.append('password', password)
     formData.append('phone', phone.trim())
     formData.append('birth_date', birthDate)
     formData.append('gender', gender as string)
@@ -330,23 +344,20 @@ export default function DancerApplyPage() {
         let errBody = ''
         try { errBody = await appRes.text() } catch { /* ignore */ }
         console.error('Dancer application API error:', appRes.status, errBody)
-        if (appRes.status === 400) {
-          try {
-            const j = JSON.parse(errBody) as { error?: string }
-            if (j.error === 'file_too_large') toast.error(t('applyDancer.errorPortfolioFileSize'))
-            else if (j.error === 'file_type') toast.error(t('applyDancer.errorPortfolioFileType'))
-            else if (j.error === 'portfolio_required') toast.error(t('applyDancer.errorPortfolioRequired'))
-            else if (j.error === 'invalid_portfolio_url') toast.error(t('applyDancer.errorPortfolioUrl'))
-            else if (j.error === 'upload_failed') toast.error(t('applyDancer.errorPortfolioUpload'))
-            else if (j.error === 'profile_photo_required') toast.error(t('applyDancer.errorProfilePhoto'))
-            else if (j.error === 'profile_photo_too_large') toast.error(t('applyDancer.errorProfilePhotoSize'))
-            else if (j.error === 'profile_photo_type') toast.error(t('applyDancer.errorProfilePhotoType'))
-            else if (j.error === 'profile_photo_upload_failed') toast.error(t('applyDancer.errorPortfolioUpload'))
-            else throw new Error(t('applyDancer.errorSubmit'))
-          } catch {
-            throw new Error(t('applyDancer.errorSubmit'))
-          }
-        } else {
+        try {
+          const j = JSON.parse(errBody) as { error?: string }
+          if (j.error === 'file_too_large') toast.error(t('applyDancer.errorPortfolioFileSize'))
+          else if (j.error === 'file_type') toast.error(t('applyDancer.errorPortfolioFileType'))
+          else if (j.error === 'portfolio_required') toast.error(t('applyDancer.errorPortfolioRequired'))
+          else if (j.error === 'invalid_portfolio_url') toast.error(t('applyDancer.errorPortfolioUrl'))
+          else if (j.error === 'upload_failed') toast.error(t('applyDancer.errorPortfolioUpload'))
+          else if (j.error === 'profile_photo_required') toast.error(t('applyDancer.errorProfilePhoto'))
+          else if (j.error === 'profile_photo_too_large') toast.error(t('applyDancer.errorProfilePhotoSize'))
+          else if (j.error === 'profile_photo_type') toast.error(t('applyDancer.errorProfilePhotoType'))
+          else if (j.error === 'profile_photo_upload_failed') toast.error(t('applyDancer.errorPortfolioUpload'))
+          else if (j.error === 'duplicate_email') toast.error(t('applyDancer.errorDuplicateEmail'))
+          else throw new Error(t('applyDancer.errorSubmit'))
+        } catch {
           throw new Error(t('applyDancer.errorSubmit'))
         }
         return
@@ -354,8 +365,8 @@ export default function DancerApplyPage() {
 
       const appData = (await appRes.json()) as {
         id?: string
-        portfolio_file_path?: string | null
-        profile_photo_path?: string | null
+        portfolio_file_url?: string | null
+        profile_photo_url?: string | null
       }
 
       try {
@@ -374,8 +385,8 @@ export default function DancerApplyPage() {
             residence_region: residenceRegion,
             specialties,
             portfolio_url: normalizedPortfolioForMail ?? '',
-            portfolio_file_path: appData.portfolio_file_path ?? null,
-            profile_photo_path: appData.profile_photo_path ?? null,
+            portfolio_file_path: appData.portfolio_file_url ?? null,
+            profile_photo_path: appData.profile_photo_url ?? null,
             instagram_handle: instagram.trim().replace(/^@+/, ''),
             careers: careerList,
             agency_name: agencyName.trim() || undefined,
@@ -505,6 +516,32 @@ export default function DancerApplyPage() {
                     aria-invalid={!!errors.email}
                   />
                   {errors.email ? <FieldError id="err-email" message={errors.email} /> : <FieldHint>{t('applyDancer.emailHint')}</FieldHint>}
+                </div>
+                <div data-field="password">
+                  <LabelRow htmlFor="password" required>{t('applyDancer.password')}</LabelRow>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="new-password"
+                    className={inputBase}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    aria-invalid={!!errors.password}
+                  />
+                  {errors.password ? <FieldError id="err-password" message={errors.password} /> : <FieldHint>{t('applyDancer.passwordHint')}</FieldHint>}
+                </div>
+                <div data-field="passwordConfirm">
+                  <LabelRow htmlFor="password_confirm" required>{t('applyDancer.passwordConfirm')}</LabelRow>
+                  <Input
+                    id="password_confirm"
+                    type="password"
+                    autoComplete="new-password"
+                    className={inputBase}
+                    value={passwordConfirm}
+                    onChange={(e) => setPasswordConfirm(e.target.value)}
+                    aria-invalid={!!errors.passwordConfirm}
+                  />
+                  <FieldError id="err-password_confirm" message={errors.passwordConfirm} />
                 </div>
                 <div data-field="phone">
                   <LabelRow htmlFor="phone" required>{t('applyDancer.phone')}</LabelRow>
