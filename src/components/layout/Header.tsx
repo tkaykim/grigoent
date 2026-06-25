@@ -37,7 +37,7 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* 로고 */}
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href="/" prefetch={false} className="flex items-center space-x-2">
             <span className="text-xl font-bold text-zinc-900">GRIGO</span>
           </Link>
 
@@ -47,6 +47,7 @@ export function Header() {
               <Link
                 key={item.name}
                 href={item.href}
+                prefetch={false}
                 className="text-zinc-600 hover:text-zinc-900 transition-colors"
               >
                 {item.name}
@@ -60,7 +61,7 @@ export function Header() {
             {user ? (
               <div className="flex items-center space-x-4">
                 {profile?.type === 'admin' && (
-                  <Link href="/admin">
+                  <Link href="/admin" prefetch={false}>
                     <Button variant="ghost" size="sm">
                       {t('header.admin')}
                     </Button>
@@ -68,12 +69,12 @@ export function Header() {
                 )}
                 <NotificationBell />
                 <div className="flex items-center space-x-2">
-                  <Link href="/mypage">
+                  <Link href="/mypage" prefetch={false}>
                     <Button variant="ghost" size="sm">
                       {t('header.mypage')}
                     </Button>
                   </Link>
-                  <Link href="/proposals">
+                  <Link href="/proposals" prefetch={false}>
                     <Button variant="ghost" size="sm">
                       제안 관리
                     </Button>
@@ -91,12 +92,12 @@ export function Header() {
               </div>
             ) : (
               <div className="flex items-center space-x-4">
-                <Link href="/signin">
+                <Link href="/signin" prefetch={false}>
                   <Button variant="ghost" size="sm">
                     {t('header.signin')}
                   </Button>
                 </Link>
-                <Link href="/signup">
+                <Link href="/signup" prefetch={false}>
                   <Button size="sm">
                     {t('header.signup')}
                   </Button>
@@ -122,6 +123,7 @@ export function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
+                  prefetch={false}
                   className="block px-3 py-2 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 rounded-md"
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -132,7 +134,7 @@ export function Header() {
               {user ? (
                 <div className="pt-4 space-y-2">
                   {profile?.type === 'admin' && (
-                    <Link href="/admin">
+                    <Link href="/admin" prefetch={false}>
                       <Button variant="ghost" className="w-full justify-start" onClick={() => setIsMenuOpen(false)}>
                         {t('header.admin')}
                       </Button>
@@ -142,12 +144,12 @@ export function Header() {
                     <NotificationBell />
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Link href="/mypage" className="flex-1">
+                    <Link href="/mypage" prefetch={false} className="flex-1">
                       <Button variant="ghost" className="w-full justify-start" onClick={() => setIsMenuOpen(false)}>
                         {t('header.mypage')}
                       </Button>
                     </Link>
-                    <Link href="/proposals" className="flex-1">
+                    <Link href="/proposals" prefetch={false} className="flex-1">
                       <Button variant="ghost" className="w-full justify-start" onClick={() => setIsMenuOpen(false)}>
                         제안 관리
                       </Button>
@@ -165,12 +167,12 @@ export function Header() {
                 </div>
               ) : (
                 <div className="pt-4 space-y-2">
-                  <Link href="/signin">
+                  <Link href="/signin" prefetch={false}>
                     <Button variant="ghost" className="w-full justify-start" onClick={() => setIsMenuOpen(false)}>
                       {t('header.signin')}
                     </Button>
                   </Link>
-                  <Link href="/signup">
+                  <Link href="/signup" prefetch={false}>
                     <Button className="w-full justify-start" onClick={() => setIsMenuOpen(false)}>
                       {t('header.signup')}
                     </Button>
@@ -183,4 +185,4 @@ export function Header() {
       </div>
     </header>
   )
-} 
+}
