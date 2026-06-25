@@ -2,6 +2,7 @@ import 'server-only'
 import { unstable_cache } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 import type { User, Team } from '@/lib/types'
+import { filterVisiblePublicArtists, filterVisiblePublicTeams } from '@/lib/public-profile-visibility'
 
 // 공개 데이터 전용 서버 클라이언트 (세션 불필요 · anon 키로 public select)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -42,8 +43,8 @@ async function fetchHomeArtistsUncached(limit: number): Promise<HomeOrderedItem[
     supabase.from('teams').select(TEAM_COLS).eq('status', 'active').order('display_order', { ascending: true }).order('created_at', { ascending: false }),
   ])
 
-  const artists = (artistsRes.data as unknown as User[]) ?? []
-  const teams = (teamsRes.data as unknown as Team[]) ?? []
+  const artists = filterVisiblePublicArtists((artistsRes.data as unknown as User[]) ?? [])
+  const teams = filterVisiblePublicTeams((teamsRes.data as unknown as Team[]) ?? [])
   const orderItems = orderRes.error ? [] : (orderRes.data ?? [])
 
   const ordered: HomeOrderedItem[] = []
@@ -82,9 +83,11 @@ async function fetchFeaturedWorksUncached(limit: number): Promise<FeaturedWork[]
 
   const userIds = [...new Set(careers.map((c: { user_id: string }) => c.user_id))]
   const { data: users } = await supabase.from('users').select('id, name, slug').in('id', userIds)
+  const visibleUsers = filterVisiblePublicArtists((users ?? []) as Array<User & { id: string; name: string; slug: string }>)
 
-  return careers.map((c: Record<string, unknown>) => {
-    const u = (users ?? []).find((x: { id: string }) => x.id === c.user_id)
+  return careers.flatMap((c: Record<string, unknown>) => {
+    const u = visibleUsers.find((x: { id: string }) => x.id === c.user_id)
+    if (!u) return []
     return {
       id: c.id as string,
       title: c.title as string,

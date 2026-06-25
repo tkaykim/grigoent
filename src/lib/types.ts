@@ -110,6 +110,7 @@ export interface Team {
   updated_at: string
   leader?: User
   member_count?: number
+  is_hidden?: boolean
 }
 
 export interface TeamMember {
@@ -309,4 +310,4 @@ export const CAREER_CATEGORIES: CareerCategory[] = [
     label: '워크샵 진행이력',
     placeholder: '예: OO 아카데미 K-POP 워크샵 진행'
   }
-] 
+]

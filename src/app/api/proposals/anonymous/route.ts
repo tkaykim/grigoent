@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isHiddenPublicArtist } from '@/lib/public-profile-visibility'
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -31,6 +32,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         error: '필수 필드를 입력해주세요. (제목, 설명, 프로젝트 유형)' 
       }, { status: 400 })
+    }
+
+    if (dancer_id && isHiddenPublicArtist({ id: dancer_id })) {
+      return NextResponse.json({ error: '존재하지 않는 댄서입니다.' }, { status: 404 })
     }
 
     // 설명에 추가 정보 포함
@@ -74,4 +79,4 @@ export async function POST(request: NextRequest) {
     console.error('Anonymous proposal creation error:', error)
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
   }
-} 
+}

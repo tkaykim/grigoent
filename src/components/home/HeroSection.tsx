@@ -1,8 +1,11 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { ChevronDown } from 'lucide-react'
+
+const HERO_VIDEO_ID = 'ktWrP16ZpTk'
+const HERO_POSTER_URL = `https://img.youtube.com/vi/${HERO_VIDEO_ID}/hqdefault.jpg`
 
 // YouTube Player API 타입 정의
 declare global {
@@ -27,19 +30,41 @@ declare global {
 
 export function HeroSection() {
   const playerRef = useRef<{ destroy: () => void } | null>(null)
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false)
   const { t } = useLanguage()
 
   useEffect(() => {
-    // YouTube IFrame API 로드
-    const tag = document.createElement('script')
-    tag.src = 'https://www.youtube.com/iframe_api'
-    const firstScriptTag = document.getElementsByTagName('script')[0]
-    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
+    const loadVideo = () => setShouldLoadVideo(true)
+    const requestIdleCallback = (window as any).requestIdleCallback
+    const cancelIdleCallback = (window as any).cancelIdleCallback
+    let idleId: number | null = null
 
-    // YouTube API 준비되면 플레이어 생성
-    window.onYouTubeIframeAPIReady = () => {
-      playerRef.current = new window.YT.Player('youtube-player', {
-        videoId: 'ktWrP16ZpTk',
+    const timerId = window.setTimeout(() => {
+      if (typeof requestIdleCallback === 'function') {
+        idleId = requestIdleCallback(loadVideo, { timeout: 1500 })
+        return
+      }
+
+      loadVideo()
+    }, 3500)
+
+    return () => {
+      window.clearTimeout(timerId)
+      if (idleId !== null && typeof cancelIdleCallback === 'function') {
+        cancelIdleCallback(idleId)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!shouldLoadVideo) return
+
+    const createPlayer = () => {
+      const playerElement = document.getElementById('youtube-player')
+      if (!playerElement || !(window as any).YT?.Player) return
+
+      playerRef.current = new window.YT.Player(playerElement, {
+        videoId: HERO_VIDEO_ID,
         playerVars: {
           autoplay: 1,
           controls: 0,
@@ -63,30 +88,61 @@ export function HeroSection() {
       })
     }
 
+    if ((window as any).YT?.Player) {
+      createPlayer()
+      return () => {
+        if (playerRef.current) {
+          playerRef.current.destroy()
+          playerRef.current = null
+        }
+      }
+    }
+
+    const tag = document.createElement('script')
+    tag.src = 'https://www.youtube.com/iframe_api'
+    tag.async = true
+    window.onYouTubeIframeAPIReady = createPlayer
+
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+      const firstScriptTag = document.getElementsByTagName('script')[0]
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
+    }
+
     return () => {
       if (playerRef.current) {
         playerRef.current.destroy()
+        playerRef.current = null
       }
     }
-  }, [])
+  }, [shouldLoadVideo])
 
   return (
     <section className="relative h-[66.67vh] flex items-center justify-center overflow-hidden">
       {/* YouTube 비디오 배경 */}
       <div className="absolute inset-0 w-full h-full">
-        <div
-          id="youtube-player"
-          className="w-full h-full"
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            width: '100vw',
-            height: '100vh',
-            transform: 'translate(-50%, -50%)',
-            pointerEvents: 'none',
-          }}
+        <img
+          src={HERO_POSTER_URL}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="eager"
+          fetchPriority="high"
         />
+        {shouldLoadVideo && (
+          <div
+            id="youtube-player"
+            className="w-full h-full"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: '100vw',
+              height: '100vh',
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'none',
+            }}
+          />
+        )}
         {/* 더 강한 오버레이로 영상을 흐리게 */}
         <div className="absolute inset-0 bg-black/70" />
         {/* 추가 블러 효과 */}
@@ -125,4 +181,4 @@ export function HeroSection() {
       </div>
     </section>
   )
-} 
+}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { filterVisiblePublicArtists } from '@/lib/public-profile-visibility'
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '사용자 검색에 실패했습니다.' }, { status: 500 })
     }
 
-    return NextResponse.json({ users })
+    return NextResponse.json({ users: filterVisiblePublicArtists(users || []) })
 
   } catch (error) {
     console.error('User search error:', error)

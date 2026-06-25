@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isHiddenPublicTeam } from '@/lib/public-profile-visibility'
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -24,6 +25,10 @@ export async function GET(
 
     if (error) {
       console.error('Team fetch error:', error)
+      return NextResponse.json({ error: '팀을 찾을 수 없습니다.' }, { status: 404 })
+    }
+
+    if (isHiddenPublicTeam(team)) {
       return NextResponse.json({ error: '팀을 찾을 수 없습니다.' }, { status: 404 })
     }
 
@@ -185,4 +190,4 @@ export async function DELETE(
     console.error('Team delete error:', error)
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
   }
-} 
+}

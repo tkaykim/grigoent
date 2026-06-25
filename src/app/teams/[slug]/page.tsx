@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { useRef } from 'react';
 import { X as CloseIcon } from 'lucide-react';
 import { TeamProposalButton } from '@/components/proposals/TeamProposalButton'
+import { isHiddenPublicArtist, isHiddenPublicTeam } from '@/lib/public-profile-visibility'
 
 export default function TeamDetailPage() {
   const params = useParams();
@@ -212,7 +213,7 @@ user_id,멤버이름,예시 공연,무대 공연,performance,미국,single,,,202
   };
   useEffect(() => {
     if (user?.id) {
-      supabase.from('users').select('*').eq('id', user.id).single().then(({ data }) => setProfile(data));
+      supabase.from('users').select('id,type').eq('id', user.id).single().then(({ data }) => setProfile(data));
     }
   }, [user]);
 
@@ -240,7 +241,7 @@ user_id,멤버이름,예시 공연,무대 공연,performance,미국,single,,,202
   useEffect(() => {
     fetchTeamData();
     // eslint-disable-next-line
-  }, [slug]);
+  }, [slug, profile?.id, profile?.type]);
 
   useEffect(() => {
     if (team) setEditForm({ name: team.name, name_en: team.name_en, description: team.description || '', logo_url: team.logo_url || '' });
@@ -255,7 +256,17 @@ user_id,멤버이름,예시 공연,무대 공연,performance,미국,single,,,202
       const { data: teamData, error: teamError } = await supabase
         .from("teams")
         .select(`
-          *,
+          id,
+          name,
+          name_en,
+          slug,
+          description,
+          logo_url,
+          cover_image,
+          leader_id,
+          status,
+          created_at,
+          updated_at,
           leader:users!teams_leader_id_fkey(id, name, name_en, profile_image),
           member_count:team_members(count)
         `)
@@ -279,6 +290,14 @@ user_id,멤버이름,예시 공연,무대 공연,performance,미국,single,,,202
         return;
       }
 
+      const canViewHiddenTeam = profile?.type === 'admin' || teamData.leader_id === profile?.id;
+      if (isHiddenPublicTeam(teamData) && !canViewHiddenTeam) {
+        setTeam(null);
+        setMembers([]);
+        setError("팀을 찾을 수 없습니다.");
+        return;
+      }
+
       // member_count를 숫자로 변환
       const teamWithMemberCount = {
         ...teamData,
@@ -291,14 +310,21 @@ user_id,멤버이름,예시 공연,무대 공연,performance,미국,single,,,202
       const { data: membersData, error: membersError } = await supabase
         .from("team_members")
         .select(`
-          *,
+          id,
+          team_id,
+          user_id,
+          role,
+          joined_at,
           user:users(id, name, name_en, profile_image, type)
         `)
         .eq("team_id", teamData.id)
         .order("joined_at", { ascending: true });
 
       if (!membersError) {
-        setMembers(membersData || []);
+        const visibleMembers = canViewHiddenTeam
+          ? (membersData || [])
+          : (membersData || []).filter((member) => !isHiddenPublicArtist(member.user));
+        setMembers(visibleMembers);
       }
     } catch (error) {
       setError("데이터를 불러오는 중 오류가 발생했습니다.");
@@ -911,4 +937,4 @@ user_id,멤버이름,예시 공연,무대 공연,performance,미국,single,,,202
       <Footer />
     </div>
   );
-} 
+}

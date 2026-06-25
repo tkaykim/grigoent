@@ -14,6 +14,10 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { ArtistTeamOrderManager } from '@/components/artists/ArtistTeamOrderManager'
+import { filterVisiblePublicArtists, filterVisiblePublicTeams } from '@/lib/public-profile-visibility'
+
+const ARTIST_CARD_COLUMNS = 'id, slug, name, name_en, profile_image, introduction, display_order'
+const TEAM_CARD_COLUMNS = 'id, slug, name, name_en, logo_url, description, status, display_order'
 
 export default function ArtistsPage() {
   const { profile } = useAuth()
@@ -39,17 +43,17 @@ export default function ArtistsPage() {
       const [orderRes, artistsRes, teamsRes, membersRes] = await Promise.all([
         supabase
           .from('display_order_items')
-          .select('*')
+          .select('item_type, item_id, display_order')
           .order('display_order', { ascending: true }),
         supabase
           .from('users')
-          .select('*')
+          .select(ARTIST_CARD_COLUMNS)
           .eq('type', 'dancer')
           .order('display_order', { ascending: true })
           .order('created_at', { ascending: true }),
         supabase
           .from('teams')
-          .select('*')
+          .select(TEAM_CARD_COLUMNS)
           .eq('status', 'active')
           .order('display_order', { ascending: true })
           .order('created_at', { ascending: false }),
@@ -59,20 +63,21 @@ export default function ArtistsPage() {
           .eq('team.status', 'active') as unknown as Promise<{ data: any[] }>,
       ])
 
-      const artists = (artistsRes as any).data ?? []
-      const teams = (teamsRes as any).data ?? []
+      const artists = filterVisiblePublicArtists(((artistsRes as any).data ?? []) as User[])
+      const teams = filterVisiblePublicTeams(((teamsRes as any).data ?? []) as Team[])
       const orderItems = (orderRes as any).error ? [] : ((orderRes as any).data ?? [])
       const members = (membersRes as any).data ?? []
+      const visibleArtistIds = new Set(artists.map((artist) => artist.id))
+      const visibleTeamIds = new Set(teams.map((team) => team.id))
 
       // 아티스트별 소속팀 맵
       const artistTeamsMap: Record<string, { name: string; name_en: string }[]> = {}
       for (const m of members) {
+        const memberTeams = Array.isArray(m.team) ? m.team : (m.team ? [m.team] : [])
+        const visibleTeamsForMember = memberTeams.filter((team: any) => visibleTeamIds.has(team.id))
+        if (!visibleArtistIds.has(m.user_id) || visibleTeamsForMember.length === 0) continue
         if (!artistTeamsMap[m.user_id]) artistTeamsMap[m.user_id] = []
-        if (Array.isArray(m.team)) {
-          artistTeamsMap[m.user_id].push(...(m.team.map((t: any) => ({ name: t.name, name_en: t.name_en })) as { name: string; name_en: string }[]))
-        } else if (m.team) {
-          artistTeamsMap[m.user_id].push({ name: m.team.name, name_en: m.team.name_en } as { name: string; name_en: string })
-        }
+        artistTeamsMap[m.user_id].push(...(visibleTeamsForMember.map((t: any) => ({ name: t.name, name_en: t.name_en })) as { name: string; name_en: string }[]))
       }
 
       if (orderItems.length > 0) {
@@ -269,7 +274,11 @@ export default function ArtistsPage() {
             {/* 전체 탭: 통합 순서 사용 */}
             {tab === 'all' && filteredOrderedItems.map((item, index) => (
               <div key={`${item.type}-${item.data.id}`} className="group bg-white/5 rounded-lg p-4 md:p-6 hover:bg-white/10 transition-all duration-300 transform hover:scale-105">
-                <Link href={item.type === 'artist' ? `/${(item.data as User).slug}` : `/teams/${(item.data as Team).slug}`} className="block">
+                <Link
+                  href={item.type === 'artist' ? `/${(item.data as User).slug}` : `/teams/${(item.data as Team).slug}`}
+                  prefetch={false}
+                  className="block"
+                >
                   <div className="relative mb-4">
                     {item.type === 'artist' ? (
                       // 아티스트 카드
@@ -279,7 +288,8 @@ export default function ArtistsPage() {
                             src={(item.data as User).profile_image}
                             alt={(item.data as User).name}
                             className="w-full h-48 md:h-56 object-cover object-top rounded-lg"
-                            loading="lazy"
+                            loading={index < 4 ? 'eager' : 'lazy'}
+                            fetchPriority={index < 4 ? 'high' : 'auto'}
                             onError={(e) => {
                               e.currentTarget.style.display = 'none'
                             }}
@@ -299,7 +309,8 @@ export default function ArtistsPage() {
                             src={(item.data as Team).logo_url}
                             alt={(item.data as Team).name}
                             className="w-full h-48 md:h-56 object-cover object-top rounded-lg"
-                            loading="lazy"
+                            loading={index < 4 ? 'eager' : 'lazy'}
+                            fetchPriority={index < 4 ? 'high' : 'auto'}
                             onError={(e) => {
                               e.currentTarget.style.display = 'none'
                             }}
@@ -358,16 +369,17 @@ export default function ArtistsPage() {
             ))}
             
             {/* 개인 탭: 기존 아티스트 표시 */}
-            {tab === 'artist' && filteredArtists.map(artist => (
+            {tab === 'artist' && filteredArtists.map((artist, index) => (
               <div key={artist.id} className="group bg-white/5 rounded-lg p-4 md:p-6 hover:bg-white/10 transition-all duration-300 transform hover:scale-105">
-                <Link href={`/${artist.slug}`} className="block">
+                <Link href={`/${artist.slug}`} prefetch={false} className="block">
                   <div className="relative mb-4">
                     {artist.profile_image ? (
                       <img
                         src={artist.profile_image}
                         alt={artist.name}
                         className="w-full h-48 md:h-56 object-cover object-top rounded-lg"
-                        loading="lazy"
+                        loading={index < 4 ? 'eager' : 'lazy'}
+                        fetchPriority={index < 4 ? 'high' : 'auto'}
                         onError={(e) => {
                           e.currentTarget.style.display = 'none'
                         }}
@@ -403,8 +415,8 @@ export default function ArtistsPage() {
             ))}
             
             {/* 팀 탭: 기존 팀 표시 */}
-            {(tab === 'team') && filteredTeams.map(team => (
-              <TeamCard key={team.id} team={team} members={[]} />
+            {(tab === 'team') && filteredTeams.map((team, index) => (
+              <TeamCard key={team.id} team={team} members={[]} priority={index < 4} />
             ))}
           </div>
 
@@ -429,4 +441,4 @@ export default function ArtistsPage() {
       <Footer />
     </div>
   )
-} 
+}

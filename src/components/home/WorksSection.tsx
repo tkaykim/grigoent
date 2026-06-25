@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { CareerEntry, User } from '@/lib/types'
-import Link from 'next/link'
-import { Play, Star, X, RefreshCw, Music, Film, Tv, Globe, Heart, Trophy } from 'lucide-react'
+import { Play, X, RefreshCw, Music, Film, Tv, Globe, Heart, Trophy } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useAuth } from '@/contexts/AuthContext'
+import { filterVisiblePublicArtists, isHiddenPublicArtist } from '@/lib/public-profile-visibility'
+import { getThumbnailFromUrl, isValidYouTubeUrl } from '@/lib/youtube'
 
 interface FeaturedWork {
   id: string
@@ -24,39 +25,18 @@ interface FeaturedWork {
 
 export function WorksSection({ initialWorks }: { initialWorks?: FeaturedWork[] }) {
   const { t } = useLanguage()
-  const hasInitial = !!initialWorks && initialWorks.length > 0
-  const [featuredWorks, setFeaturedWorks] = useState<FeaturedWork[]>(initialWorks ?? [])
+  const { profile } = useAuth()
+  const visibleInitialWorks = initialWorks?.filter((work) => !isHiddenPublicArtist(work.artist))
+  const hasInitial = !!visibleInitialWorks && visibleInitialWorks.length > 0
+  const [featuredWorks, setFeaturedWorks] = useState<FeaturedWork[]>(visibleInitialWorks ?? [])
   // 서버에서 대표작을 받아왔으면 즉시 표시 (클라이언트 워터폴 제거)
   const [loading, setLoading] = useState(!hasInitial)
   const [error, setError] = useState<string | null>(null)
   const [selectedWork, setSelectedWork] = useState<FeaturedWork | null>(null)
   const [showVideoModal, setShowVideoModal] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [userProfile, setUserProfile] = useState<any>(null)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastFetchTimeRef = useRef<number>(0)
-
-  // 사용자 프로필 가져오기
-  useEffect(() => {
-    const getUserProfile = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select('type')
-            .eq('id', user.id)
-            .single()
-          
-          setUserProfile(profile)
-        }
-      } catch (error) {
-        console.error('사용자 프로필 로드 오류:', error)
-      }
-    }
-
-    getUserProfile()
-  }, [])
 
   const fetchFeaturedWorks = useCallback(async (isManualRefresh = false) => {
     try {
@@ -107,8 +87,10 @@ export function WorksSection({ initialWorks }: { initialWorks?: FeaturedWork[] }
           return
         }
 
-        const works = featuredCareers.map((career: any) => {
-          const user = users?.find((u: any) => u.id === career.user_id)
+        const visibleUsers = filterVisiblePublicArtists(users || [])
+        const works = featuredCareers.flatMap((career: any) => {
+          const user = visibleUsers.find((u: any) => u.id === career.user_id)
+          if (!user) return []
           return {
             id: career.id,
             title: career.title,
@@ -228,18 +210,13 @@ export function WorksSection({ initialWorks }: { initialWorks?: FeaturedWork[] }
       return work.poster_url
     }
     
-    // YouTube URL에서 썸네일 추출
-    if (work.video_url) {
-      const videoId = getYouTubeVideoId(work.video_url)
-      
-      if (videoId) {
-        // 여러 해상도 시도 (maxresdefault -> hqdefault -> mqdefault)
-        return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
-      }
+    // 카드 표시 크기에는 mqdefault(320px)면 충분해서 초기 전송량을 줄인다.
+    if (work.video_url && isValidYouTubeUrl(work.video_url)) {
+      return getThumbnailFromUrl(work.video_url, 'medium')
     }
     
     return undefined
-  }, [getYouTubeVideoId])
+  }, [])
 
   const handleWorkClick = useCallback((work: FeaturedWork) => {
     setSelectedWork(work)
@@ -430,7 +407,7 @@ export function WorksSection({ initialWorks }: { initialWorks?: FeaturedWork[] }
           <div>
             <div className="flex justify-between items-center mb-8">
               <h3 className="text-2xl font-bold text-zinc-800">{t('works.recently')}</h3>
-              {userProfile?.type === 'admin' && (
+              {profile?.type === 'admin' && (
                 <button
                   onClick={handleManualRefresh}
                   disabled={isRefreshing}
@@ -443,19 +420,24 @@ export function WorksSection({ initialWorks }: { initialWorks?: FeaturedWork[] }
             </div>
             {featuredWorks.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {featuredWorks.map((work) => (
-                  <div 
-                    key={work.id} 
-                    className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
-                    onClick={() => handleWorkClick(work)}
-                  >
+                {featuredWorks.map((work, index) => {
+                  const thumbnailUrl = getThumbnailUrl(work)
+                  const shouldPrioritize = index < 3
+
+                  return (
+                    <div
+                      key={work.id}
+                      className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+                      onClick={() => handleWorkClick(work)}
+                    >
                                          <div className="aspect-video relative">
-                       {getThumbnailUrl(work) ? (
+                       {thumbnailUrl ? (
                          <img
-                           src={getThumbnailUrl(work)}
+                           src={thumbnailUrl}
                            alt={work.title}
                            className="w-full h-full object-cover"
-                           loading="lazy"
+                           loading={shouldPrioritize ? 'eager' : 'lazy'}
+                           fetchPriority={shouldPrioritize ? 'high' : 'auto'}
                            onError={(e) => {
                              // 썸네일 로딩 실패 시 대체 이미지 표시
                              const img = e.currentTarget
@@ -472,7 +454,7 @@ export function WorksSection({ initialWorks }: { initialWorks?: FeaturedWork[] }
                        ) : null}
                        
                        {/* 썸네일 로딩 실패 시 대체 이미지 */}
-                       <div className={`thumbnail-fallback w-full h-full bg-zinc-200 flex items-center justify-center ${getThumbnailUrl(work) ? 'hidden' : ''}`}>
+                       <div className={`thumbnail-fallback w-full h-full bg-zinc-200 flex items-center justify-center ${thumbnailUrl ? 'hidden' : ''}`}>
                          <Play className="w-12 h-12 text-zinc-400" />
                        </div>
 
@@ -492,7 +474,8 @@ export function WorksSection({ initialWorks }: { initialWorks?: FeaturedWork[] }
                     <p className="text-sm text-zinc-600">{work.category}</p>
                   </div>
                 </div>
-              ))}
+                  )
+                })}
             </div>
             ) : (
               <div className="text-center py-12">
@@ -556,4 +539,4 @@ export function WorksSection({ initialWorks }: { initialWorks?: FeaturedWork[] }
       )}
     </>
   )
-} 
+}

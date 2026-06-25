@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { LoginStatus } from '@/components/auth/LoginStatus'
 import { Users, Plus, Search } from 'lucide-react'
 import Link from 'next/link'
+import { filterVisiblePublicTeams } from '@/lib/public-profile-visibility'
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([])
@@ -33,7 +34,17 @@ export default function TeamsPage() {
       const { data, error } = await supabase
         .from('teams')
         .select(`
-          *,
+          id,
+          name,
+          name_en,
+          slug,
+          description,
+          logo_url,
+          status,
+          display_order,
+          leader_id,
+          created_at,
+          updated_at,
           leader:users!teams_leader_id_fkey(id, name, name_en, profile_image),
           member_count:team_members(count)
         `)
@@ -60,10 +71,11 @@ export default function TeamsPage() {
       }
 
       // member_count를 숫자로 변환
-      const teamsWithMemberCount = data?.map(team => ({
+      const visibleTeams = filterVisiblePublicTeams((data || []) as Team[])
+      const teamsWithMemberCount = visibleTeams.map(team => ({
         ...team,
         member_count: team.member_count?.[0]?.count || 0
-      })) || []
+      }))
 
       setTeams(teamsWithMemberCount)
     } catch (error) {
@@ -163,7 +175,7 @@ export default function TeamsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTeams.map((team) => (
+            {filteredTeams.map((team, index) => (
               <Card key={team.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -174,6 +186,8 @@ export default function TeamsPage() {
                             src={team.logo_url}
                             alt={team.name}
                             className="w-full h-full object-cover"
+                            loading={index < 6 ? 'eager' : 'lazy'}
+                            fetchPriority={index < 6 ? 'high' : 'auto'}
                             onError={(e) => {
                               e.currentTarget.style.display = 'none'
                             }}
@@ -211,6 +225,7 @@ export default function TeamsPage() {
                             src={team.leader.profile_image}
                             alt={team.leader.name}
                             className="w-full h-full object-cover"
+                            loading="lazy"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none'
                             }}
@@ -227,7 +242,7 @@ export default function TeamsPage() {
                         리더: {team.leader?.name}
                       </span>
                     </div>
-                    <Link href={`/teams/${team.slug}`}>
+                    <Link href={`/teams/${team.slug}`} prefetch={false}>
                       <Button variant="outline" size="sm">
                         상세보기
                       </Button>
@@ -243,4 +258,4 @@ export default function TeamsPage() {
       <Footer />
     </div>
   )
-} 
+}

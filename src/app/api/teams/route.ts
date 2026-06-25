@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { filterVisiblePublicTeams } from '@/lib/public-profile-visibility'
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -39,7 +40,8 @@ export async function GET(request: NextRequest) {
     }
 
     // member_count를 숫자로 변환
-    const teamsWithMemberCount = teams?.map(team => ({
+    const visibleTeams = filterVisiblePublicTeams(teams || [])
+    const teamsWithMemberCount = visibleTeams.map(team => ({
       ...team,
       member_count: team.member_count?.[0]?.count || 0
     }))
@@ -143,4 +145,4 @@ export async function POST(request: NextRequest) {
     console.error('Team creation error:', error)
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
   }
-} 
+}

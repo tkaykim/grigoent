@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isHiddenPublicTeam } from '@/lib/public-profile-visibility'
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
       .eq('status', 'active')
       .single()
 
-    if (teamError || !teamData) {
+    if (teamError || !teamData || isHiddenPublicTeam(teamData)) {
       return NextResponse.json({ error: '존재하지 않는 팀입니다.' }, { status: 404 })
     }
 

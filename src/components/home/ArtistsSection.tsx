@@ -9,12 +9,25 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { User as UserIcon } from 'lucide-react'
+import {
+  filterVisiblePublicArtists,
+  filterVisiblePublicTeams,
+  isHiddenPublicArtist,
+  isHiddenPublicTeam,
+} from '@/lib/public-profile-visibility'
 
 type OrderedItem = { type: 'artist' | 'team', data: User | Team }
+const ARTIST_CARD_COLUMNS = 'id, slug, name, name_en, profile_image, introduction, display_order'
+const TEAM_CARD_COLUMNS = 'id, slug, name, name_en, logo_url, description, status, display_order'
 
 export function ArtistsSection({ initialItems }: { initialItems?: OrderedItem[] }) {
-  const hasInitial = !!initialItems && initialItems.length > 0
-  const [orderedItems, setOrderedItems] = useState<OrderedItem[]>(initialItems ?? [])
+  const visibleInitialItems = initialItems?.filter((item) =>
+    item.type === 'artist'
+      ? !isHiddenPublicArtist(item.data as User)
+      : !isHiddenPublicTeam(item.data as Team)
+  )
+  const hasInitial = !!visibleInitialItems && visibleInitialItems.length > 0
+  const [orderedItems, setOrderedItems] = useState<OrderedItem[]>(visibleInitialItems ?? [])
   // 서버에서 데이터를 받아왔으면 즉시 표시 (클라이언트 워터폴 제거)
   const [loading, setLoading] = useState(!hasInitial)
   const [retryCount, setRetryCount] = useState(0)
@@ -37,7 +50,7 @@ export function ArtistsSection({ initialItems }: { initialItems?: OrderedItem[] 
       // 아티스트 페이지와 동일한 방식: 통합 순서 테이블 사용
       const { data: orderItems, error: orderError } = await supabase
         .from('display_order_items')
-        .select('*')
+        .select('item_type, item_id, display_order')
         .order('display_order', { ascending: true })
 
       if (orderError) {
@@ -64,12 +77,12 @@ export function ArtistsSection({ initialItems }: { initialItems?: OrderedItem[] 
       const [artistsResult, teamsResult] = await Promise.all([
         supabase
           .from('users')
-          .select('*')
+          .select(ARTIST_CARD_COLUMNS)
           .eq('type', 'dancer')
           .in('id', artistIds),
         supabase
           .from('teams')
-          .select('*')
+          .select(TEAM_CARD_COLUMNS)
           .eq('status', 'active')
           .in('id', teamIds)
       ])
@@ -80,17 +93,20 @@ export function ArtistsSection({ initialItems }: { initialItems?: OrderedItem[] 
         return
       }
 
+      const visibleArtists = filterVisiblePublicArtists((artistsResult.data || []) as User[])
+      const visibleTeams = filterVisiblePublicTeams((teamsResult.data || []) as Team[])
+
       // 순서 테이블의 순서대로 아티스트와 팀 정렬 (아티스트 페이지와 동일)
       const orderedItems: Array<{type: 'artist' | 'team', data: User | Team}> = []
 
       orderItems.forEach(orderItem => {
         if (orderItem.item_type === 'artist') {
-          const artist = artistsResult.data?.find(a => a.id === orderItem.item_id)
+          const artist = visibleArtists.find(a => a.id === orderItem.item_id)
           if (artist) {
             orderedItems.push({ type: 'artist', data: artist })
           }
         } else if (orderItem.item_type === 'team') {
-          const team = teamsResult.data?.find(t => t.id === orderItem.item_id)
+          const team = visibleTeams.find(t => t.id === orderItem.item_id)
           if (team) {
             orderedItems.push({ type: 'team', data: team })
           }
@@ -122,7 +138,7 @@ export function ArtistsSection({ initialItems }: { initialItems?: OrderedItem[] 
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select(ARTIST_CARD_COLUMNS)
         .eq('type', 'dancer')
         .order('display_order', { ascending: true })
         .order('created_at', { ascending: true })
@@ -133,9 +149,11 @@ export function ArtistsSection({ initialItems }: { initialItems?: OrderedItem[] 
         throw error
       }
 
-      if (data && data.length > 0) {
+      const visibleArtists = filterVisiblePublicArtists((data || []) as User[])
+
+      if (visibleArtists.length > 0) {
         // 기존 방식은 아티스트만 표시
-        const legacyItems = data.map(artist => ({ type: 'artist' as const, data: artist }))
+        const legacyItems = visibleArtists.map(artist => ({ type: 'artist' as const, data: artist }))
         setOrderedItems(legacyItems)
         setLoading(false)
         console.log('아티스트 로드 성공 (기존 방식)')
@@ -205,9 +223,16 @@ export function ArtistsSection({ initialItems }: { initialItems?: OrderedItem[] 
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-          {orderedItems.map((item) => (
+          {orderedItems.map((item, index) => {
+            const shouldPrioritizeImage = index < 4
+
+            return (
             <div key={`${item.type}-${item.data.id}`} className="group bg-gray-50 rounded-lg p-4 md:p-6 hover:bg-gray-100 transition-all duration-300 transform hover:scale-105">
-              <Link href={item.type === 'artist' ? `/${(item.data as User).slug}` : `/teams/${(item.data as Team).slug}`} className="block">
+              <Link
+                href={item.type === 'artist' ? `/${(item.data as User).slug}` : `/teams/${(item.data as Team).slug}`}
+                prefetch={false}
+                className="block"
+              >
                 <div className="relative mb-4">
                   {item.type === 'artist' ? (
                     // 아티스트 카드
@@ -217,7 +242,8 @@ export function ArtistsSection({ initialItems }: { initialItems?: OrderedItem[] 
                           src={(item.data as User).profile_image}
                           alt={(item.data as User).name}
                           className="w-full h-48 md:h-56 object-cover object-top rounded-lg"
-                          loading="lazy"
+                          loading={shouldPrioritizeImage ? 'eager' : 'lazy'}
+                          fetchPriority={shouldPrioritizeImage ? 'high' : 'auto'}
                           onError={(e) => {
                             console.error('아티스트 이미지 로드 실패:', e)
                             e.currentTarget.style.display = 'none'
@@ -238,7 +264,8 @@ export function ArtistsSection({ initialItems }: { initialItems?: OrderedItem[] 
                           src={(item.data as Team).logo_url}
                           alt={(item.data as Team).name}
                           className="w-full h-48 md:h-56 object-cover object-top rounded-lg"
-                          loading="lazy"
+                          loading={shouldPrioritizeImage ? 'eager' : 'lazy'}
+                          fetchPriority={shouldPrioritizeImage ? 'high' : 'auto'}
                           onError={(e) => {
                             e.currentTarget.style.display = 'none'
                           }}
@@ -286,7 +313,8 @@ export function ArtistsSection({ initialItems }: { initialItems?: OrderedItem[] 
                 )}
               </Link>
             </div>
-          ))}
+            )
+          })}
         </div>
 
         <div className="text-center">
@@ -299,4 +327,4 @@ export function ArtistsSection({ initialItems }: { initialItems?: OrderedItem[] 
       </div>
     </section>
   )
-} 
+}

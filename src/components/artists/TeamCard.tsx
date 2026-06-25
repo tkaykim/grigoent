@@ -8,19 +8,21 @@ import { Users, Crown } from 'lucide-react'
 interface TeamCardProps {
   team: Team
   members?: TeamMember[]
+  priority?: boolean
 }
 
-export function TeamCard({ team, members = [] }: TeamCardProps) {
+export function TeamCard({ team, members = [], priority = false }: TeamCardProps) {
   return (
     <Card className="group bg-white/5 rounded-lg p-4 md:p-6 hover:bg-white/10 transition-all duration-300 transform hover:scale-105">
-      <Link href={`/teams/${team.slug}`} className="block">
+      <Link href={`/teams/${team.slug}`} prefetch={false} className="block">
         <div className="relative mb-4">
           {team.logo_url ? (
             <img
               src={team.logo_url}
               alt={team.name}
               className="w-full h-48 md:h-56 object-cover object-top rounded-lg"
-              loading="lazy"
+              loading={priority ? 'eager' : 'lazy'}
+              fetchPriority={priority ? 'high' : 'auto'}
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
               }}
@@ -82,4 +84,4 @@ export function TeamCard({ team, members = [] }: TeamCardProps) {
       </Link>
     </Card>
   )
-} 
+}

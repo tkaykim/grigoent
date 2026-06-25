@@ -22,7 +22,47 @@ import { PermissionManagerModal } from '@/components/artists/detail/PermissionMa
 
 import { BiographySection } from '@/components/artists/detail/BiographySection'
 import { LatestSongsSection } from '@/components/artists/detail/LatestSongsSection'
+import { isHiddenPublicArtist } from '@/lib/public-profile-visibility'
 
+const ARTIST_PROFILE_COLUMNS = [
+  'id',
+  'name',
+  'name_en',
+  'email',
+  'phone',
+  'profile_image',
+  'slug',
+  'type',
+  'pending_type',
+  'display_order',
+  'introduction',
+  'instagram_url',
+  'twitter_url',
+  'youtube_url',
+  'created_at',
+].join(',')
+
+const CAREER_COLUMNS = [
+  'id',
+  'user_id',
+  'linked_user_id',
+  'category',
+  'title',
+  'description',
+  'country',
+  'video_url',
+  'poster_url',
+  'start_date',
+  'end_date',
+  'is_featured',
+  'created_at',
+  'updated_at',
+  'date_type',
+  'single_date',
+  'is_linked',
+].join(',')
+
+const INITIAL_CAREER_LIMIT = 8
 
 export default function ArtistDetailPage() {
   const params = useParams()
@@ -30,6 +70,7 @@ export default function ArtistDetailPage() {
   const { profile } = useAuth()
   const [artist, setArtist] = useState<User | null>(null)
   const [careers, setCareers] = useState<CareerEntry[]>([])
+  const [careersLoading, setCareersLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [retryCount, setRetryCount] = useState(0)
@@ -59,7 +100,7 @@ export default function ArtistDetailPage() {
     if (slug) {
       fetchArtistData()
     }
-  }, [slug])
+  }, [slug, profile?.id, profile?.type])
 
   // 현재 로그인 사용자의 아티스트 단위 수정 권한 조회
   useEffect(() => {
@@ -136,29 +177,45 @@ export default function ArtistDetailPage() {
 
   const fetchArtistData = async () => {
     setLoading(true)
+    setCareersLoading(true)
+    setCareers([])
+    setError('')
     try {
       // 아티스트 정보 가져오기
       const { data: artistData, error: artistError } = await supabase
         .from('users')
-        .select('*')
+        .select(ARTIST_PROFILE_COLUMNS)
         .eq('slug', slug)
         .single()
 
       if (artistError) {
         console.error('아티스트 정보 로드 오류:', artistError)
         setError('아티스트 정보를 불러올 수 없습니다.')
+        setCareersLoading(false)
+        setLoading(false)
+        return
+      }
+
+      const canViewHiddenArtist = profile?.type === 'admin' || profile?.id === artistData.id
+      if (isHiddenPublicArtist(artistData) && !canViewHiddenArtist) {
+        setArtist(null)
+        setCareers([])
+        setError('아티스트 정보를 불러올 수 없습니다.')
+        setCareersLoading(false)
         setLoading(false)
         return
       }
 
       setArtist(artistData)
 
-      // 경력 정보 가져오기
+      // 경력은 첫 화면에 필요한 일부만 먼저 가져오고, 전체 목록은 뒤에서 로드한다.
       const { data: careersData, error: careersError } = await supabase
         .from('career_entries')
-        .select('*')
+        .select(CAREER_COLUMNS)
         .eq('user_id', artistData.id)
+        .order('is_featured', { ascending: false })
         .order('created_at', { ascending: false })
+        .limit(INITIAL_CAREER_LIMIT)
 
       if (careersError) {
         console.error('경력 정보 로드 오류:', careersError)
@@ -167,11 +224,47 @@ export default function ArtistDetailPage() {
         setCareers(careersData || [])
       }
 
+      setCareersLoading(false)
       setLoading(false)
+      scheduleBackgroundCareerLoad(artistData.id)
     } catch (error) {
       console.error('데이터 로드 중 오류:', error)
       setError('데이터를 불러오는 중 오류가 발생했습니다.')
+      setCareersLoading(false)
       setLoading(false)
+    }
+  }
+
+  const scheduleBackgroundCareerLoad = (artistId: string) => {
+    const loadCareers = () => fetchAllCareers(artistId)
+    const requestIdleCallback = (window as any).requestIdleCallback
+
+    window.setTimeout(() => {
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(loadCareers, { timeout: 1000 })
+        return
+      }
+
+      loadCareers()
+    }, 1200)
+  }
+
+  const fetchAllCareers = async (artistId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('career_entries')
+        .select(CAREER_COLUMNS)
+        .eq('user_id', artistId)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('전체 경력 정보 로드 오류:', error)
+        return
+      }
+
+      setCareers(data || [])
+    } catch (error) {
+      console.error('전체 경력 정보 로드 중 오류:', error)
     }
   }
 
@@ -578,7 +671,7 @@ export default function ArtistDetailPage() {
           <BiographySection artist={artist} />
 
           {/* 전체 경력 섹션 */}
-          {careers.length > 0 && (
+          {(careers.length > 0 || careersLoading) && (
             <div id="all-careers" className="mb-12">
               <div className="bg-black/50 border border-white/20 rounded-lg p-8">
               <div className="flex items-center justify-between mb-6">
@@ -748,7 +841,7 @@ export default function ArtistDetailPage() {
             </div>
           )}
 
-          {careers.length === 0 && (
+          {!careersLoading && careers.length === 0 && (
             <div className="text-center py-12">
                     <p className="text-gray-400 text-lg mb-4">
                 등록된 경력이 없습니다.
@@ -830,4 +923,4 @@ export default function ArtistDetailPage() {
       )}
     </div>
   )
-} 
+}
