@@ -369,39 +369,39 @@ export default function DancerApplyPage() {
         profile_photo_url?: string | null
       }
 
-      try {
-        await fetch('/api/email-webhook', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'dancer_application',
-            full_name: fullName.trim(),
-            stage_name: stageName.trim(),
-            email: email.trim(),
-            phone: phone.trim(),
-            birth_date: birthDate,
-            gender,
-            height_cm: heightNum,
-            residence_region: residenceRegion,
-            specialties,
-            portfolio_url: normalizedPortfolioForMail ?? '',
-            portfolio_file_path: appData.portfolio_file_url ?? null,
-            profile_photo_path: appData.profile_photo_url ?? null,
-            instagram_handle: instagram.trim().replace(/^@+/, ''),
-            careers: careerList,
-            agency_name: agencyName.trim() || undefined,
-            is_korean_national: isKoreanNational,
-            nationality,
-            has_visa: isKoreanNational ? undefined : hasVisa,
-            visa_details: isKoreanNational || !hasVisa ? undefined : visaDetails.trim(),
-            privacy_consent: true,
-          }),
-        })
-      } catch (mailErr) {
-        console.error('Email webhook error:', mailErr)
-      }
-
       const ticket = appData.id ? appData.id.slice(0, 8).toUpperCase() : ''
+
+      void fetch('/api/email-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({
+          type: 'dancer_application',
+          full_name: fullName.trim(),
+          stage_name: stageName.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          birth_date: birthDate,
+          gender,
+          height_cm: heightNum,
+          residence_region: residenceRegion,
+          specialties,
+          portfolio_url: normalizedPortfolioForMail ?? '',
+          portfolio_file_path: appData.portfolio_file_url ?? null,
+          profile_photo_path: appData.profile_photo_url ?? null,
+          instagram_handle: instagram.trim().replace(/^@+/, ''),
+          careers: careerList,
+          agency_name: agencyName.trim() || undefined,
+          is_korean_national: isKoreanNational,
+          nationality,
+          has_visa: isKoreanNational ? undefined : hasVisa,
+          visa_details: isKoreanNational || !hasVisa ? undefined : visaDetails.trim(),
+          privacy_consent: true,
+        }),
+      }).catch((mailErr) => {
+        console.error('Email webhook error:', mailErr)
+      })
+
       router.push(`/apply/dancer/success?ticket=${ticket}`)
     } catch (err) {
       console.error('Dancer apply submission error:', err)
