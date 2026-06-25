@@ -23,27 +23,27 @@ export function Footer() {
             <h4 className="text-sm font-semibold mb-4">{t('footer.quicklinks')}</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/" className="text-zinc-300 hover:text-white transition-colors">
+                <Link href="/" prefetch={false} className="text-zinc-300 hover:text-white transition-colors">
                   {t('nav.home')}
                 </Link>
               </li>
               <li>
-                <Link href="/artists" className="text-zinc-300 hover:text-white transition-colors">
+                <Link href="/artists" prefetch={false} className="text-zinc-300 hover:text-white transition-colors">
                   {t('nav.artists')}
                 </Link>
               </li>
               <li>
-                <Link href="/#about" className="text-zinc-300 hover:text-white transition-colors">
+                <Link href="/#about" prefetch={false} className="text-zinc-300 hover:text-white transition-colors">
                   {t('nav.about')}
                 </Link>
               </li>
               <li>
-                <Link href="/#contact" className="text-zinc-300 hover:text-white transition-colors">
+                <Link href="/#contact" prefetch={false} className="text-zinc-300 hover:text-white transition-colors">
                   {t('nav.contact')}
                 </Link>
               </li>
               <li>
-                <Link href="/report" className="text-zinc-300 hover:text-white transition-colors">
+                <Link href="/report" prefetch={false} className="text-zinc-300 hover:text-white transition-colors">
                   {t('footer.report')}
                 </Link>
               </li>
@@ -68,4 +68,4 @@ export function Footer() {
       </div>
     </footer>
   )
-} 
+}
