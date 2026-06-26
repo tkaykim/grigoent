@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, LogIn } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 function SuccessBody() {
@@ -38,17 +38,29 @@ function SuccessBody() {
             </div>
           ) : null}
 
-          <div className="mt-10 flex flex-col-reverse gap-2 sm:flex-row sm:justify-center sm:gap-3">
-            <Button
-              variant="outline"
-              className="rounded-none border-zinc-300 bg-white text-black hover:border-black hover:bg-white"
-              asChild
-            >
-              <Link href="/apply/dancer">{t('applyDancer.viewAgain')}</Link>
+          <div className="mt-10 space-y-3">
+            <Button className="w-full rounded-none bg-black text-white hover:bg-zinc-800 sm:w-auto" asChild>
+              <a href="https://www.deetz.kr/login?next=/me">
+                <LogIn className="h-4 w-4" aria-hidden="true" />
+                {t('applyDancer.loginDeetz')}
+              </a>
             </Button>
-            <Button className="rounded-none bg-black text-white hover:bg-zinc-800" asChild>
-              <Link href="/">{t('applyDancer.backHome')}</Link>
-            </Button>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-center sm:gap-3">
+              <Button
+                variant="outline"
+                className="rounded-none border-zinc-300 bg-white text-black hover:border-black hover:bg-white"
+                asChild
+              >
+                <Link href="/apply/dancer">{t('applyDancer.viewAgain')}</Link>
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-none border-zinc-300 bg-white text-black hover:border-black hover:bg-white"
+                asChild
+              >
+                <Link href="/">{t('applyDancer.backHome')}</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
