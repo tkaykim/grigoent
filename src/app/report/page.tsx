@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { supabase } from '@/lib/supabase'
+import { deetzStorage } from '@/lib/supabase'
 
 const EVIDENCE_BUCKET = 'fee-report-evidence'
 
@@ -188,7 +188,7 @@ export default function ReportPage() {
 
         for (let i = 0; i < evidenceFiles.length; i++) {
           const target = files[i]
-          const { error: upErr } = await supabase.storage
+          const { error: upErr } = await deetzStorage.storage
             .from(EVIDENCE_BUCKET)
             .uploadToSignedUrl(target.path, target.token, evidenceFiles[i])
           if (upErr) {
