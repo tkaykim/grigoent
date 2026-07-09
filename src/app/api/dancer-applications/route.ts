@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { DANCE_SPECIALTY_VALUES } from '@/lib/dancer-specialties'
 import { RESIDENCE_OPTIONS } from '@/lib/dancer-regions'
+import { sendDancerApplicationReceiptEmail } from '@/lib/email'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -129,6 +130,7 @@ type VisaRefinable = {
 }
 
 const identityBase = z.object({
+  lang: z.enum(['ko', 'en', 'ja']).default('ko'),
   full_name: z.string().trim().min(1).max(200),
   stage_name: z.string().trim().min(1).max(200),
   email: z.string().trim().toLowerCase().email().max(200),
@@ -550,6 +552,7 @@ async function handleMultipart(request: NextRequest) {
   const specialties = parseSpecialties(form)
 
   const parsed = multipartIdentitySchema.safeParse({
+    lang: String(form.get('lang') ?? 'ko').trim() || 'ko',
     full_name: String(form.get('full_name') ?? '').trim(),
     stage_name: String(form.get('stage_name') ?? '').trim(),
     email: String(form.get('email') ?? '').trim(),
@@ -616,7 +619,19 @@ async function handleMultipart(request: NextRequest) {
       portfolioFile,
     })
 
-    return NextResponse.json(data, { status: 201 })
+    let emailSent = false
+    try {
+      await sendDancerApplicationReceiptEmail({
+        to: d.email,
+        name: d.stage_name || d.full_name,
+        lang: d.lang,
+      })
+      emailSent = true
+    } catch (emailError) {
+      console.error('[deetz-onboarding] applicant receipt email failed:', emailError)
+    }
+
+    return NextResponse.json({ ...data, emailSent }, { status: 201 })
   } catch (error) {
     if (error instanceof SubmissionError) {
       console.error('[deetz-onboarding] submission error:', error.code, error.message)

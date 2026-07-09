@@ -13,6 +13,7 @@ function SuccessBody() {
   const { t } = useLanguage()
   const params = useSearchParams()
   const ticket = params.get('ticket') || ''
+  const mailWarn = params.get('mail') === 'warn'
 
   return (
     <main className="pt-16">
@@ -30,6 +31,12 @@ function SuccessBody() {
           <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-zinc-600 sm:text-[15px] sm:leading-[1.75]">
             {t('applyDancer.successBody')}
           </p>
+
+          {mailWarn ? (
+            <p className="mx-auto mt-4 max-w-md border border-zinc-300 bg-white px-4 py-3 text-sm leading-relaxed text-zinc-700">
+              {t('applyDancer.emailWarn')}
+            </p>
+          ) : null}
 
           {ticket ? (
             <div className="mx-auto mt-8 inline-flex items-center gap-3 border border-black px-4 py-2 font-mono text-xs tracking-wider text-black">

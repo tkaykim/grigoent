@@ -12,8 +12,8 @@ export interface QuoteEmailData {
 }
 
 function getTransporter() {
-  const user = process.env.SMTP_USER
-  const pass = process.env.SMTP_PASS
+  const user = process.env.SMTP_USER || process.env.EMAIL_SMTP_USER
+  const pass = process.env.SMTP_PASS || process.env.EMAIL_SMTP_PASS
 
   if (!user || !pass) {
     throw new Error(
@@ -22,11 +22,24 @@ function getTransporter() {
   }
 
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: Number(process.env.SMTP_PORT) || 587,
+    host: process.env.SMTP_HOST || process.env.EMAIL_SMTP_HOST || 'smtp.gmail.com',
+    port: Number(process.env.SMTP_PORT || process.env.EMAIL_SMTP_PORT) || 587,
     secure: false,
     auth: { user, pass },
   })
+}
+
+function getSmtpUser() {
+  return process.env.SMTP_USER || process.env.EMAIL_SMTP_USER || ''
+}
+
+function escapeHtml(value: string): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
 
 function formatKRW(amount: number | null | undefined): string {
@@ -126,7 +139,7 @@ export async function sendQuoteEmail(
 </html>`
 
   await transporter.sendMail({
-    from: `"그리고 엔터테인먼트" <${process.env.SMTP_USER}>`,
+    from: `"그리고 엔터테인먼트" <${getSmtpUser()}>`,
     to,
     cc: cc?.length ? cc : undefined,
     subject: `[그리고 엔터테인먼트] 견적서 전달 - ${title} (${docNumber})`,
@@ -166,7 +179,7 @@ export async function sendQuoteResponseNotification(
   const docNumber = getDocNumber(quoteId)
 
   await transporter.sendMail({
-    from: `"그리고 엔터테인먼트" <${process.env.SMTP_USER}>`,
+    from: `"그리고 엔터테인먼트" <${getSmtpUser()}>`,
     to: adminEmail,
     subject: `[견적 ${responseLabel}] ${clientName}님 (${clientCompany || '개인'})`,
     html: `
@@ -186,5 +199,133 @@ export async function sendQuoteResponseNotification(
 </div>
 </body>
 </html>`,
+  })
+}
+
+type ReceiptLanguage = 'ko' | 'en' | 'ja'
+
+const DANCER_RECEIPT_COPY: Record<ReceiptLanguage, {
+  subject: string
+  greeting: (name: string) => string
+  intro: string[]
+  nextTitle: string
+  next: string[]
+  footer: string[]
+}> = {
+  ko: {
+    subject: '[그리고 엔터테인먼트] 지원서가 접수되었습니다',
+    greeting: (name) => `${name}님, 안녕하세요.`,
+    intro: [
+      '보내주신 지원서는 정상적으로 접수되었습니다.',
+      '입력하신 이메일과 비밀번호로 deetz 프로필에 로그인할 수 있습니다.',
+    ],
+    nextTitle: '다음 안내',
+    next: [
+      '보내주신 정보와 포트폴리오를 바탕으로 프로그램 구성을 확인하겠습니다.',
+      '프로그램 구성이 준비되는 대로 담당자가 입력하신 이메일로 개별 연락드리겠습니다.',
+      '추가 확인이 필요한 경우 이 메일 또는 입력하신 연락처로 안내드리겠습니다.',
+    ],
+    footer: [
+      '감사합니다.',
+      '그리고 엔터테인먼트',
+    ],
+  },
+  en: {
+    subject: '[GRIGO ENTERTAINMENT] Your application has been received',
+    greeting: (name) => `Hi ${name},`,
+    intro: [
+      'Your application has been received.',
+      'You can log in to your deetz profile with the email and password you entered.',
+    ],
+    nextTitle: 'What happens next',
+    next: [
+      'We will review your information and portfolio to prepare the program plan.',
+      'Our team will contact you individually by email once the plan is ready.',
+      'If we need anything else, we will reach out by email or through the contact details you submitted.',
+    ],
+    footer: [
+      'Thank you.',
+      'GRIGO ENTERTAINMENT',
+    ],
+  },
+  ja: {
+    subject: '[GRIGO ENTERTAINMENT] お申し込みを受け付けました',
+    greeting: (name) => `${name}様`,
+    intro: [
+      'お申し込みを受け付けました。',
+      'ご入力のメールアドレスとパスワードでdeetzプロフィールにログインできます。',
+    ],
+    nextTitle: '次のご案内',
+    next: [
+      'ご入力内容とポートフォリオを確認し、プログラム構成を準備いたします。',
+      '構成が整い次第、担当者よりご記入のメールへ個別にご連絡いたします。',
+      '追加確認が必要な場合は、メールまたはご入力の連絡先へご案内いたします。',
+    ],
+    footer: [
+      'ありがとうございます。',
+      'GRIGO ENTERTAINMENT',
+    ],
+  },
+}
+
+export async function sendDancerApplicationReceiptEmail(params: {
+  to: string
+  name: string
+  lang?: string | null
+}) {
+  const transporter = getTransporter()
+  const lang: ReceiptLanguage =
+    params.lang === 'en' || params.lang === 'ja' || params.lang === 'ko' ? params.lang : 'ko'
+  const copy = DANCER_RECEIPT_COPY[lang]
+  const name = params.name.trim() || 'dancer'
+
+  const text = [
+    copy.greeting(name),
+    '',
+    ...copy.intro,
+    '',
+    `[${copy.nextTitle}]`,
+    ...copy.next,
+    '',
+    ...copy.footer,
+    'grigoent.co.kr',
+    'deetz.kr',
+  ].join('\n')
+
+  const htmlLines = [...copy.intro, '', ...copy.next].filter(Boolean)
+  const html = `
+<!DOCTYPE html>
+<html lang="${lang}">
+<head><meta charset="utf-8"/></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:'Apple SD Gothic Neo','Malgun Gothic','Helvetica Neue',Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;background:#ffffff;">
+  <div style="padding:34px 40px 0;">
+    <div style="font-size:20px;font-weight:800;color:#111;letter-spacing:0.5px;">GRIGO ENTERTAINMENT</div>
+    <div style="font-size:11px;color:#999;margin-top:4px;">Dancer agency pool</div>
+    <div style="border-bottom:2.5px solid #111;margin-top:16px;"></div>
+  </div>
+  <div style="padding:28px 40px 34px;">
+    <div style="display:inline-block;border:1px solid #111;padding:6px 10px;font-size:11px;font-weight:700;letter-spacing:0.08em;color:#111;">${escapeHtml(copy.nextTitle)}</div>
+    <p style="font-size:17px;font-weight:700;color:#111;line-height:1.7;margin:20px 0 10px;">${escapeHtml(copy.greeting(name))}</p>
+    <p style="font-size:14px;color:#444;line-height:1.85;margin:0;">${htmlLines.map(escapeHtml).join('<br>')}</p>
+    <div style="margin-top:24px;padding:16px 18px;background:#f6f6f6;border:1px solid #e8e8e8;">
+      <p style="font-size:13px;color:#333;line-height:1.75;margin:0;">deetz profile login: <a href="https://www.deetz.kr/login?next=/me" style="color:#111;font-weight:700;">https://www.deetz.kr/login?next=/me</a></p>
+    </div>
+    <p style="font-size:14px;color:#111;line-height:1.8;margin:22px 0 0;">${copy.footer.map(escapeHtml).join('<br>')}</p>
+  </div>
+  <div style="padding:20px 40px;border-top:1px solid #eee;background:#fafafa;">
+    <div style="font-size:13px;font-weight:700;color:#111;">그리고 엔터테인먼트</div>
+    <div style="font-size:11px;color:#888;margin-top:4px;line-height:1.7;">grigoent.co.kr<br>deetz.kr</div>
+  </div>
+</div>
+</body>
+</html>`
+
+  await transporter.sendMail({
+    from: `"그리고 엔터테인먼트" <${getSmtpUser()}>`,
+    to: params.to,
+    subject: copy.subject,
+    text,
+    html,
   })
 }

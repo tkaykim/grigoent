@@ -312,6 +312,7 @@ export default function DancerApplyPage() {
     }
 
     const formData = new FormData()
+    formData.append('lang', language)
     formData.append('full_name', fullName.trim())
     formData.append('stage_name', stageName.trim())
     formData.append('email', email.trim())
@@ -367,9 +368,11 @@ export default function DancerApplyPage() {
         id?: string
         portfolio_file_url?: string | null
         profile_photo_url?: string | null
+        emailSent?: boolean
       }
 
       const ticket = appData.id ? appData.id.slice(0, 8).toUpperCase() : ''
+      const mailWarn = appData.emailSent === false
 
       void fetch('/api/email-webhook', {
         method: 'POST',
@@ -402,7 +405,12 @@ export default function DancerApplyPage() {
         console.error('Email webhook error:', mailErr)
       })
 
-      router.push(`/apply/dancer/success?ticket=${ticket}`)
+      if (mailWarn) toast.warning(t('applyDancer.emailWarn'))
+      const successParams = new URLSearchParams()
+      if (ticket) successParams.set('ticket', ticket)
+      if (mailWarn) successParams.set('mail', 'warn')
+      const successQuery = successParams.toString()
+      router.push(`/apply/dancer/success${successQuery ? `?${successQuery}` : ''}`)
     } catch (err) {
       console.error('Dancer apply submission error:', err)
       toast.error(err instanceof Error ? err.message : t('applyDancer.errorSubmit'))
