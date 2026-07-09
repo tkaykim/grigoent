@@ -221,9 +221,9 @@ const DANCER_RECEIPT_COPY: Record<ReceiptLanguage, {
     ],
     nextTitle: '다음 안내',
     next: [
-      '보내주신 정보와 포트폴리오를 바탕으로 프로그램 구성을 확인하겠습니다.',
-      '프로그램 구성이 준비되는 대로 담당자가 입력하신 이메일로 개별 연락드리겠습니다.',
-      '추가 확인이 필요한 경우 이 메일 또는 입력하신 연락처로 안내드리겠습니다.',
+      '담당자들이 보내주신 정보와 포트폴리오를 검수하겠습니다.',
+      '검수 후 적절한 프로그램이나 온라인 또는 대면 미팅을 안내드릴 예정입니다.',
+      '안내를 드릴 때까지 조금만 기다려 주세요.',
     ],
     footer: [
       '감사합니다.',
@@ -239,9 +239,9 @@ const DANCER_RECEIPT_COPY: Record<ReceiptLanguage, {
     ],
     nextTitle: 'What happens next',
     next: [
-      'We will review your information and portfolio to prepare the program plan.',
-      'Our team will contact you individually by email once the plan is ready.',
-      'If we need anything else, we will reach out by email or through the contact details you submitted.',
+      'Our team will review your information and portfolio carefully.',
+      'After the review, we will contact you with the right program plan or a meeting option, either online or in person.',
+      'Please wait for our next update.',
     ],
     footer: [
       'Thank you.',
@@ -257,9 +257,9 @@ const DANCER_RECEIPT_COPY: Record<ReceiptLanguage, {
     ],
     nextTitle: '次のご案内',
     next: [
-      'ご入力内容とポートフォリオを確認し、プログラム構成を準備いたします。',
-      '構成が整い次第、担当者よりご記入のメールへ個別にご連絡いたします。',
-      '追加確認が必要な場合は、メールまたはご入力の連絡先へご案内いたします。',
+      '担当者がご入力内容とポートフォリオを確認いたします。',
+      '確認後、適切なプログラムまたはオンライン・対面ミーティングのご案内を個別にお送りします。',
+      '次のご案内まで少々お待ちください。',
     ],
     footer: [
       'ありがとうございます。',
