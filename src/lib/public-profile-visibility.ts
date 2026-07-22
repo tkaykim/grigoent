@@ -14,16 +14,28 @@ type PublicRecord = {
   id?: string | null
   slug?: string | null
   is_hidden?: boolean | null
+  profile_image?: string | null
+  logo_url?: string | null
 }
 
 function normalizeSlug(slug?: string | null) {
   return String(slug || '').trim().toLowerCase()
 }
 
+function hasUsableProfileImage(profileImage?: string | null) {
+  const value = String(profileImage || '').trim()
+
+  if (!value) return false
+
+  return !/(placeholder|default[-_ ]?(avatar|profile)|ui-avatars\.com)/i.test(value)
+}
+
 export function isHiddenPublicArtist(artist?: PublicRecord | null) {
   if (!artist) return false
   return (
     artist.is_hidden === true ||
+    (Object.prototype.hasOwnProperty.call(artist, 'profile_image') &&
+      !hasUsableProfileImage(artist.profile_image)) ||
     (artist.id ? HIDDEN_PUBLIC_ARTIST_IDS.has(artist.id) : false) ||
     HIDDEN_PUBLIC_ARTIST_SLUGS.has(normalizeSlug(artist.slug))
   )
@@ -33,6 +45,8 @@ export function isHiddenPublicTeam(team?: PublicRecord | null) {
   if (!team) return false
   return (
     team.is_hidden === true ||
+    (Object.prototype.hasOwnProperty.call(team, 'logo_url') &&
+      !hasUsableProfileImage(team.logo_url)) ||
     (team.id ? HIDDEN_PUBLIC_TEAM_IDS.has(team.id) : false) ||
     HIDDEN_PUBLIC_TEAM_SLUGS.has(normalizeSlug(team.slug))
   )

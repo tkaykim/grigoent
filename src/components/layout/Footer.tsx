@@ -33,8 +33,18 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/#about" prefetch={false} className="text-zinc-300 hover:text-white transition-colors">
-                  {t('nav.about')}
+                <Link href="/#divisions" prefetch={false} className="text-zinc-300 hover:text-white transition-colors">
+                  {t('nav.company')}
+                </Link>
+              </li>
+              <li>
+                <Link href="/history" prefetch={false} className="text-zinc-300 hover:text-white transition-colors">
+                  {t('nav.history')}
+                </Link>
+              </li>
+              <li>
+                <Link href="/archive" prefetch={false} className="text-zinc-300 hover:text-white transition-colors">
+                  {t('nav.archive')}
                 </Link>
               </li>
               <li>

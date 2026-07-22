@@ -10,13 +10,13 @@ export function AboutSection() {
     <section id="about" className="py-20 bg-black text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 [text-wrap:balance] [word-break:keep-all]">
             {t('about.title')}
           </h2>
-          <p className="text-2xl text-zinc-300 mb-8">
+          <p className="text-2xl text-zinc-300 mb-8 [word-break:keep-all]">
             {t('about.subtitle')}
           </p>
-          <p className="text-lg text-zinc-400 max-w-4xl mx-auto whitespace-pre-line">
+          <p className="text-lg text-zinc-400 max-w-4xl mx-auto whitespace-pre-line [word-break:keep-all]">
             {t('about.mission')}
           </p>
         </div>

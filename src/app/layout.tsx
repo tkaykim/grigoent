@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "그리고 엔터테인먼트 - GRIGO entertainment",
-  description: "그리고 엔터테인먼트는 댄서, 안무가 섭외, 안무제작, 뮤직비디오 제작, 광고를 진행하고 있으며, 한 곳에서 머물러 있는 것이 아닌 가치를 찾아 새로운 길로 나아가는 마인드를 목표로 가지고 있습니다.",
-  keywords: "댄서, 안무가, 섭외, 안무제작, 뮤직비디오, 광고, 그리고엔터테인먼트, GRIGO",
+  description: "그리고 엔터테인먼트는 전속 안무가 매니지먼트, 댄서 에이전시·매거진 deetz, 공연제작 Flowmaker, 영상제작 REACT Studio를 운영합니다.",
+  keywords: "댄서, 안무가, 섭외, 안무제작, 공연제작, 영상제작, 댄서 에이전시, 댄서 매거진, Flowmaker, REACT Studio, deetz, 그리고엔터테인먼트, GRIGO",
   authors: [{ name: "그리고 엔터테인먼트" }],
   creator: "그리고 엔터테인먼트",
   publisher: "그리고 엔터테인먼트",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "그리고 엔터테인먼트 - GRIGO entertainment",
-    description: "그리고 엔터테인먼트는 댄서, 안무가 섭외, 안무제작, 뮤직비디오 제작, 광고를 진행하고 있으며, 한 곳에서 머물러 있는 것이 아닌 가치를 찾아 새로운 길로 나아가는 마인드를 목표로 가지고 있습니다.",
+    description: "전속 안무가 매니지먼트, 댄서 에이전시·매거진, 공연제작, 영상제작을 연결하는 댄스 엔터테인먼트 운영사입니다.",
     url: 'https://grigoent.co.kr',
     siteName: '그리고 엔터테인먼트',
     locale: 'ko_KR',
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: "그리고 엔터테인먼트 - GRIGO entertainment",
-    description: "그리고 엔터테인먼트는 댄서, 안무가 섭외, 안무제작, 뮤직비디오 제작, 광고를 진행하고 있으며, 한 곳에서 머물러 있는 것이 아닌 가치를 찾아 새로운 길로 나아가는 마인드를 목표로 가지고 있습니다.",
+    description: "GRIGO, deetz, Flowmaker, REACT Studio를 연결하는 댄스 엔터테인먼트 운영사입니다.",
   },
   other: {
     'naver-site-verification': '6917ca265e4f4b3282568bb521b06d1cf3980588',
@@ -68,8 +68,14 @@ export default function RootLayout({
         url: SITE,
         email: "contact@grigoent.co.kr",
         description:
-          "댄서·안무가 섭외, 안무 제작, 뮤직비디오·광고 댄스, 공연·브랜디드 협업 댄스 엔터테인먼트.",
+          "전속 안무가 매니지먼트, 댄서 에이전시·매거진 deetz, 공연제작 Flowmaker, 영상제작 REACT Studio를 운영하는 댄스 엔터테인먼트.",
         areaServed: "KR",
+        department: [
+          { "@type": "Organization", name: "GRIGO Management" },
+          { "@type": "Organization", name: "deetz", url: "https://deetz.kr" },
+          { "@type": "Organization", name: "Flowmaker" },
+          { "@type": "Organization", name: "REACT Studio", url: "https://reactstudio.kr" },
+        ],
       },
       {
         "@type": "WebSite",

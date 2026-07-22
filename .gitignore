@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# retired public assets
+public/brand/ast-company-logo-black.png
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

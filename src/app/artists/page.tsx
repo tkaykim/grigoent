@@ -370,7 +370,14 @@ export default function ArtistsPage() {
             
             {/* 개인 탭: 기존 아티스트 표시 */}
             {tab === 'artist' && filteredArtists.map((artist, index) => (
-              <div key={artist.id} className="group bg-white/5 rounded-lg p-4 md:p-6 hover:bg-white/10 transition-all duration-300 transform hover:scale-105">
+              <div
+                key={artist.id}
+                className={`group bg-white/5 rounded-lg p-4 md:p-6 hover:bg-white/10 transition-all duration-300 transform hover:scale-105 ${
+                  filteredArtists.length % 4 === 1 && index === filteredArtists.length - 1
+                    ? 'xl:col-start-2'
+                    : ''
+                }`}
+              >
                 <Link href={`/${artist.slug}`} prefetch={false} className="block">
                   <div className="relative mb-4">
                     {artist.profile_image ? (

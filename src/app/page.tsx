@@ -4,6 +4,8 @@ import { HeroSection } from '@/components/home/HeroSection'
 import { AboutSection } from '@/components/home/AboutSection'
 import { ArtistsSection } from '@/components/home/ArtistsSection'
 import { WorksSection } from '@/components/home/WorksSection'
+import { GroupDivisionsSection } from '@/components/home/GroupDivisionsSection'
+import { ArchivePreviewSection } from '@/components/home/ArchivePreviewSection'
 import { GeneralProposalSection } from '@/components/home/GeneralProposalSection'
 import { ContactSection } from '@/components/home/ContactSection'
 import { getHomeArtists, getFeaturedWorks } from '@/lib/home-data'
@@ -23,8 +25,10 @@ export default async function Home() {
       <Header />
       <HeroSection />
       <AboutSection />
+      <GroupDivisionsSection />
       <ArtistsSection initialItems={initialItems} />
       <WorksSection initialWorks={initialWorks} />
+      <ArchivePreviewSection />
       <GeneralProposalSection />
       <ContactSection />
       <Footer />

@@ -10,17 +10,10 @@ import GalleryLightbox from "@/components/intro/GalleryLightbox";
 import SmoothScroll from "@/components/intro/SmoothScroll";
 import UploadImageBox from "@/components/intro/UploadImageBox";
 import { useIntroContent } from "@/components/intro/useIntroContent";
+import { companyHistory } from "@/lib/company-content";
 
 export default function IntroClient() {
   const { content } = useIntroContent();
-
-  const timeline = [
-    { year: "2020", items: ["유튜브 콘텐츠 제작사 설립 및 댄서 리안 영입", "댄서 JAYB와 팀 라치카 영입"] },
-    { year: "2021", items: ["스트릿 우먼 파이터, 걸스파이터 라치카 출연"] },
-    { year: "2022", items: ["댄스행사 기업 플로우메이커 인수합병"] },
-    { year: "2023~2024", items: ["유튜브 예능 대세같이주, 디바마을 킨가비 기획/제작"] },
-    { year: "2024~2025", items: ["힙합댄스팀/안무가 영입, 팬미팅/행사 기획 및 분사"] },
-  ];
 
   return (
     <main className="container mx-auto px-4">
@@ -87,7 +80,7 @@ export default function IntroClient() {
       />
 
       {/* 슬라이드5~6: 연혁 */}
-      <Timeline data={timeline} />
+      <Timeline data={companyHistory} />
 
       {/* 추가 이미지 업로드 영역 */}
       <section className="py-14">

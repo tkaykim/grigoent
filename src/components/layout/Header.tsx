@@ -20,9 +20,11 @@ export function Header() {
   
   const navigation = [
     { name: t('nav.home'), href: '/' },
-    { name: t('nav.about'), href: '/#about' },
+    { name: t('nav.company'), href: '/#divisions' },
+    { name: t('nav.history'), href: '/history' },
     { name: t('nav.artists'), href: '/artists' },
     { name: t('nav.works'), href: '/#works' },
+    { name: t('nav.archive'), href: '/archive' },
     { name: t('nav.dancerApply'), href: '/apply/dancer' },
     { name: t('nav.contact'), href: '/#contact' },
   ]
@@ -42,7 +44,7 @@ export function Header() {
           </Link>
 
           {/* 데스크톱 네비게이션 */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden lg:flex items-center space-x-4 text-sm xl:space-x-7 xl:text-base">
             {navigation.map((item) => (
               <Link
                 key={item.name}
@@ -56,7 +58,7 @@ export function Header() {
           </nav>
 
           {/* 사용자 메뉴 */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden lg:flex items-center space-x-4">
             <LanguageToggle />
             {user ? (
               <div className="flex items-center space-x-4">
@@ -108,8 +110,10 @@ export function Header() {
 
           {/* 모바일 메뉴 버튼 */}
           <button
-            className="md:hidden p-2"
+            className="lg:hidden p-2"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={isMenuOpen}
           >
             {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
@@ -117,7 +121,7 @@ export function Header() {
 
         {/* 모바일 메뉴 */}
         {isMenuOpen && (
-          <div className="md:hidden border-t border-zinc-200">
+          <div className="lg:hidden border-t border-zinc-200">
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navigation.map((item) => (
                 <Link

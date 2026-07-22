@@ -1,81 +1,81 @@
 'use client'
 
 import { useLanguage } from '@/contexts/LanguageContext'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Send, Users, User, Building } from 'lucide-react'
+import { ArrowUpRight, Building2, Send, UserRound } from 'lucide-react'
 import Link from 'next/link'
 
 export function GeneralProposalSection() {
   const { t } = useLanguage()
+  const proposalOptions = [
+    {
+      href: '/artists',
+      label: 'Roster',
+      title: t('proposal.general.individual.title'),
+      description: t('proposal.general.individual.desc'),
+      button: t('proposal.general.individual.button'),
+      Icon: UserRound,
+    },
+    {
+      href: '/teams',
+      label: 'Team',
+      title: t('proposal.general.team.title'),
+      description: t('proposal.general.team.desc'),
+      button: t('proposal.general.team.button'),
+      Icon: Building2,
+    },
+    {
+      href: '/proposals/general',
+      label: 'Brief',
+      title: t('proposal.general.general.title'),
+      description: t('proposal.general.general.desc'),
+      button: t('proposal.general.general.button'),
+      Icon: Send,
+    },
+  ]
   
   return (
-    <section className="py-16 bg-zinc-50">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-zinc-900 mb-4">{t('proposal.general.title')}</h2>
-          <p className="text-lg text-zinc-600 max-w-2xl mx-auto">
+    <section className="scroll-mt-24 bg-zinc-950 py-20 text-white">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-start lg:px-8">
+        <div className="lg:sticky lg:top-24">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-zinc-400">
+            Project Request
+          </p>
+          <h2 className="text-3xl font-bold tracking-tight [word-break:keep-all] md:text-5xl">
+            {t('proposal.general.title')}
+          </h2>
+          <p className="mt-4 max-w-md text-base leading-7 text-zinc-300 [word-break:keep-all]">
             {t('proposal.general.subtitle')}
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto">
-          <Card className="text-center hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <User className="w-6 h-6 text-blue-600" />
-              </div>
-              <CardTitle className="text-lg">{t('proposal.general.individual.title')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-zinc-600 mb-4">
-                {t('proposal.general.individual.desc')}
-              </p>
-              <Link href="/artists">
-                <Button className="w-full">
-                  {t('proposal.general.individual.button')}
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="text-center hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Building className="w-6 h-6 text-green-600" />
-              </div>
-              <CardTitle className="text-lg">{t('proposal.general.team.title')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-zinc-600 mb-4">
-                {t('proposal.general.team.desc')}
-              </p>
-              <Link href="/teams">
-                <Button className="w-full">
-                  {t('proposal.general.team.button')}
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="text-center hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Send className="w-6 h-6 text-purple-600" />
-              </div>
-              <CardTitle className="text-lg">{t('proposal.general.general.title')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-zinc-600 mb-4">
-                {t('proposal.general.general.desc')}
-              </p>
-              <Link href="/proposals/general">
-                <Button className="w-full">
-                  {t('proposal.general.general.button')}
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+        <div className="divide-y divide-white/15 border-y border-white/15">
+          {proposalOptions.map(({ href, label, title, description, button, Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              prefetch={false}
+              className="group -mx-4 grid gap-4 px-4 py-6 transition hover:bg-white hover:text-zinc-950 sm:mx-0 sm:grid-cols-[56px_1fr_auto] sm:items-center sm:px-0"
+            >
+              <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 text-white transition group-hover:border-zinc-950 group-hover:text-zinc-950">
+                <Icon className="h-5 w-5" />
+              </span>
+              <span>
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400 transition group-hover:text-zinc-500">
+                  {label}
+                </span>
+                <span className="block text-xl font-bold leading-snug [word-break:keep-all]">
+                  {title}
+                </span>
+                <span className="mt-2 block text-sm leading-6 text-zinc-300 transition [word-break:keep-all] group-hover:text-zinc-700">
+                  {description}
+                </span>
+              </span>
+              <span className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-semibold text-zinc-950 transition group-hover:bg-zinc-950 group-hover:text-white sm:justify-self-end">
+                {button}
+                <ArrowUpRight className="h-4 w-4" />
+              </span>
+            </Link>
+          ))}
         </div>
       </div>
     </section>

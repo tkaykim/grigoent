@@ -169,7 +169,7 @@ export function HeroSection() {
           <div className="w-32 h-0.5 bg-white/80 mx-auto my-6" />
 
           {/* 보조 텍스트 - 깔끔한 폰트 */}
-          <p className="text-sm md:text-lg font-medium tracking-[0.15em] whitespace-pre-line text-white/80 font-outfit">
+          <p className="text-sm md:text-lg font-medium tracking-normal whitespace-pre-line text-white/80 font-outfit">
             {t('hero.subtitle')}
           </p>
         </div>

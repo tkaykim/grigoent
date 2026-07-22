@@ -32,8 +32,11 @@ const translations = {
     // 네비게이션
     'nav.home': 'Home',
     'nav.about': 'About us',
+    'nav.company': 'Company',
+    'nav.history': 'History',
     'nav.artists': 'Artists',
     'nav.works': 'Our Works',
+    'nav.archive': 'Archive',
     'nav.contact': 'Contact us',
     'nav.dancerApply': 'Agency',
 
@@ -195,12 +198,12 @@ const translations = {
     'hero.main1': 'DANCE',
     'hero.main2': 'WITH',
     'hero.main3': 'PASSION',
-    'hero.subtitle': '그리고 엔터테인먼트 // A GLOBAL DANCE COMPANY',
+    'hero.subtitle': '그리고 엔터테인먼트 // MANAGEMENT · PRODUCTION · PLATFORM',
 
     // About Section
     'about.title': 'About Us',
-    'about.subtitle': '글로벌 댄스 컴퍼니',
-    'about.mission': '우리는 세계적인 안무가들과 댄서들을 연결하여\n혁신적이고 감동적인 공연을 만들어갑니다.',
+    'about.subtitle': '댄스 엔터테인먼트 운영사',
+    'about.mission': '우리는 안무가 매니지먼트, 댄서 에이전시와 매거진, 공연제작, 영상제작을 연결하여\n댄스 기반 프로젝트가 더 빠르고 정확하게 완성되는 구조를 만듭니다.',
     'about.stats.title': 'Our Numbers',
     'about.stats.projects': '프로젝트',
     'about.stats.artists': '아티스트',
@@ -270,7 +273,7 @@ const translations = {
 
     // Footer
     'footer.company.name': '(주) 그리고 엔터테인먼트',
-    'footer.description': '글로벌 댄스 컴퍼니로, 안무제작부터 댄서섭외까지 모든 것을 담당합니다.\n최고의 안무가들과 댄서들을 연결하여 세계적인 공연을 만들어갑니다.',
+    'footer.description': '전속 안무가 매니지먼트를 중심으로 deetz, Flowmaker, REACT Studio를 운영합니다.\n댄스 기반 프로젝트의 기획, 제작, 섭외를 한 흐름으로 연결합니다.',
     'footer.quicklinks': 'Quick Links',
     'footer.report': '미수·정산 제보',
     'footer.contact': 'Contact',
@@ -316,8 +319,11 @@ const translations = {
     // Navigation
     'nav.home': 'Home',
     'nav.about': 'About us',
+    'nav.company': 'Company',
+    'nav.history': 'History',
     'nav.artists': 'Artists',
     'nav.works': 'Our Works',
+    'nav.archive': 'Archive',
     'nav.contact': 'Contact us',
     'nav.dancerApply': 'Agency',
 
@@ -482,12 +488,12 @@ const translations = {
     'hero.main1': 'DANCE',
     'hero.main2': 'WITH',
     'hero.main3': 'PASSION',
-    'hero.subtitle': 'GRIGO ENTERTAINMENT // A GLOBAL DANCE COMPANY',
+    'hero.subtitle': 'GRIGO ENTERTAINMENT // MANAGEMENT · PRODUCTION · PLATFORM',
 
     // About Section
     'about.title': 'About Us',
-    'about.subtitle': 'Global Dance Company',
-    'about.mission': 'We connect world-class choreographers and dancers\nto create innovative and inspiring performances.',
+    'about.subtitle': 'Dance entertainment operator',
+    'about.mission': 'We connect choreographer management, a dancer agency and magazine, show production, and media production\nto deliver dance-led projects with one connected workflow.',
     'about.stats.title': 'Our Numbers',
     'about.stats.projects': 'Projects',
     'about.stats.artists': 'Artists',
@@ -557,7 +563,7 @@ const translations = {
 
     // Footer
     'footer.company.name': 'GRIGO Entertainment Co., Ltd.',
-    'footer.description': 'As a global dance company, we handle everything from choreography to dancer casting.\nWe connect the best choreographers and dancers to create world-class performances.',
+    'footer.description': 'GRIGO operates choreographer management, the deetz dancer agency and magazine, Flowmaker show production, and REACT Studio media production.\nWe connect planning, production, and casting for dance-led projects.',
     'footer.quicklinks': 'Quick Links',
     'footer.report': 'Unpaid settlement report',
     'footer.contact': 'Contact',
@@ -603,8 +609,11 @@ const translations = {
     // Navigation
     'nav.home': 'Home',
     'nav.about': 'About us',
+    'nav.company': 'Company',
+    'nav.history': 'History',
     'nav.artists': 'Artists',
     'nav.works': 'Our Works',
+    'nav.archive': 'Archive',
     'nav.contact': 'Contact us',
     'nav.dancerApply': 'Agency',
 
@@ -769,12 +778,12 @@ const translations = {
     'hero.main1': 'DANCE',
     'hero.main2': 'WITH',
     'hero.main3': 'PASSION',
-    'hero.subtitle': 'GRIGO ENTERTAINMENT // A GLOBAL DANCE COMPANY',
+    'hero.subtitle': 'GRIGO ENTERTAINMENT // MANAGEMENT · PRODUCTION · PLATFORM',
 
     // About Section
     'about.title': 'About Us',
-    'about.subtitle': 'グローバルダンスカンパニー',
-    'about.mission': '私たちは世界的な振付師とダンサーをつなぎ\n革新的で感動的なパフォーマンスを生み出します。',
+    'about.subtitle': 'ダンスエンターテインメント運営会社',
+    'about.mission': '振付師マネジメント、ダンサーエージェンシーとマガジン、公演制作、映像制作をつなぎ\nダンスを軸にしたプロジェクトを一つの流れで実現します。',
     'about.stats.title': 'Our Numbers',
     'about.stats.projects': 'プロジェクト',
     'about.stats.artists': 'アーティスト',
@@ -844,7 +853,7 @@ const translations = {
 
     // Footer
     'footer.company.name': '株式会社グリゴエンターテインメント',
-    'footer.description': 'グローバルダンスカンパニーとして、振付制作からダンサーキャスティングまでを担います。\n一流の振付師とダンサーをつなぎ、世界水準の公演を生み出します。',
+    'footer.description': 'GRIGOは振付師マネジメント、deetzのダンサーエージェンシー・マガジン、Flowmakerの公演制作、REACT Studioの映像制作を運営しています。\n企画、制作、キャスティングを一つの流れでつなぎます。',
     'footer.quicklinks': 'Quick Links',
     'footer.report': '未払い・精算の通報',
     'footer.contact': 'Contact',
