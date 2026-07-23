@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
+  Bot,
   BriefcaseBusiness,
   Camera,
   CarFront,
@@ -27,7 +28,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
-import { RECRUITING_TOOL_LEVELS, RECRUITING_TOOL_OPTIONS } from '@/lib/recruiting-content'
+import {
+  RECRUITING_AI_TOOL_LEVELS,
+  RECRUITING_AI_TOOL_OPTIONS,
+  RECRUITING_TOOL_LEVELS,
+  RECRUITING_TOOL_OPTIONS,
+} from '@/lib/recruiting-content'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -45,6 +51,7 @@ type RecruitingApplication = {
   career_summary: string
   motivation: string
   tool_skills: Record<string, string>
+  ai_tool_skills?: Record<string, string>
   other_tools: string | null
   camera_capability: 'yes' | 'basic' | 'no'
   camera_details: string | null
@@ -75,6 +82,7 @@ const STATUS_LABELS: Record<ReviewStatus, string> = {
 }
 
 const TOOL_LEVEL_LABEL = Object.fromEntries(RECRUITING_TOOL_LEVELS.map((level) => [level.value, level.label]))
+const AI_TOOL_LEVEL_LABEL = Object.fromEntries(RECRUITING_AI_TOOL_LEVELS.map((level) => [level.value, level.label]))
 const PAGE_SIZE = 20
 
 async function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
@@ -276,6 +284,20 @@ export default function AdminRecruitingPage() {
                                 ))}
                               </div>
                               {row.other_tools ? <p className="mt-3 text-sm text-zinc-600">기타: {row.other_tools}</p> : null}
+                            </div>
+                            <div>
+                              <h3 className="flex items-center gap-2 text-sm font-bold text-zinc-950">
+                                <Bot className="h-4 w-4" />
+                                AI 툴
+                              </h3>
+                              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                {RECRUITING_AI_TOOL_OPTIONS.map((tool) => (
+                                  <div key={tool.key} className="border border-zinc-200 p-3 text-xs">
+                                    <div className="text-zinc-500">{tool.label}</div>
+                                    <div className="mt-1 font-bold text-zinc-950">{AI_TOOL_LEVEL_LABEL[row.ai_tool_skills?.[tool.key] || ''] || '미입력'}</div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </div>
 

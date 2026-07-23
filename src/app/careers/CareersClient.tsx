@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   ArrowDown,
   ArrowRight,
+  Bot,
   BriefcaseBusiness,
   Camera,
   CarFront,
@@ -22,6 +23,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import {
+  RECRUITING_AI_TOOL_LEVELS,
+  RECRUITING_AI_TOOL_OPTIONS,
   RECRUITING_OVERVIEW,
   RECRUITING_PREFERRED,
   RECRUITING_TRACKS,
@@ -384,7 +387,33 @@ export function CareersClient() {
               </section>
 
               <section>
-                <SectionHeading number="04" title="현장 업무 역량" description="촬영·현장 운영과 커뮤니케이션에 필요한 실무 역량을 확인합니다." />
+                <SectionHeading number="04" title="AI 툴" description="각 도구에 대한 현재 경험 수준을 선택해 주세요." />
+                <div className="divide-y divide-zinc-200 border-y border-zinc-300">
+                  {RECRUITING_AI_TOOL_OPTIONS.map((tool) => (
+                    <fieldset key={tool.key} className="grid gap-4 py-5 md:grid-cols-[220px_1fr] md:items-center">
+                      <legend className="contents">
+                        <span className="flex items-center gap-3 text-sm font-semibold text-zinc-950">
+                          <Bot className="h-4 w-4 shrink-0 text-zinc-500" />
+                          <span>{tool.label}</span>
+                        </span>
+                      </legend>
+                      <div className="grid grid-cols-3 gap-2">
+                        {RECRUITING_AI_TOOL_LEVELS.map((level) => (
+                          <label key={level.value} className="relative min-w-0 cursor-pointer">
+                            <input className="peer sr-only" type="radio" name={`ai_tool_${tool.key}`} value={level.value} required />
+                            <span className="flex min-h-10 items-center justify-center border border-zinc-300 px-2 text-center text-xs font-semibold text-zinc-600 transition peer-checked:border-zinc-950 peer-checked:bg-zinc-950 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-zinc-950 peer-focus-visible:ring-offset-2 sm:text-sm">
+                              {level.label}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                  ))}
+                </div>
+              </section>
+
+              <section>
+                <SectionHeading number="05" title="현장 업무 역량" description="촬영·현장 운영과 커뮤니케이션에 필요한 실무 역량을 확인합니다." />
                 <div className="grid gap-8 md:grid-cols-2">
                   <fieldset>
                     <legend className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-950">
@@ -425,7 +454,7 @@ export function CareersClient() {
               </section>
 
               <section>
-                <SectionHeading number="05" title="이력서와 포트폴리오" description="이력서는 PDF로 첨부하고, 작업물을 확인할 수 있는 포트폴리오 링크가 있다면 함께 입력해 주세요." />
+                <SectionHeading number="06" title="이력서와 포트폴리오" description="이력서는 PDF로 첨부하고, 작업물을 확인할 수 있는 포트폴리오 링크가 있다면 함께 입력해 주세요." />
                 <div className="grid gap-6 md:grid-cols-2">
                   <label className="block">
                     <FieldLabel required>이력서 PDF</FieldLabel>
@@ -452,7 +481,7 @@ export function CareersClient() {
               </section>
 
               <section>
-                <SectionHeading number="06" title="동의 및 제출" description="제출 전 개인정보 이용 범위와 다른 포지션 제안 여부를 확인해 주세요." />
+                <SectionHeading number="07" title="동의 및 제출" description="제출 전 개인정보 이용 범위와 다른 포지션 제안 여부를 확인해 주세요." />
                 <div className="space-y-4 border-y border-zinc-300 py-6">
                   <label className="flex cursor-pointer items-start gap-3">
                     <input type="checkbox" name="privacy_consent" value="true" required className="mt-1 h-4 w-4 accent-zinc-950" />

@@ -14,6 +14,7 @@ create table if not exists public.recruiting_applications (
   career_summary text not null,
   motivation text not null,
   tool_skills jsonb not null default '{}'::jsonb,
+  ai_tool_skills jsonb not null default '{}'::jsonb,
   other_tools text,
   camera_capability text not null check (camera_capability in ('yes', 'basic', 'no')),
   camera_details text,
@@ -41,6 +42,8 @@ alter table public.recruiting_applications
   add column if not exists position_slugs text[] not null default '{}'::text[];
 alter table public.recruiting_applications
   add column if not exists position_titles text[] not null default '{}'::text[];
+alter table public.recruiting_applications
+  add column if not exists ai_tool_skills jsonb not null default '{}'::jsonb;
 
 create index if not exists idx_recruiting_applications_created_at
   on public.recruiting_applications(created_at desc);

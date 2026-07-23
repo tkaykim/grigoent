@@ -3,10 +3,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import {
+  RECRUITING_AI_TOOL_LEVELS,
+  RECRUITING_AI_TOOL_OPTIONS,
   RECRUITING_TRACK_BY_SLUG,
   RECRUITING_TRACK_SLUGS,
   RECRUITING_TOOL_LEVELS,
   RECRUITING_TOOL_OPTIONS,
+  type RecruitingAiToolLevel,
   type RecruitingTrackSlug,
   type RecruitingToolLevel,
 } from '@/lib/recruiting-content'
@@ -21,6 +24,7 @@ export const maxDuration = 60
 const MAX_RESUME_BYTES = 4 * 1024 * 1024
 const RESUME_BUCKET = 'recruiting-resumes'
 const ALLOWED_LEVELS = new Set(RECRUITING_TOOL_LEVELS.map((level) => level.value))
+const ALLOWED_AI_LEVELS = new Set(RECRUITING_AI_TOOL_LEVELS.map((level) => level.value))
 
 function getServiceRole() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -80,6 +84,16 @@ function readToolSkills(form: FormData): Record<string, RecruitingToolLevel> | n
   return result
 }
 
+function readAiToolSkills(form: FormData): Record<string, RecruitingAiToolLevel> | null {
+  const result: Record<string, RecruitingAiToolLevel> = {}
+  for (const tool of RECRUITING_AI_TOOL_OPTIONS) {
+    const value = String(form.get(`ai_tool_${tool.key}`) ?? '') as RecruitingAiToolLevel
+    if (!ALLOWED_AI_LEVELS.has(value)) return null
+    result[tool.key] = value
+  }
+  return result
+}
+
 export async function POST(request: NextRequest) {
   let form: FormData
   try {
@@ -103,6 +117,10 @@ export async function POST(request: NextRequest) {
 
   const toolSkills = readToolSkills(form)
   if (!toolSkills) {
+    return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
+  }
+  const aiToolSkills = readAiToolSkills(form)
+  if (!aiToolSkills) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
   }
 
@@ -190,6 +208,7 @@ export async function POST(request: NextRequest) {
     career_summary: parsed.data.career_summary,
     motivation: parsed.data.motivation,
     tool_skills: toolSkills,
+    ai_tool_skills: aiToolSkills,
     other_tools: parsed.data.other_tools,
     camera_capability: parsed.data.camera_capability,
     camera_details: parsed.data.camera_details,

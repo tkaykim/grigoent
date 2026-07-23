@@ -91,5 +91,22 @@ export const RECRUITING_TOOL_LEVELS = [
   { value: 'none', label: '사용 안 함' },
 ] as const
 
+export const RECRUITING_AI_TOOL_OPTIONS = [
+  { key: 'gemini', label: 'Gemini (제미나이)' },
+  { key: 'chatgpt', label: 'ChatGPT (챗 지피티)' },
+  { key: 'claude', label: 'Claude (클로드)' },
+  { key: 'codex', label: 'Codex (코덱스)' },
+  { key: 'claude_code', label: 'Claude Code (클로드 코드)' },
+  { key: 'higgsfield', label: 'Higgsfield (힉스필드)' },
+] as const
+
+export const RECRUITING_AI_TOOL_LEVELS = [
+  { value: 'heard', label: '들어봤다' },
+  { value: 'used', label: '사용해봤다' },
+  { value: 'proficient', label: '숙련자이다' },
+] as const
+
 export type RecruitingToolKey = (typeof RECRUITING_TOOL_OPTIONS)[number]['key']
 export type RecruitingToolLevel = (typeof RECRUITING_TOOL_LEVELS)[number]['value']
+export type RecruitingAiToolKey = (typeof RECRUITING_AI_TOOL_OPTIONS)[number]['key']
+export type RecruitingAiToolLevel = (typeof RECRUITING_AI_TOOL_LEVELS)[number]['value']
