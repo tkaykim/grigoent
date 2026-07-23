@@ -410,6 +410,7 @@ export async function sendRecruitingApplicationNotificationEmail(params: {
   await transporter.sendMail({
     from: `"그리고 엔터테인먼트 채용" <${getSmtpUser()}>`,
     to: recipient,
+    replyTo: params.email,
     subject: `[신규 채용 지원] ${params.positionTitle} · ${params.name}`,
     text: [
       '새로운 채용 지원서가 접수되었습니다.',
@@ -418,6 +419,7 @@ export async function sendRecruitingApplicationNotificationEmail(params: {
       `전화번호: ${params.phone}`,
       `지원 포지션: ${params.positionTitle}`,
       `지원서 ID: ${params.applicationId}`,
+      '지원자에게 바로 회신하려면 이 메일에 답장하시면 됩니다.',
       adminUrl,
     ].join('\n'),
     html: `

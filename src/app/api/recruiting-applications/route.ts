@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'submission_failed' }, { status: 500 })
   }
   if (existing?.id) {
-    return NextResponse.json({ id: existing.id, emailSent: true, duplicate: true })
+    return NextResponse.json({ id: existing.id, emailSent: true, notificationSent: false, duplicate: true })
   }
 
   const applicationId = randomUUID()
@@ -245,6 +245,7 @@ export async function POST(request: NextRequest) {
   ])
 
   const emailSent = mailResults[0].status === 'fulfilled'
+  const notificationSent = mailResults[1].status === 'fulfilled'
   if (mailResults[0].status === 'rejected') {
     console.error('[recruiting-applications] applicant receipt failed:', mailResults[0].reason)
   }
@@ -252,5 +253,5 @@ export async function POST(request: NextRequest) {
     console.error('[recruiting-applications] operator notification failed:', mailResults[1].reason)
   }
 
-  return NextResponse.json({ id: applicationId, emailSent }, { status: 201 })
+  return NextResponse.json({ id: applicationId, emailSent, notificationSent }, { status: 201 })
 }

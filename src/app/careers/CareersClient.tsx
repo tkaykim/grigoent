@@ -130,7 +130,7 @@ export function CareersClient() {
         method: 'POST',
         body: formData,
       })
-      const payload = (await response.json()) as { id?: string; emailSent?: boolean; error?: string }
+      const payload = (await response.json()) as { id?: string; emailSent?: boolean; notificationSent?: boolean; error?: string }
       if (!response.ok || !payload.id) {
         const messageByCode: Record<string, string> = {
           invalid_body: '입력한 내용을 다시 확인해 주세요.',
