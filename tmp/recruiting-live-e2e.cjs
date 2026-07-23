@@ -234,7 +234,6 @@ async function run() {
     })
     const { data: sessionData, error: verifyError } = await anon.auth.verifyOtp({
       type: 'magiclink',
-      email: adminProfile.email,
       token_hash: tokenHash,
     })
     if (verifyError) throw verifyError
