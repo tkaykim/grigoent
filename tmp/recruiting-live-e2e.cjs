@@ -136,6 +136,10 @@ async function run() {
     await page.goto(`${BASE_URL}/careers`, { waitUntil: 'networkidle' })
     await page.getByRole('heading', { name: /그리고와 함께/ }).waitFor()
 
+    await page.locator('input[name="client_submission_id"]').evaluate((input, value) => {
+      input.value = value
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }, application.clientId)
     await page.locator('input[name="full_name"]').fill(application.fullName)
     await page.locator('input[name="position_slugs"][value="management"]').check()
     await page.locator('input[name="position_slugs"][value="planning-event-operations"]').check()
@@ -206,10 +210,11 @@ async function run() {
     const { data: dbRow, error: dbError } = await admin
       .from('recruiting_applications')
       .select('id,client_submission_id,full_name,email,phone,position_slugs,position_titles,tool_skills,ai_tool_skills,resume_file_path,review_status')
-      .eq('client_submission_id', application.clientId)
+      .eq('id', report.applicationId)
       .single()
     if (dbError) throw dbError
     assert(dbRow?.id === report.applicationId, 'Inserted DB row id does not match API response')
+    assert(dbRow.client_submission_id === application.clientId, 'Inserted client submission id does not match')
     assert(dbRow.email === application.email, 'Inserted email does not match')
     assert(dbRow.position_slugs?.length === 2, 'Multiple positions were not stored')
     assert(dbRow.ai_tool_skills?.codex === 'proficient', 'AI tool skills were not stored')
