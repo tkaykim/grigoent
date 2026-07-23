@@ -188,8 +188,8 @@ export function CareersClient() {
               <p className="mt-5 text-sm leading-6 text-zinc-400 [word-break:keep-all]">{RECRUITING_OVERVIEW.summary}</p>
               <div className="mt-8 grid grid-cols-2 gap-3 border-t border-white/15 pt-6 text-sm">
                 <div>
-                  <div className="text-zinc-500">Division</div>
-                  <div className="mt-1 font-semibold">GRIGO GROUP</div>
+                  <div className="text-zinc-500">Positions</div>
+                  <div className="mt-1 font-semibold">4개 모집 직무</div>
                 </div>
                 <div>
                   <div className="text-zinc-500">Employment</div>
@@ -227,7 +227,9 @@ export function CareersClient() {
                 )}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">{track.division}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                    Position {String(index + 1).padStart(2, '0')}
+                  </p>
                   <span className="shrink-0 border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700">채용 중</span>
                 </div>
                 <h3 className="mt-5 text-2xl font-black text-zinc-950">{track.title}</h3>
@@ -313,7 +315,7 @@ export function CareersClient() {
                           />
                           <span className="min-w-0">
                             <span className="block text-sm font-bold">{track.title}</span>
-                            <span className="mt-1 block text-xs leading-5 text-zinc-500 group-has-[:checked]:text-zinc-300">{track.division}</span>
+                            <span className="mt-1 block text-xs leading-5 text-zinc-500 group-has-[:checked]:text-zinc-300">{track.shortDescription}</span>
                           </span>
                         </label>
                       ))}

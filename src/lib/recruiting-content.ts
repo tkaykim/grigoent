@@ -9,19 +9,17 @@ export const RECRUITING_OVERVIEW = {
 export const RECRUITING_TRACKS = [
   {
     slug: 'management',
-    division: '그리고 엔터테인먼트 · deetz 에이전시',
     title: '매니지먼트',
     shortDescription: '전속 아티스트와 댄스팀의 일정, 현장, 채널을 관리합니다.',
     responsibilities: [
       '전속 안무가 일정 및 매니지먼트',
       '전속 댄스팀 공연·행사 일정 관리',
       '아티스트·프로젝트 SNS 채널 운영',
-      'deetz 에이전시 섭외 및 프로젝트 커뮤니케이션',
+      '에이전시 플랫폼 deetz 내 섭외 및 프로젝트 커뮤니케이션',
     ],
   },
   {
     slug: 'planning-event-operations',
-    division: 'Flowmaker',
     title: '기획·행사 운영',
     shortDescription: '댄스를 기반으로 한 공연과 행사를 기획하고 현장을 운영합니다.',
     responsibilities: [
@@ -33,7 +31,6 @@ export const RECRUITING_TRACKS = [
   },
   {
     slug: 'video-production',
-    division: 'REACT Studio',
     title: '영상 제작',
     shortDescription: '뮤직비디오, 웹예능, 퍼포먼스 비디오를 제작합니다.',
     responsibilities: [
@@ -45,7 +42,6 @@ export const RECRUITING_TRACKS = [
   },
   {
     slug: 'design',
-    division: 'GRIGO · deetz · Flowmaker · REACT Studio',
     title: '디자인',
     shortDescription: '각 사업부의 프로젝트와 채널에 필요한 디자인을 담당합니다.',
     responsibilities: [
