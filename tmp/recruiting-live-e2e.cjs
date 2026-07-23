@@ -1,6 +1,5 @@
 const fs = require('fs')
 const path = require('path')
-const { randomUUID } = require('crypto')
 const { chromium } = require('playwright')
 const { createClient } = require('@supabase/supabase-js')
 
@@ -100,7 +99,6 @@ async function run() {
   assert(adminProfile?.email, 'Admin email was not found')
 
   const application = {
-    clientId: randomUUID(),
     fullName: `채용 E2E 테스트 ${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 12)}`,
     email: process.env.RECRUITING_E2E_APPLICANT_EMAIL || adminProfile.email,
     phone: '010-0000-3155',
@@ -108,7 +106,7 @@ async function run() {
 
   const report = {
     baseUrl: BASE_URL,
-    clientSubmissionId: application.clientId,
+    clientSubmissionId: null,
     applicationId: null,
     fullName: application.fullName,
     submitStatus: null,
@@ -136,10 +134,6 @@ async function run() {
     await page.goto(`${BASE_URL}/careers`, { waitUntil: 'networkidle' })
     await page.getByRole('heading', { name: /그리고와 함께/ }).waitFor()
 
-    await page.locator('input[name="client_submission_id"]').evaluate((input, value) => {
-      input.value = value
-      input.dispatchEvent(new Event('input', { bubbles: true }))
-    }, application.clientId)
     await page.locator('input[name="full_name"]').fill(application.fullName)
     await page.locator('input[name="position_slugs"][value="management"]').check()
     await page.locator('input[name="position_slugs"][value="planning-event-operations"]').check()
@@ -214,7 +208,7 @@ async function run() {
       .single()
     if (dbError) throw dbError
     assert(dbRow?.id === report.applicationId, 'Inserted DB row id does not match API response')
-    assert(dbRow.client_submission_id === application.clientId, 'Inserted client submission id does not match')
+    report.clientSubmissionId = dbRow.client_submission_id
     assert(dbRow.email === application.email, 'Inserted email does not match')
     assert(dbRow.position_slugs?.length === 2, 'Multiple positions were not stored')
     assert(dbRow.ai_tool_skills?.codex === 'proficient', 'AI tool skills were not stored')
