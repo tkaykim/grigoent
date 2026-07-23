@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 import Papa from 'papaparse';
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger, TabsContent as UITabsContent } from '@/components/ui/tabs';
 import { SEOSettingsManager } from '@/components/dashboard/SEOSettingsManager';
-import { AlertTriangle, Users, UserCheck, FileText, Link, Receipt, Scale, UserPlus } from 'lucide-react'
+import { AlertTriangle, Users, UserCheck, FileText, Link, Receipt, Scale, UserPlus, BriefcaseBusiness } from 'lucide-react'
 import { ClaimRequestModal } from '@/components/proposals/ClaimRequestModal'
 import { DirectLinkModal } from '@/components/proposals/DirectLinkModal'
 
@@ -850,7 +850,7 @@ export default function AdminPage() {
                 견적서
               </TabsTrigger>
               <TabsTrigger value="agency-pool">
-                에이전시 풀
+                지원 관리
               </TabsTrigger>
               <TabsTrigger value="seo">
                 SEO 설정
@@ -1306,26 +1306,36 @@ export default function AdminPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <UserPlus className="w-5 h-5" />
-                    에이전시 풀 지원
+                    공개 지원 관리
                   </CardTitle>
                   <p className="text-sm text-zinc-600">
-                    공개 지원 양식으로 접수된 댄서 지원서를 확인합니다
+                    댄서 에이전시 풀과 회사 채용 지원서를 확인합니다
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-12">
-                    <UserPlus className="w-16 h-16 text-zinc-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-zinc-900 mb-2">에이전시 풀 지원</h3>
-                    <p className="text-zinc-600 mb-6">
-                      지원자 목록, 포트폴리오 링크·첨부 파일을 관리자 전용 화면에서 열람할 수 있습니다.
-                    </p>
-                    <Button
-                      onClick={() => router.push('/admin/dancer-applications')}
-                      className="flex items-center gap-2 mx-auto"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      지원 목록으로 이동
-                    </Button>
+                  <div className="grid gap-4 py-6 md:grid-cols-2">
+                    <div className="border border-zinc-200 p-6 text-center">
+                      <UserPlus className="w-10 h-10 text-zinc-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-zinc-900 mb-2">에이전시 풀 지원</h3>
+                      <p className="min-h-12 text-sm text-zinc-600 mb-6">
+                        deetz 댄서 프로필과 에이전시 풀 지원서를 검토합니다.
+                      </p>
+                      <Button onClick={() => router.push('/admin/dancer-applications')} className="flex items-center gap-2 mx-auto">
+                        <UserPlus className="w-4 h-4" />
+                        댄서 지원 목록
+                      </Button>
+                    </div>
+                    <div className="border border-zinc-200 p-6 text-center">
+                      <BriefcaseBusiness className="w-10 h-10 text-zinc-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-zinc-900 mb-2">회사 채용 지원</h3>
+                      <p className="min-h-12 text-sm text-zinc-600 mb-6">
+                        매니지먼트·디자인·영상 제작·기획 및 행사 운영 채용 지원서를 검토합니다.
+                      </p>
+                      <Button onClick={() => router.push('/admin/recruiting')} className="flex items-center gap-2 mx-auto">
+                        <BriefcaseBusiness className="w-4 h-4" />
+                        채용 지원 목록
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1351,4 +1361,4 @@ export default function AdminPage() {
       />
     </div>
   )
-} 
+}

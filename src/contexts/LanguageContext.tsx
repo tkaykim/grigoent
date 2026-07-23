@@ -37,6 +37,7 @@ const translations = {
     'nav.artists': 'Artists',
     'nav.works': 'Our Works',
     'nav.archive': 'Archive',
+    'nav.careers': 'Careers',
     'nav.contact': 'Contact us',
     'nav.dancerApply': 'Agency',
 
@@ -324,6 +325,7 @@ const translations = {
     'nav.artists': 'Artists',
     'nav.works': 'Our Works',
     'nav.archive': 'Archive',
+    'nav.careers': 'Careers',
     'nav.contact': 'Contact us',
     'nav.dancerApply': 'Agency',
 
@@ -614,6 +616,7 @@ const translations = {
     'nav.artists': 'Artists',
     'nav.works': 'Our Works',
     'nav.archive': 'Archive',
+    'nav.careers': 'Careers',
     'nav.contact': 'Contact us',
     'nav.dancerApply': 'Agency',
 

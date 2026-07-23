@@ -329,3 +329,102 @@ export async function sendDancerApplicationReceiptEmail(params: {
     html,
   })
 }
+
+export async function sendRecruitingApplicationReceiptEmail(params: {
+  to: string
+  name: string
+  positionTitle: string
+  applicationId: string
+  alternativePositionConsent: boolean
+}) {
+  const transporter = getTransporter()
+  const reference = params.applicationId.slice(0, 8).toUpperCase()
+  const alternativeCopy = params.alternativePositionConsent
+    ? '지원하신 포지션 외에 경험과 강점에 적합한 기회가 있는 경우 별도로 제안드릴 수 있습니다.'
+    : '지원하신 포지션을 기준으로 검토하겠습니다.'
+
+  const text = [
+    `${params.name}님, 안녕하세요.`,
+    '',
+    '그리고 엔터테인먼트 채용 지원서가 정상적으로 접수되었습니다.',
+    `지원 포지션: ${params.positionTitle}`,
+    `접수 번호: ${reference}`,
+    '',
+    '담당자가 지원서와 첨부 자료를 검토하겠습니다.',
+    '서류 검토와 이후 채용 결과는 이 이메일 주소로 안내드립니다.',
+    alternativeCopy,
+    '',
+    '감사합니다.',
+    '그리고 엔터테인먼트',
+    'https://grigoent.co.kr/careers',
+  ].join('\n')
+
+  const html = `
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="utf-8"/></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:'Apple SD Gothic Neo','Malgun Gothic','Helvetica Neue',Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;background:#ffffff;">
+  <div style="padding:34px 40px 0;">
+    <div style="font-size:20px;font-weight:800;color:#111;">GRIGO ENTERTAINMENT</div>
+    <div style="font-size:11px;color:#999;margin-top:4px;">CAREERS</div>
+    <div style="border-bottom:2.5px solid #111;margin-top:16px;"></div>
+  </div>
+  <div style="padding:30px 40px 36px;">
+    <p style="font-size:17px;font-weight:700;color:#111;line-height:1.7;margin:0 0 14px;">${escapeHtml(params.name)}님, 안녕하세요.</p>
+    <p style="font-size:14px;color:#444;line-height:1.85;margin:0;">그리고 엔터테인먼트 채용 지원서가 정상적으로 접수되었습니다.<br>서류 검토와 이후 채용 결과는 이 이메일 주소로 안내드립니다.</p>
+    <table style="width:100%;border-collapse:collapse;margin:24px 0;" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:12px 14px;background:#f5f5f5;border-bottom:1px solid #e5e5e5;color:#777;font-size:12px;width:92px;">지원 포지션</td><td style="padding:12px 14px;background:#f5f5f5;border-bottom:1px solid #e5e5e5;color:#111;font-size:13px;font-weight:700;">${escapeHtml(params.positionTitle)}</td></tr>
+      <tr><td style="padding:12px 14px;background:#f5f5f5;color:#777;font-size:12px;">접수 번호</td><td style="padding:12px 14px;background:#f5f5f5;color:#111;font-size:13px;font-weight:700;">${reference}</td></tr>
+    </table>
+    <p style="font-size:14px;color:#444;line-height:1.85;margin:0;">담당자가 지원서와 첨부 자료를 검토하겠습니다.<br>${escapeHtml(alternativeCopy)}</p>
+    <p style="font-size:14px;color:#111;line-height:1.8;margin:24px 0 0;">감사합니다.<br>그리고 엔터테인먼트</p>
+  </div>
+  <div style="padding:20px 40px;border-top:1px solid #eee;background:#fafafa;">
+    <div style="font-size:11px;color:#888;line-height:1.7;">grigoent.co.kr<br>contact@grigoent.co.kr</div>
+  </div>
+</div>
+</body>
+</html>`
+
+  await transporter.sendMail({
+    from: `"그리고 엔터테인먼트" <${getSmtpUser()}>`,
+    to: params.to,
+    subject: `[그리고 엔터테인먼트] ${params.positionTitle} 지원서가 접수되었습니다`,
+    text,
+    html,
+  })
+}
+
+export async function sendRecruitingApplicationNotificationEmail(params: {
+  name: string
+  email: string
+  phone: string
+  positionTitle: string
+  applicationId: string
+}) {
+  const transporter = getTransporter()
+  const recipient = process.env.RECRUITING_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'contact@grigoent.co.kr'
+  const adminUrl = 'https://grigoent.co.kr/admin/recruiting'
+
+  await transporter.sendMail({
+    from: `"그리고 엔터테인먼트 채용" <${getSmtpUser()}>`,
+    to: recipient,
+    subject: `[신규 채용 지원] ${params.positionTitle} · ${params.name}`,
+    text: [
+      '새로운 채용 지원서가 접수되었습니다.',
+      `지원자: ${params.name}`,
+      `이메일: ${params.email}`,
+      `전화번호: ${params.phone}`,
+      `지원 포지션: ${params.positionTitle}`,
+      `지원서 ID: ${params.applicationId}`,
+      adminUrl,
+    ].join('\n'),
+    html: `
+      <div style="font-family:'Apple SD Gothic Neo','Malgun Gothic',Arial,sans-serif;line-height:1.7;color:#111;">
+        <h2 style="font-size:20px;">새로운 채용 지원서가 접수되었습니다.</h2>
+        <p>지원자: <strong>${escapeHtml(params.name)}</strong><br>이메일: ${escapeHtml(params.email)}<br>전화번호: ${escapeHtml(params.phone)}<br>지원 포지션: ${escapeHtml(params.positionTitle)}</p>
+        <p><a href="${adminUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;">관리자 화면에서 확인</a></p>
+      </div>`,
+  })
+}

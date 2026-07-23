@@ -8,6 +8,7 @@
 - [소개](https://grigoent.co.kr/intro): 회사 소개
 - [연혁](https://grigoent.co.kr/history): 2018년 그리고 스튜디오 설립부터 2026년 회사군 확장까지의 연도별 이정표
 - [아카이브](https://grigoent.co.kr/archive): 주요 작업, 프로젝트 기록, 사업부 소식
+- [채용](https://grigoent.co.kr/careers): 매니지먼트·디자인·영상 제작·기획 및 행사 운영 채용 정보와 복수 직무 선택이 가능한 비로그인 온라인 지원
 - [섭외·문의](https://grigoent.co.kr/inquiries): 댄서 섭외·안무 제작 문의
 
 ## 서비스

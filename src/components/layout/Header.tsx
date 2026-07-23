@@ -25,6 +25,7 @@ export function Header() {
     { name: t('nav.artists'), href: '/artists' },
     { name: t('nav.works'), href: '/#works' },
     { name: t('nav.archive'), href: '/archive' },
+    { name: t('nav.careers'), href: '/careers' },
     { name: t('nav.dancerApply'), href: '/apply/dancer' },
     { name: t('nav.contact'), href: '/#contact' },
   ]

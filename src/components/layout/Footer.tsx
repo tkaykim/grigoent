@@ -48,6 +48,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/careers" prefetch={false} className="text-zinc-300 hover:text-white transition-colors">
+                  {t('nav.careers')}
+                </Link>
+              </li>
+              <li>
                 <Link href="/#contact" prefetch={false} className="text-zinc-300 hover:text-white transition-colors">
                   {t('nav.contact')}
                 </Link>
