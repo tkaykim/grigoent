@@ -39,7 +39,7 @@ function FieldLabel({ children, required }: { children: React.ReactNode; require
   return (
     <span className="mb-2 block text-sm font-semibold text-zinc-950">
       {children}
-      {required ? <span className="ml-1 text-red-600">*</span> : null}
+      {required ? <span className="ml-1 text-zinc-950">*</span> : null}
     </span>
   )
 }
@@ -184,7 +184,7 @@ export function CareersClient() {
               <div className="mb-8 flex h-12 w-12 items-center justify-center bg-white text-zinc-950">
                 <BriefcaseBusiness className="h-6 w-6" />
               </div>
-              <span className="w-fit border border-emerald-400/60 bg-emerald-400/10 px-3 py-1 text-xs font-bold text-emerald-300">
+              <span className="w-fit border border-white/35 bg-white/10 px-3 py-1 text-xs font-bold text-white">
                 {RECRUITING_OVERVIEW.status}
               </span>
               <h2 className="mt-5 text-3xl font-bold leading-tight [word-break:keep-all]">{RECRUITING_OVERVIEW.title}</h2>
@@ -233,7 +233,7 @@ export function CareersClient() {
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
                     Position {String(index + 1).padStart(2, '0')}
                   </p>
-                  <span className="shrink-0 border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700">채용 중</span>
+                  <span className="shrink-0 border border-zinc-300 bg-zinc-100 px-2 py-1 text-[11px] font-bold text-zinc-700">채용 중</span>
                 </div>
                 <h3 className="mt-5 text-2xl font-black text-zinc-950">{track.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-zinc-600 [word-break:keep-all]">{track.shortDescription}</p>
@@ -323,7 +323,7 @@ export function CareersClient() {
                         </label>
                       ))}
                     </div>
-                    {positionError ? <p className="mt-3 text-sm font-medium text-red-600" role="alert">{positionError}</p> : null}
+                    {positionError ? <p className="mt-3 text-sm font-medium text-zinc-700" role="alert">{positionError}</p> : null}
                   </fieldset>
                   <label>
                     <FieldLabel required>이름</FieldLabel>
@@ -418,7 +418,7 @@ export function CareersClient() {
                   <fieldset>
                     <legend className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-950">
                       <Camera className="h-4 w-4" />
-                      카메라 사용 가능 여부 <span className="text-red-600">*</span>
+                      카메라 사용 가능 여부 <span className="text-zinc-950">*</span>
                     </legend>
                     <CapabilityChoice
                       name="camera_capability"
@@ -433,7 +433,7 @@ export function CareersClient() {
                   <fieldset>
                     <legend className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-950">
                       <CarFront className="h-4 w-4" />
-                      운전 가능 여부 <span className="text-red-600">*</span>
+                      운전 가능 여부 <span className="text-zinc-950">*</span>
                     </legend>
                     <CapabilityChoice
                       name="driving_capability"
@@ -487,7 +487,7 @@ export function CareersClient() {
                     <input type="checkbox" name="privacy_consent" value="true" required className="mt-1 h-4 w-4 accent-zinc-950" />
                     <span className="text-sm leading-6 text-zinc-700 [word-break:keep-all]">
                       채용 검토와 연락을 위한 개인정보 수집·이용에 동의합니다.
-                      <span className="ml-1 font-semibold text-red-600">필수</span>
+                      <span className="ml-1 font-semibold text-zinc-950">필수</span>
                     </span>
                   </label>
                   <label className="flex cursor-pointer items-start gap-3">
@@ -500,7 +500,7 @@ export function CareersClient() {
                 </div>
 
                 {submitError ? (
-                  <div role="alert" className="mt-6 border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  <div role="alert" className="mt-6 border border-zinc-400 bg-zinc-100 px-4 py-3 text-sm font-medium text-zinc-800">
                     {submitError}
                   </div>
                 ) : null}

@@ -83,7 +83,7 @@ export function Header() {
                     </Button>
                   </Link>
                   {isDancerPending && (
-                    <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
+                    <Badge variant="outline" className="border-zinc-300 bg-zinc-100 text-zinc-700 text-xs">
                       <Clock className="w-3 h-3 mr-1" />
                       승인 대기
                     </Badge>
@@ -160,7 +160,7 @@ export function Header() {
                       </Button>
                     </Link>
                     {isDancerPending && (
-                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
+                      <Badge variant="outline" className="border-zinc-300 bg-zinc-100 text-zinc-700 text-xs">
                         <Clock className="w-3 h-3 mr-1" />
                         승인 대기
                       </Badge>

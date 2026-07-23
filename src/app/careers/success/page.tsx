@@ -35,12 +35,12 @@ export default async function RecruitingSuccessPage({
           </div>
 
           {mailWarning ? (
-            <div className="mt-6 flex gap-3 border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+            <div className="mt-6 flex gap-3 border border-zinc-400 bg-zinc-100 p-4 text-sm leading-6 text-zinc-800">
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
               <p>지원서는 정상 접수되었지만 접수 메일 발송이 지연될 수 있습니다.</p>
             </div>
           ) : (
-            <div className="mt-6 border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
+            <div className="mt-6 border border-zinc-300 bg-zinc-50 p-4 text-sm font-medium text-zinc-800">
               접수 확인 메일을 발송했습니다.
             </div>
           )}
