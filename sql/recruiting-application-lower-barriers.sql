@@ -9,7 +9,7 @@ alter table public.recruiting_applications
   alter column resume_file_path drop not null;
 
 comment on column public.recruiting_applications.career_summary is
-  '간단한 자기소개 및 지원 내용. 1차 접수 허들을 낮추기 위해 짧은 서술도 허용한다.';
+  '선택 입력 자기소개 및 지원 내용. 비워도 1차 지원서를 제출할 수 있다.';
 
 comment on column public.recruiting_applications.resume_file_path is
   '지원자가 첨부한 이력서 PDF 경로. 포트폴리오 링크만 제출한 경우 null.';

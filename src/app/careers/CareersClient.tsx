@@ -346,12 +346,12 @@ export function CareersClient() {
               </section>
 
               <section>
-                <SectionHeading number="02" title="자기소개 및 지원 내용" description="현재까지 맡았던 일, 지원 이유, 관심 있는 업무를 간단히 정리해 주세요." />
+                <SectionHeading number="02" title="자기소개 및 지원 내용" description="선택 입력 항목입니다. 전달하고 싶은 경험이나 지원 이유가 있다면 자유롭게 작성해 주세요." />
                 <div className="space-y-6">
                   <label className="block">
-                    <FieldLabel required>간단한 자기소개 및 지원 내용</FieldLabel>
-                    <Textarea name="career_summary" required minLength={10} maxLength={1500} className="min-h-32 resize-y" placeholder="예: 맡았던 업무, 지원하게 된 이유, 가장 자신 있는 업무를 3~5줄 정도로 작성해 주세요." />
-                    <span className="mt-2 block text-xs leading-5 text-zinc-500">정리된 이력서가 없어도 현재 경험과 관심 업무를 중심으로 작성하시면 됩니다.</span>
+                    <FieldLabel>자기소개 및 지원 내용</FieldLabel>
+                    <Textarea name="career_summary" className="min-h-32 resize-y" placeholder="전달하고 싶은 경험, 관심 업무, 지원 이유가 있다면 자유롭게 작성해 주세요." />
+                    <span className="mt-2 block text-xs leading-5 text-zinc-500">이 항목은 비워 두어도 제출할 수 있습니다.</span>
                   </label>
                 </div>
               </section>

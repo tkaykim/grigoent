@@ -11,7 +11,7 @@ create table if not exists public.recruiting_applications (
   full_name text not null,
   email text not null,
   phone text not null,
-  career_summary text not null,
+  career_summary text,
   motivation text,
   tool_skills jsonb not null default '{}'::jsonb,
   ai_tool_skills jsonb not null default '{}'::jsonb,
@@ -45,6 +45,7 @@ alter table public.recruiting_applications
 alter table public.recruiting_applications
   add column if not exists ai_tool_skills jsonb not null default '{}'::jsonb;
 alter table public.recruiting_applications
+  alter column career_summary drop not null,
   alter column motivation drop not null,
   alter column camera_capability drop not null,
   alter column driving_capability drop not null,

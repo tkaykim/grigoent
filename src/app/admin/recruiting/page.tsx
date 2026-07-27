@@ -48,7 +48,7 @@ type RecruitingApplication = {
   full_name: string
   email: string
   phone: string
-  career_summary: string
+  career_summary: string | null
   motivation: string | null
   tool_skills: Record<string, string>
   ai_tool_skills?: Record<string, string>
@@ -279,7 +279,12 @@ export default function AdminRecruitingPage() {
 
                         <div className="grid gap-8 lg:grid-cols-2">
                           <div className="space-y-7">
-                            <div><h3 className="text-sm font-bold text-zinc-950">자기소개 및 지원 내용</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-zinc-600">{row.career_summary}</p></div>
+                            <div>
+                              <h3 className="text-sm font-bold text-zinc-950">자기소개 및 지원 내용</h3>
+                              <p className={cn('mt-2 whitespace-pre-wrap text-sm leading-6', row.career_summary ? 'text-zinc-600' : 'text-zinc-400')}>
+                                {row.career_summary || '미입력'}
+                              </p>
+                            </div>
                             {row.motivation ? <div><h3 className="text-sm font-bold text-zinc-950">추가 지원 동기</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-zinc-600">{row.motivation}</p></div> : null}
                             <div>
                               <h3 className="text-sm font-bold text-zinc-950">디자인·영상 툴</h3>
