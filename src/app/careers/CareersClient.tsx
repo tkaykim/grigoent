@@ -164,11 +164,10 @@ export function CareersClient() {
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">GRIGO Careers</p>
               <div className="py-12 lg:py-16">
                 <h1 className="max-w-4xl text-4xl font-black leading-[1.08] tracking-normal [text-wrap:balance] [word-break:keep-all] sm:text-5xl lg:text-6xl">
-                  그리고와 함께 다음 프로젝트를 움직일 사람을 찾습니다.
+                  그리고 엔터테인먼트
+                  <br />
+                  채용 공고
                 </h1>
-                <p className="mt-7 max-w-2xl text-base leading-7 text-zinc-300 [word-break:keep-all] sm:text-lg sm:leading-8">
-                  아티스트와 현장, 클라이언트와 제작팀 사이에서 필요한 일을 발견하고 끝까지 책임지는 동료를 기다립니다.
-                </p>
               </div>
               <button
                 type="button"
