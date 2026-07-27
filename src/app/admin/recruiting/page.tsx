@@ -49,16 +49,16 @@ type RecruitingApplication = {
   email: string
   phone: string
   career_summary: string
-  motivation: string
+  motivation: string | null
   tool_skills: Record<string, string>
   ai_tool_skills?: Record<string, string>
   other_tools: string | null
-  camera_capability: 'yes' | 'basic' | 'no'
+  camera_capability: 'yes' | 'basic' | 'no' | null
   camera_details: string | null
-  driving_capability: 'yes' | 'license_only' | 'no'
-  foreign_languages: string
+  driving_capability: 'yes' | 'license_only' | 'no' | null
+  foreign_languages: string | null
   portfolio_url: string | null
-  resume_file_path: string
+  resume_file_path: string | null
   alternative_position_consent: boolean
   review_status: ReviewStatus
   review_note: string | null
@@ -96,7 +96,7 @@ function CapabilityLabel({ type, value }: { type: 'camera' | 'driving'; value: s
   const labels = type === 'camera'
     ? { yes: '실무 사용 가능', basic: '기초 사용 가능', no: '사용 어려움' }
     : { yes: '실제 운전 가능', license_only: '면허만 보유', no: '운전 불가' }
-  return <>{labels[value as keyof typeof labels] ?? value}</>
+  return <>{labels[value as keyof typeof labels] ?? (value || '미입력')}</>
 }
 
 export default function AdminRecruitingPage() {
@@ -170,6 +170,10 @@ export default function AdminRecruitingPage() {
   }
 
   const openResume = async (row: RecruitingApplication) => {
+    if (!row.resume_file_path) {
+      toast.error('첨부된 이력서가 없습니다.')
+      return
+    }
     try {
       const response = await authFetch(`/api/admin/recruiting-applications/signed-url?path=${encodeURIComponent(row.resume_file_path)}`)
       const payload = await response.json()
@@ -263,7 +267,11 @@ export default function AdminRecruitingPage() {
                     {isOpen ? (
                       <div className="border-t border-zinc-200 p-5 md:p-7">
                         <div className="mb-7 flex flex-wrap gap-2">
-                          <Button type="button" variant="outline" onClick={() => void openResume(row)}><FileText className="h-4 w-4" />이력서</Button>
+                          {row.resume_file_path ? (
+                            <Button type="button" variant="outline" onClick={() => void openResume(row)}><FileText className="h-4 w-4" />이력서</Button>
+                          ) : (
+                            <span className="inline-flex h-10 items-center gap-2 border border-zinc-200 bg-zinc-50 px-4 text-sm font-semibold text-zinc-500"><FileText className="h-4 w-4" />이력서 미첨부</span>
+                          )}
                           {row.portfolio_url ? <Button asChild variant="outline"><a href={row.portfolio_url} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" />포트폴리오</a></Button> : null}
                           <Button asChild variant="outline"><a href={`mailto:${row.email}`}><Mail className="h-4 w-4" />이메일</a></Button>
                           <Button asChild variant="outline"><a href={`tel:${row.phone}`}><Phone className="h-4 w-4" />전화</a></Button>
@@ -271,8 +279,8 @@ export default function AdminRecruitingPage() {
 
                         <div className="grid gap-8 lg:grid-cols-2">
                           <div className="space-y-7">
-                            <div><h3 className="text-sm font-bold text-zinc-950">주요 경력과 프로젝트 경험</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-zinc-600">{row.career_summary}</p></div>
-                            <div><h3 className="text-sm font-bold text-zinc-950">지원 동기</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-zinc-600">{row.motivation}</p></div>
+                            <div><h3 className="text-sm font-bold text-zinc-950">자기소개 및 지원 내용</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-zinc-600">{row.career_summary}</p></div>
+                            {row.motivation ? <div><h3 className="text-sm font-bold text-zinc-950">추가 지원 동기</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-zinc-600">{row.motivation}</p></div> : null}
                             <div>
                               <h3 className="text-sm font-bold text-zinc-950">디자인·영상 툴</h3>
                               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -303,12 +311,12 @@ export default function AdminRecruitingPage() {
 
                           <div className="space-y-7">
                             <div className="grid gap-3 sm:grid-cols-3">
-                              <div className="border border-zinc-200 p-4"><Camera className="h-4 w-4" /><div className="mt-2 text-xs text-zinc-500">카메라</div><div className="mt-1 text-sm font-bold"><CapabilityLabel type="camera" value={row.camera_capability} /></div></div>
-                              <div className="border border-zinc-200 p-4"><CarFront className="h-4 w-4" /><div className="mt-2 text-xs text-zinc-500">운전</div><div className="mt-1 text-sm font-bold"><CapabilityLabel type="driving" value={row.driving_capability} /></div></div>
-                              <div className="border border-zinc-200 p-4"><Languages className="h-4 w-4" /><div className="mt-2 text-xs text-zinc-500">외국어</div><div className="mt-1 text-sm font-bold">입력 완료</div></div>
+                              <div className="border border-zinc-200 p-4"><Camera className="h-4 w-4" /><div className="mt-2 text-xs text-zinc-500">카메라</div><div className="mt-1 text-sm font-bold"><CapabilityLabel type="camera" value={row.camera_capability || ''} /></div></div>
+                              <div className="border border-zinc-200 p-4"><CarFront className="h-4 w-4" /><div className="mt-2 text-xs text-zinc-500">운전</div><div className="mt-1 text-sm font-bold"><CapabilityLabel type="driving" value={row.driving_capability || ''} /></div></div>
+                              <div className="border border-zinc-200 p-4"><Languages className="h-4 w-4" /><div className="mt-2 text-xs text-zinc-500">외국어</div><div className="mt-1 text-sm font-bold">{row.foreign_languages ? '입력 완료' : '미입력'}</div></div>
                             </div>
                             {row.camera_details ? <div><h3 className="text-sm font-bold">카메라·장비</h3><p className="mt-2 text-sm leading-6 text-zinc-600">{row.camera_details}</p></div> : null}
-                            <div><h3 className="text-sm font-bold">외국어 활용 수준</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-zinc-600">{row.foreign_languages}</p></div>
+                            {row.foreign_languages ? <div><h3 className="text-sm font-bold">외국어 활용 수준</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-zinc-600">{row.foreign_languages}</p></div> : null}
 
                             <div className="border-t border-zinc-200 pt-6">
                               <label className="text-sm font-bold">검토 상태</label>

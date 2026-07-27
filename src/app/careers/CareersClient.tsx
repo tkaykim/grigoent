@@ -59,15 +59,17 @@ function SectionHeading({ number, title, description }: { number: string; title:
 function CapabilityChoice({
   name,
   options,
+  required = false,
 }: {
   name: string
   options: Array<{ value: string; label: string }>
+  required?: boolean
 }) {
   return (
     <div className="grid gap-2 sm:grid-cols-3">
       {options.map((option) => (
         <label key={option.value} className="relative min-w-0 cursor-pointer">
-          <input className="peer sr-only" type="radio" name={name} value={option.value} required />
+          <input className="peer sr-only" type="radio" name={name} value={option.value} required={required} />
           <span className="flex min-h-11 items-center justify-center border border-zinc-300 bg-white px-3 text-center text-sm font-medium text-zinc-600 transition peer-checked:border-zinc-950 peer-checked:bg-zinc-950 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-zinc-950 peer-focus-visible:ring-offset-2">
             {option.label}
           </span>
@@ -109,15 +111,17 @@ export function CareersClient() {
     if (!form.reportValidity()) return
 
     const resume = formData.get('resume')
-    if (!(resume instanceof File) || resume.size === 0) {
-      setSubmitError('이력서 PDF 파일을 첨부해 주세요.')
+    const hasResume = resume instanceof File && resume.size > 0
+    const portfolioUrl = String(formData.get('portfolio_url') ?? '').trim()
+    if (!hasResume && !portfolioUrl) {
+      setSubmitError('이력서 PDF 또는 포트폴리오 링크 중 한 가지 이상을 제출해 주세요.')
       return
     }
-    if (resume.size > MAX_RESUME_BYTES) {
+    if (hasResume && resume.size > MAX_RESUME_BYTES) {
       setSubmitError('이력서는 4MB 이하 PDF 파일만 첨부할 수 있습니다.')
       return
     }
-    if (resume.type !== 'application/pdf' && !resume.name.toLowerCase().endsWith('.pdf')) {
+    if (hasResume && resume.type !== 'application/pdf' && !resume.name.toLowerCase().endsWith('.pdf')) {
       setSubmitError('이력서는 PDF 형식만 첨부할 수 있습니다.')
       return
     }
@@ -135,6 +139,7 @@ export function CareersClient() {
         const messageByCode: Record<string, string> = {
           invalid_body: '입력한 내용을 다시 확인해 주세요.',
           resume_required: '이력서 PDF 파일을 첨부해 주세요.',
+          resume_or_portfolio_required: '이력서 PDF 또는 포트폴리오 링크 중 한 가지 이상을 제출해 주세요.',
           resume_too_large: '이력서는 4MB 이하 PDF 파일만 첨부할 수 있습니다.',
           resume_type: '이력서는 PDF 형식만 첨부할 수 있습니다.',
           invalid_position: '현재 지원 가능한 포지션을 확인해 주세요.',
@@ -283,7 +288,7 @@ export function CareersClient() {
               <h2 className="mt-4 text-3xl font-black tracking-normal text-zinc-950 [word-break:keep-all] md:text-5xl">온라인 지원서</h2>
               <p className="mt-5 text-base leading-7 text-zinc-600 [word-break:keep-all]">
                 회원가입이나 로그인 없이 제출할 수 있습니다.
-                접수 완료 안내와 이후 채용 결과는 입력하신 이메일로 전달드립니다.
+                세부 자료는 검토 과정에서 추가로 요청드릴 수 있습니다.
               </p>
               <p className="mt-2 text-sm font-medium text-zinc-500">* 표시는 필수 입력 항목입니다.</p>
             </div>
@@ -341,21 +346,18 @@ export function CareersClient() {
               </section>
 
               <section>
-                <SectionHeading number="02" title="경험과 지원 동기" description="화려한 표현보다 실제로 맡았던 일과 해결했던 과정을 구체적으로 적어 주세요." />
+                <SectionHeading number="02" title="자기소개 및 지원 내용" description="현재까지 맡았던 일, 지원 이유, 관심 있는 업무를 간단히 정리해 주세요." />
                 <div className="space-y-6">
                   <label className="block">
-                    <FieldLabel required>주요 경력과 프로젝트 경험</FieldLabel>
-                    <Textarea name="career_summary" required minLength={20} maxLength={3000} className="min-h-36 resize-y" placeholder="담당 업무, 프로젝트 규모, 본인의 역할과 결과를 중심으로 작성해 주세요." />
-                  </label>
-                  <label className="block">
-                    <FieldLabel required>지원 동기</FieldLabel>
-                    <Textarea name="motivation" required minLength={20} maxLength={2000} className="min-h-32 resize-y" placeholder="그리고 엔터테인먼트와 이 역할에 지원한 이유를 작성해 주세요." />
+                    <FieldLabel required>간단한 자기소개 및 지원 내용</FieldLabel>
+                    <Textarea name="career_summary" required minLength={10} maxLength={1500} className="min-h-32 resize-y" placeholder="예: 맡았던 업무, 지원하게 된 이유, 가장 자신 있는 업무를 3~5줄 정도로 작성해 주세요." />
+                    <span className="mt-2 block text-xs leading-5 text-zinc-500">정리된 이력서가 없어도 현재 경험과 관심 업무를 중심으로 작성하시면 됩니다.</span>
                   </label>
                 </div>
               </section>
 
               <section>
-                <SectionHeading number="03" title="디자인·영상 툴" description="각 도구의 현재 실무 활용 수준을 상·중·하로 표시해 주세요." />
+                <SectionHeading number="03" title="디자인·영상 툴" description="선택 입력 항목입니다. 지원 직무와 관련된 도구만 표시해도 됩니다." />
                 <div className="divide-y divide-zinc-200 border-y border-zinc-300">
                   {RECRUITING_TOOL_OPTIONS.map((tool) => (
                     <fieldset key={tool.key} className="grid gap-4 py-5 md:grid-cols-[180px_1fr] md:items-center">
@@ -369,7 +371,7 @@ export function CareersClient() {
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                         {RECRUITING_TOOL_LEVELS.map((level) => (
                           <label key={level.value} className="relative min-w-0 cursor-pointer">
-                            <input className="peer sr-only" type="radio" name={`tool_${tool.key}`} value={level.value} required />
+                            <input className="peer sr-only" type="radio" name={`tool_${tool.key}`} value={level.value} />
                             <span className="flex min-h-10 items-center justify-center border border-zinc-300 px-2 text-center text-xs font-semibold text-zinc-600 transition peer-checked:border-zinc-950 peer-checked:bg-zinc-950 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-zinc-950 peer-focus-visible:ring-offset-2 sm:text-sm">
                               {level.label}
                             </span>
@@ -386,7 +388,7 @@ export function CareersClient() {
               </section>
 
               <section>
-                <SectionHeading number="04" title="AI 툴" description="각 도구에 대한 현재 경험 수준을 선택해 주세요." />
+                <SectionHeading number="04" title="AI 툴" description="선택 입력 항목입니다. 실제로 사용해 본 도구가 있다면 현재 경험 수준을 표시해 주세요." />
                 <div className="divide-y divide-zinc-200 border-y border-zinc-300">
                   {RECRUITING_AI_TOOL_OPTIONS.map((tool) => (
                     <fieldset key={tool.key} className="grid gap-4 py-5 md:grid-cols-[220px_1fr] md:items-center">
@@ -399,7 +401,7 @@ export function CareersClient() {
                       <div className="grid grid-cols-3 gap-2">
                         {RECRUITING_AI_TOOL_LEVELS.map((level) => (
                           <label key={level.value} className="relative min-w-0 cursor-pointer">
-                            <input className="peer sr-only" type="radio" name={`ai_tool_${tool.key}`} value={level.value} required />
+                            <input className="peer sr-only" type="radio" name={`ai_tool_${tool.key}`} value={level.value} />
                             <span className="flex min-h-10 items-center justify-center border border-zinc-300 px-2 text-center text-xs font-semibold text-zinc-600 transition peer-checked:border-zinc-950 peer-checked:bg-zinc-950 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-zinc-950 peer-focus-visible:ring-offset-2 sm:text-sm">
                               {level.label}
                             </span>
@@ -412,12 +414,12 @@ export function CareersClient() {
               </section>
 
               <section>
-                <SectionHeading number="05" title="현장 업무 역량" description="촬영·현장 운영과 커뮤니케이션에 필요한 실무 역량을 확인합니다." />
+                <SectionHeading number="05" title="현장 업무 역량" description="선택 입력 항목입니다. 해당되는 역량이 있다면 표시해 주세요." />
                 <div className="grid gap-8 md:grid-cols-2">
                   <fieldset>
                     <legend className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-950">
                       <Camera className="h-4 w-4" />
-                      카메라 사용 가능 여부 <span className="text-zinc-950">*</span>
+                      카메라 사용 가능 여부
                     </legend>
                     <CapabilityChoice
                       name="camera_capability"
@@ -432,7 +434,7 @@ export function CareersClient() {
                   <fieldset>
                     <legend className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-950">
                       <CarFront className="h-4 w-4" />
-                      운전 가능 여부 <span className="text-zinc-950">*</span>
+                      운전 가능 여부
                     </legend>
                     <CapabilityChoice
                       name="driving_capability"
@@ -445,28 +447,27 @@ export function CareersClient() {
                   </fieldset>
                 </div>
                 <label className="mt-8 block">
-                  <FieldLabel required>
+                  <FieldLabel>
                     <span className="inline-flex items-center gap-2"><Languages className="h-4 w-4" />외국어 활용 수준</span>
                   </FieldLabel>
-                  <Textarea name="foreign_languages" required maxLength={1000} className="min-h-24 resize-y" placeholder="예: 일본어 비즈니스 회화, 영어 일상 회화 / 해당 없음" />
+                  <Textarea name="foreign_languages" maxLength={1000} className="min-h-24 resize-y" placeholder="예: 일본어 비즈니스 회화, 영어 일상 회화" />
                 </label>
               </section>
 
               <section>
-                <SectionHeading number="06" title="이력서와 포트폴리오" description="이력서는 PDF로 첨부하고, 작업물을 확인할 수 있는 포트폴리오 링크가 있다면 함께 입력해 주세요." />
+                <SectionHeading number="06" title="이력서와 포트폴리오" description="이력서 PDF 또는 외부에서 열람 가능한 포트폴리오 링크 중 한 가지 이상을 제출해 주세요." />
                 <div className="grid gap-6 md:grid-cols-2">
                   <label className="block">
-                    <FieldLabel required>이력서 PDF</FieldLabel>
+                    <FieldLabel>이력서 PDF</FieldLabel>
                     <span className={cn('flex min-h-28 cursor-pointer flex-col items-center justify-center border border-dashed px-4 text-center transition', resumeName ? 'border-zinc-950 bg-zinc-50' : 'border-zinc-400 hover:border-zinc-950')}>
                       {resumeName ? <FileText className="mb-2 h-5 w-5" /> : <Upload className="mb-2 h-5 w-5" />}
                       <span className="max-w-full truncate text-sm font-semibold text-zinc-950">{resumeName || '클릭해서 이력서 선택'}</span>
-                      <span className="mt-1 text-xs text-zinc-500">PDF · 4MB 이하</span>
+                      <span className="mt-1 text-xs text-zinc-500">선택 · PDF · 4MB 이하</span>
                       <input
                         className="sr-only"
                         type="file"
                         name="resume"
                         accept="application/pdf,.pdf"
-                        required
                         onChange={(event) => setResumeName(event.target.files?.[0]?.name || '')}
                       />
                     </span>

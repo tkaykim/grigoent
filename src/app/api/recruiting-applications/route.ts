@@ -53,13 +53,13 @@ const applicationSchema = z.object({
   full_name: z.string().trim().min(2).max(100),
   email: z.string().trim().toLowerCase().email().max(200),
   phone: z.string().trim().min(8).max(30),
-  career_summary: z.string().trim().min(20).max(3000),
-  motivation: z.string().trim().min(20).max(2000),
+  career_summary: z.string().trim().min(10).max(1500),
+  motivation: z.string().trim().max(2000).nullable(),
   other_tools: z.string().trim().max(500).nullable(),
-  camera_capability: z.enum(['yes', 'basic', 'no']),
+  camera_capability: z.enum(['yes', 'basic', 'no']).nullable(),
   camera_details: z.string().trim().max(500).nullable(),
-  driving_capability: z.enum(['yes', 'license_only', 'no']),
-  foreign_languages: z.string().trim().min(1).max(1000),
+  driving_capability: z.enum(['yes', 'license_only', 'no']).nullable(),
+  foreign_languages: z.string().trim().max(1000).nullable(),
   portfolio_url: z.string().url().max(2000).nullable(),
   alternative_position_consent: z.boolean(),
   privacy_consent: z.literal(true),
@@ -78,6 +78,7 @@ function readToolSkills(form: FormData): Record<string, RecruitingToolLevel> | n
   const result: Record<string, RecruitingToolLevel> = {}
   for (const tool of RECRUITING_TOOL_OPTIONS) {
     const value = String(form.get(`tool_${tool.key}`) ?? '') as RecruitingToolLevel
+    if (!value) continue
     if (!ALLOWED_LEVELS.has(value)) return null
     result[tool.key] = value
   }
@@ -88,6 +89,7 @@ function readAiToolSkills(form: FormData): Record<string, RecruitingAiToolLevel>
   const result: Record<string, RecruitingAiToolLevel> = {}
   for (const tool of RECRUITING_AI_TOOL_OPTIONS) {
     const value = String(form.get(`ai_tool_${tool.key}`) ?? '') as RecruitingAiToolLevel
+    if (!value) continue
     if (!ALLOWED_AI_LEVELS.has(value)) return null
     result[tool.key] = value
   }
@@ -106,15 +108,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ id: randomUUID(), emailSent: true })
   }
 
-  const resume = form.get('resume')
-  if (!(resume instanceof File)) {
-    return NextResponse.json({ error: 'resume_required' }, { status: 400 })
-  }
-  const resumeError = validateResume(resume)
-  if (resumeError) {
-    return NextResponse.json({ error: resumeError }, { status: 400 })
-  }
-
   const toolSkills = readToolSkills(form)
   if (!toolSkills) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
@@ -129,6 +122,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
   }
 
+  const resumeValue = form.get('resume')
+  const resume = resumeValue instanceof File && resumeValue.size > 0 ? resumeValue : null
+  const resumeError = resume ? validateResume(resume) : null
+  if (resumeError) {
+    return NextResponse.json({ error: resumeError }, { status: 400 })
+  }
+  if (!resume && !portfolioValue) {
+    return NextResponse.json({ error: 'resume_or_portfolio_required' }, { status: 400 })
+  }
+
   const parsed = applicationSchema.safeParse({
     client_submission_id: String(form.get('client_submission_id') ?? ''),
     position_slugs: [...new Set(form.getAll('position_slugs').map((value) => String(value)))] as RecruitingTrackSlug[],
@@ -136,12 +139,12 @@ export async function POST(request: NextRequest) {
     email: String(form.get('email') ?? ''),
     phone: String(form.get('phone') ?? ''),
     career_summary: String(form.get('career_summary') ?? ''),
-    motivation: String(form.get('motivation') ?? ''),
+    motivation: String(form.get('motivation') ?? '').trim() || null,
     other_tools: String(form.get('other_tools') ?? '').trim() || null,
-    camera_capability: String(form.get('camera_capability') ?? ''),
+    camera_capability: String(form.get('camera_capability') ?? '') || null,
     camera_details: String(form.get('camera_details') ?? '').trim() || null,
-    driving_capability: String(form.get('driving_capability') ?? ''),
-    foreign_languages: String(form.get('foreign_languages') ?? ''),
+    driving_capability: String(form.get('driving_capability') ?? '') || null,
+    foreign_languages: String(form.get('foreign_languages') ?? '').trim() || null,
     portfolio_url: portfolioValue,
     alternative_position_consent: formBoolean(form.get('alternative_position_consent')),
     privacy_consent: formBoolean(form.get('privacy_consent')),
@@ -183,16 +186,19 @@ export async function POST(request: NextRequest) {
   }
 
   const applicationId = randomUUID()
-  const resumePath = `applications/${applicationId}/resume.pdf`
-  const fileBuffer = Buffer.from(await resume.arrayBuffer())
-  const { error: uploadError } = await supabase.storage.from(RESUME_BUCKET).upload(resumePath, fileBuffer, {
-    contentType: 'application/pdf',
-    upsert: false,
-  })
+  let resumePath: string | null = null
+  if (resume) {
+    resumePath = `applications/${applicationId}/resume.pdf`
+    const fileBuffer = Buffer.from(await resume.arrayBuffer())
+    const { error: uploadError } = await supabase.storage.from(RESUME_BUCKET).upload(resumePath, fileBuffer, {
+      contentType: 'application/pdf',
+      upsert: false,
+    })
 
-  if (uploadError) {
-    console.error('[recruiting-applications] resume upload failed:', uploadError.message)
-    return NextResponse.json({ error: 'submission_failed' }, { status: 500 })
+    if (uploadError) {
+      console.error('[recruiting-applications] resume upload failed:', uploadError.message)
+      return NextResponse.json({ error: 'submission_failed' }, { status: 500 })
+    }
   }
 
   const { error: insertError } = await supabase.from('recruiting_applications').insert({
@@ -223,7 +229,7 @@ export async function POST(request: NextRequest) {
 
   if (insertError) {
     console.error('[recruiting-applications] insert failed:', insertError.message)
-    await supabase.storage.from(RESUME_BUCKET).remove([resumePath])
+    if (resumePath) await supabase.storage.from(RESUME_BUCKET).remove([resumePath])
     return NextResponse.json({ error: 'submission_failed' }, { status: 500 })
   }
 

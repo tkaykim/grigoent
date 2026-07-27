@@ -12,16 +12,16 @@ create table if not exists public.recruiting_applications (
   email text not null,
   phone text not null,
   career_summary text not null,
-  motivation text not null,
+  motivation text,
   tool_skills jsonb not null default '{}'::jsonb,
   ai_tool_skills jsonb not null default '{}'::jsonb,
   other_tools text,
-  camera_capability text not null check (camera_capability in ('yes', 'basic', 'no')),
+  camera_capability text check (camera_capability in ('yes', 'basic', 'no')),
   camera_details text,
-  driving_capability text not null check (driving_capability in ('yes', 'license_only', 'no')),
-  foreign_languages text not null,
+  driving_capability text check (driving_capability in ('yes', 'license_only', 'no')),
+  foreign_languages text,
   portfolio_url text,
-  resume_file_path text not null,
+  resume_file_path text,
   alternative_position_consent boolean not null default false,
   privacy_consent boolean not null default false check (privacy_consent = true),
   source_path text not null default '/careers',
@@ -44,6 +44,12 @@ alter table public.recruiting_applications
   add column if not exists position_titles text[] not null default '{}'::text[];
 alter table public.recruiting_applications
   add column if not exists ai_tool_skills jsonb not null default '{}'::jsonb;
+alter table public.recruiting_applications
+  alter column motivation drop not null,
+  alter column camera_capability drop not null,
+  alter column driving_capability drop not null,
+  alter column foreign_languages drop not null,
+  alter column resume_file_path drop not null;
 
 create index if not exists idx_recruiting_applications_created_at
   on public.recruiting_applications(created_at desc);

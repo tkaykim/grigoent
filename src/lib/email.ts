@@ -350,7 +350,7 @@ export async function sendRecruitingApplicationReceiptEmail(params: {
     `지원 포지션: ${params.positionTitle}`,
     `접수 번호: ${reference}`,
     '',
-    '담당자가 지원서와 첨부 자료를 검토하겠습니다.',
+    '담당자가 지원서와 제출 자료를 검토하겠습니다.',
     '서류 검토와 이후 채용 결과는 이 이메일 주소로 안내드립니다.',
     alternativeCopy,
     '',
@@ -377,7 +377,7 @@ export async function sendRecruitingApplicationReceiptEmail(params: {
       <tr><td style="padding:12px 14px;background:#f5f5f5;border-bottom:1px solid #e5e5e5;color:#777;font-size:12px;width:92px;">지원 포지션</td><td style="padding:12px 14px;background:#f5f5f5;border-bottom:1px solid #e5e5e5;color:#111;font-size:13px;font-weight:700;">${escapeHtml(params.positionTitle)}</td></tr>
       <tr><td style="padding:12px 14px;background:#f5f5f5;color:#777;font-size:12px;">접수 번호</td><td style="padding:12px 14px;background:#f5f5f5;color:#111;font-size:13px;font-weight:700;">${reference}</td></tr>
     </table>
-    <p style="font-size:14px;color:#444;line-height:1.85;margin:0;">담당자가 지원서와 첨부 자료를 검토하겠습니다.<br>${escapeHtml(alternativeCopy)}</p>
+    <p style="font-size:14px;color:#444;line-height:1.85;margin:0;">담당자가 지원서와 제출 자료를 검토하겠습니다.<br>${escapeHtml(alternativeCopy)}</p>
     <p style="font-size:14px;color:#111;line-height:1.8;margin:24px 0 0;">감사합니다.<br>그리고 엔터테인먼트</p>
   </div>
   <div style="padding:20px 40px;border-top:1px solid #eee;background:#fafafa;">
