@@ -27,9 +27,25 @@ export function SuccessClient() {
   const paymentKey = params.get('paymentKey')
   const orderId = params.get('orderId')
   const amount = params.get('amount')
+  const provider = params.get('provider')
 
   useEffect(() => {
     if (confirmed.current) return
+
+    // PayPal은 승인(capture)이 이미 끝난 뒤 결과값을 들고 돌아온다.
+    if (provider === 'paypal') {
+      confirmed.current = true
+      setResult({
+        success: true,
+        orderNo: params.get('orderNo'),
+        sequence: Number(params.get('sequence') ?? '1'),
+        installmentMonths: Number(params.get('installmentMonths') ?? '1'),
+        paidAmount: Number(params.get('paidAmount') ?? '0'),
+        totalAmount: Number(params.get('totalAmount') ?? '0'),
+      })
+      return
+    }
+
     if (!paymentKey || !orderId || !amount) {
       setResult({ success: false, error: '결제 정보가 확인되지 않았습니다.' })
       return
@@ -48,7 +64,7 @@ export function SuccessClient() {
         setResult({ success: false, error: '결제 확인 중 오류가 발생했습니다.' })
       }
     })()
-  }, [paymentKey, orderId, amount])
+  }, [paymentKey, orderId, amount, provider, params])
 
   return (
     <>
