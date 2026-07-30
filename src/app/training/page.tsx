@@ -26,7 +26,7 @@ export default async function TrainingPage() {
 
   const { data: productRow } = await supabase
     .from('training_products')
-    .select('id, slug, title, subtitle, description, highlights, currency')
+    .select('id, slug, title, subtitle, description, highlights, currency, i18n')
     .eq('slug', TRAINING_PRODUCT_SLUG)
     .eq('is_active', true)
     .maybeSingle()
@@ -35,7 +35,7 @@ export default async function TrainingPage() {
   if (productRow) {
     const { data: planRows } = await supabase
       .from('training_price_plans')
-      .select('id, code, label, plan_type, installment_months, amount_per_charge, total_amount, currency, note, sort_order')
+      .select('id, code, label, plan_type, installment_months, amount_per_charge, total_amount, currency, note, sort_order, i18n')
       .eq('product_id', productRow.id)
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
