@@ -22,7 +22,7 @@ const COPY: Record<TrainingLang, {
     captureFailed: 'PayPal 결제 승인에 실패했습니다.',
     failed: 'PayPal 결제에 실패했습니다. 다시 시도해 주세요.',
     cancelled: '결제가 취소되었습니다.',
-    notice: '해외 카드와 PayPal 잔액으로 결제할 수 있습니다. 결제 통화는 원화(KRW)입니다.',
+    notice: '해외 카드와 PayPal 잔액으로 결제할 수 있습니다.',
     notConfigured: 'PayPal 설정이 아직 완료되지 않았습니다. 운영 키 등록 후 이용할 수 있습니다.',
   },
   en: {
@@ -32,7 +32,7 @@ const COPY: Record<TrainingLang, {
     captureFailed: 'Could not complete the PayPal payment.',
     failed: 'The PayPal payment failed. Please try again.',
     cancelled: 'The payment was cancelled.',
-    notice: 'You can pay with an international card or your PayPal balance. Payments are charged in Korean won (KRW).',
+    notice: 'You can pay with an international card or your PayPal balance.',
     notConfigured: 'PayPal is not configured yet. It will be available once the live keys are added.',
   },
   ja: {
@@ -42,7 +42,7 @@ const COPY: Record<TrainingLang, {
     captureFailed: 'PayPal決済の承認に失敗しました。',
     failed: 'PayPal決済に失敗しました。もう一度お試しください。',
     cancelled: '決済がキャンセルされました。',
-    notice: '海外カードとPayPal残高でお支払いいただけます。決済通貨は韓国ウォン(KRW)です。',
+    notice: '海外カードとPayPal残高でお支払いいただけます。',
     notConfigured: 'PayPalの設定がまだ完了していません。運用キー登録後にご利用いただけます。',
   },
 }
