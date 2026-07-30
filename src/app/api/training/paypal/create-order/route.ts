@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { PAYPAL_FOREIGN_CURRENCY, foreignQuote } from '@/lib/paypal-fx'
 
 // munchpeek_goods / theinashop 의 PayPal 연동과 동일한 방식(Client Credentials → Orders v2).
 // 다만 금액은 클라이언트 값을 쓰지 않고 우리 DB의 회차 청구 레코드에서만 가져온다.
@@ -9,11 +10,8 @@ const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET
 const IS_SANDBOX = process.env.NEXT_PUBLIC_PAYPAL_SANDBOX === 'true'
 const PAYPAL_API_URL = IS_SANDBOX ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com'
 
-// 결제 통화는 원화(KRW)가 원칙이다.
-// PayPal 계정이 KRW를 지원하지 않는 경우에만 USD 환산으로 자동 폴백한다.
-const KRW_TO_USD = Number(process.env.PAYPAL_KRW_TO_USD || '0.00075')
-// KRW는 소수점을 쓰지 않는 통화라 정수로 보내야 한다.
-const FORCE_USD = process.env.PAYPAL_FORCE_USD === 'true'
+// 환산 정책은 src/lib/paypal-fx.ts 에 모아둔다 (checkout 응답의 견적과 동일한 값을 쓰기 위함).
+const FORCE_FOREIGN = process.env.PAYPAL_FORCE_USD === 'true'
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -60,16 +58,20 @@ export async function POST(request: NextRequest) {
     }
 
     const krwAmount = paymentRow.amount as number
-    const usdAmount = Math.round(krwAmount * KRW_TO_USD * 100) / 100
     if (!Number.isFinite(krwAmount) || krwAmount <= 0) {
       return NextResponse.json({ success: false, error: '결제 금액을 계산하지 못했습니다.' }, { status: 500 })
     }
+    const quote = foreignQuote(krwAmount)
+    if (!quote) {
+      return NextResponse.json({ success: false, error: '환율 설정을 확인해 주세요.' }, { status: 500 })
+    }
+    const foreignAmount = quote.amount
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://grigoent.co.kr'
     const accessToken = await getAccessToken()
 
-    const createWith = async (currency: 'KRW' | 'USD') => {
-      const value = currency === 'KRW' ? String(Math.round(krwAmount)) : usdAmount.toFixed(2)
+    const createWith = async (currency: string) => {
+      const value = currency === 'KRW' ? String(Math.round(krwAmount)) : foreignAmount.toFixed(2)
       const response = await fetch(`${PAYPAL_API_URL}/v2/checkout/orders`, {
         method: 'POST',
         headers: {
@@ -98,13 +100,13 @@ export async function POST(request: NextRequest) {
       return { response, body: await response.json() }
     }
 
-    let currency: 'KRW' | 'USD' = FORCE_USD ? 'USD' : 'KRW'
+    let currency = FORCE_FOREIGN ? PAYPAL_FOREIGN_CURRENCY : 'KRW'
     let attempt = await createWith(currency)
 
-    // 계정이 원화를 지원하지 않으면 USD 환산으로 한 번만 재시도한다.
+    // PayPal이 원화를 거절하면(CURRENCY_NOT_SUPPORTED) 외화 환산으로 한 번만 재시도한다.
     if (!attempt.response.ok && currency === 'KRW') {
-      console.warn('[training/paypal] KRW rejected, retrying in USD:', attempt.body)
-      currency = 'USD'
+      console.warn('[training/paypal] KRW rejected, retrying in foreign currency:', attempt.body)
+      currency = PAYPAL_FOREIGN_CURRENCY
       attempt = await createWith(currency)
     }
 
@@ -126,7 +128,9 @@ export async function POST(request: NextRequest) {
       id: attempt.body.id,
       status: attempt.body.status,
       currency,
-      chargedAmount: currency === 'KRW' ? Math.round(krwAmount) : usdAmount,
+      chargedAmount: currency === 'KRW' ? Math.round(krwAmount) : foreignAmount,
+      krwAmount,
+      appliedKrwPerUnit: currency === 'KRW' ? 1 : quote.krwPerUnit,
     })
   } catch (error) {
     console.error('[training/paypal] create order error:', error)

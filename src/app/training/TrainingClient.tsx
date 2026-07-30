@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, Check, CreditCard, Globe, Loader2, ShieldCheck } from 'lucide-react'
+import { ArrowRight, Building2, Check, CreditCard, Globe, Loader2, ShieldCheck } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
-import { TossCheckout } from '@/components/payments/TossCheckout'
+import { TossCheckout, type TossMethod } from '@/components/payments/TossCheckout'
 import { PayPalCheckout } from '@/components/payments/PayPalCheckout'
+import { formatForeign, type ForeignQuote } from '@/lib/paypal-fx'
 import { useLanguage } from '@/contexts/LanguageContext'
 import {
   TRAINING_COPY,
@@ -31,9 +32,10 @@ type CheckoutSession = {
   installmentMonths: number
   orderName: string
   customerKey: string
+  paypalQuote: ForeignQuote | null
 }
 
-type PaymentMethod = 'toss' | 'paypal'
+type PaymentMethod = 'card' | 'transfer' | 'paypal'
 
 function Field({
   label,
@@ -73,7 +75,7 @@ export function TrainingClient({ product, plans }: { product: TrainingProduct | 
   const t = TRAINING_COPY[lang]
 
   const [planCode, setPlanCode] = useState(plans[0]?.code ?? '')
-  const [method, setMethod] = useState<PaymentMethod>('toss')
+  const [method, setMethod] = useState<PaymentMethod>('card')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -348,11 +350,12 @@ export function TrainingClient({ product, plans }: { product: TrainingProduct | 
                       : t.payOnce(formatKrw(session.amount, lang))}
                   </p>
 
-                  <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  <div className="mt-5 grid gap-2 sm:grid-cols-3">
                     {(
                       [
-                        { value: 'toss' as const, label: t.methodDomestic, desc: t.methodDomesticDesc },
-                        { value: 'paypal' as const, label: t.methodOverseas, desc: t.methodOverseasDesc },
+                        { value: 'card' as const, label: t.methodCard, desc: t.methodCardDesc, Icon: CreditCard },
+                        { value: 'transfer' as const, label: t.methodTransfer, desc: t.methodTransferDesc, Icon: Building2 },
+                        { value: 'paypal' as const, label: t.methodOverseas, desc: t.methodOverseasDesc, Icon: Globe },
                       ]
                     ).map((option) => (
                       <button
@@ -370,7 +373,7 @@ export function TrainingClient({ product, plans }: { product: TrainingProduct | 
                         )}
                       >
                         <span className="flex items-center gap-2 text-sm font-semibold">
-                          {option.value === 'paypal' ? <Globe className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                          <option.Icon className="h-4 w-4 shrink-0" />
                           {option.label}
                         </span>
                         <span className={cn('mt-1 text-xs', method === option.value ? 'text-zinc-300' : 'text-zinc-500')}>
@@ -380,9 +383,19 @@ export function TrainingClient({ product, plans }: { product: TrainingProduct | 
                     ))}
                   </div>
 
+                  {method === 'paypal' && session.paypalQuote ? (
+                    <p className="mt-4 border border-amber-300 bg-amber-50 p-4 text-xs leading-6 text-amber-900">
+                      {t.paypalCurrencyNotice(
+                        formatForeign(session.paypalQuote),
+                        formatKrw(session.amount, lang),
+                      )}
+                    </p>
+                  ) : null}
+
                   <div className="mt-5">
-                    {method === 'toss' ? (
+                    {method !== 'paypal' ? (
                       <TossCheckout
+                        method={(method === 'transfer' ? 'TRANSFER' : 'CARD') as TossMethod}
                         amount={session.amount}
                         orderId={session.pgOrderId}
                         orderName={session.orderName}
@@ -393,6 +406,7 @@ export function TrainingClient({ product, plans }: { product: TrainingProduct | 
                         successUrl={`${origin}/training/success`}
                         failUrl={`${origin}/training/fail`}
                         submitLabel={t.paySubmit(formatKrw(session.amount, lang))}
+                        lang={lang}
                         onError={(message) => setError(message)}
                       />
                     ) : (

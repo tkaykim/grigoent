@@ -138,10 +138,13 @@ export const TRAINING_COPY: Record<TrainingLang, {
   paymentNo: string
   payOnce: (amount: string) => string
   payInstallment: (amount: string, months: number) => string
-  methodDomestic: string
-  methodDomesticDesc: string
+  methodCard: string
+  methodCardDesc: string
+  methodTransfer: string
+  methodTransferDesc: string
   methodOverseas: string
   methodOverseasDesc: string
+  paypalCurrencyNotice: (foreign: string, krw: string) => string
   paySubmit: (amount: string) => string
   editInfo: string
   notice: string
@@ -192,14 +195,18 @@ export const TRAINING_COPY: Record<TrainingLang, {
     paymentNo: '결제번호',
     payOnce: (amount) => `${amount}을 결제합니다.`,
     payInstallment: (amount, months) => `${months}회 중 1회차 ${amount}을 결제합니다.`,
-    methodDomestic: '국내 결제 (토스페이먼츠)',
-    methodDomesticDesc: '카드 · 계좌이체 · 간편결제',
-    methodOverseas: '해외 결제 (PayPal)',
+    methodCard: '카드결제',
+    methodCardDesc: '국내외 신용·체크카드 (원화 결제)',
+    methodTransfer: '계좌이체',
+    methodTransferDesc: '국내 은행 실시간 계좌이체 (원화 결제)',
+    methodOverseas: 'PayPal',
     methodOverseasDesc: '해외 카드 · PayPal 잔액',
+    paypalCurrencyNotice: (foreign, krw) =>
+      `PayPal은 원화 결제를 지원하지 않아 ${foreign}로 청구됩니다. 기준 금액은 ${krw}이며, 환율 변동에 대비한 여유분이 포함되어 있습니다.`,
     paySubmit: (amount) => `${amount} 결제하기`,
     editInfo: '정보 수정하기',
     notice:
-      '국내 결제는 토스페이먼츠, 해외 결제는 PayPal로 처리됩니다. 진행 경로와 필요한 범위는 상담 후 확정되며, 확정 전 변경이 필요한 경우 안내드립니다.',
+      '카드결제와 계좌이체는 토스페이먼츠, PayPal은 PayPal에서 처리됩니다. 진행 경로와 필요한 범위는 상담 후 확정되며, 확정 전 변경이 필요한 경우 안내드립니다.',
     emptyTitle: '현재 판매 중인 과정이 없습니다.',
     emptyBody: '잠시 후 다시 확인해 주세요.',
     successTitle: '결제가 완료되었습니다.',
@@ -214,7 +221,7 @@ export const TRAINING_COPY: Record<TrainingLang, {
     failContact: '결제가 이루어졌는데 이 화면이 보이면 결제번호와 함께 문의해 주세요.',
     retry: '다시 시도하기',
     confirmFailTitle: '결제를 확인하지 못했습니다.',
-    currencyNotice: '모든 결제는 원화(KRW)로 청구됩니다.',
+    currencyNotice: '기본 결제 통화는 원화(KRW)입니다. PayPal만 원화를 지원하지 않아 외화로 청구됩니다.',
   },
   en: {
     eyebrow: 'GRIGO PROGRAM',
@@ -248,14 +255,18 @@ export const TRAINING_COPY: Record<TrainingLang, {
     paymentNo: 'Payment number',
     payOnce: (amount) => `You are paying ${amount}.`,
     payInstallment: (amount, months) => `You are paying ${amount}, the 1st of ${months} charges.`,
-    methodDomestic: 'Korean payment (Toss Payments)',
-    methodDomesticDesc: 'Card · bank transfer · local wallets',
-    methodOverseas: 'International payment (PayPal)',
+    methodCard: 'Card',
+    methodCardDesc: 'Korean and international cards, charged in KRW',
+    methodTransfer: 'Bank transfer',
+    methodTransferDesc: 'Real-time transfer from a Korean bank, charged in KRW',
+    methodOverseas: 'PayPal',
     methodOverseasDesc: 'International cards · PayPal balance',
+    paypalCurrencyNotice: (foreign, krw) =>
+      `PayPal cannot charge Korean won, so you will be billed ${foreign}. The base price is ${krw}, and the amount includes a buffer for exchange rate movement.`,
     paySubmit: (amount) => `Pay ${amount}`,
     editInfo: 'Edit my details',
     notice:
-      'Korean payments are processed by Toss Payments and international payments by PayPal. The route and scope are confirmed after your consultation, and we will let you know if anything needs to change.',
+      'Card and bank transfer are processed by Toss Payments, and PayPal is processed by PayPal. The route and scope are confirmed after your consultation, and we will let you know if anything needs to change.',
     emptyTitle: 'No programme is on sale right now.',
     emptyBody: 'Please check again shortly.',
     successTitle: 'Your payment is complete.',
@@ -270,7 +281,7 @@ export const TRAINING_COPY: Record<TrainingLang, {
     failContact: 'If you were charged but still see this screen, contact us with your payment number.',
     retry: 'Try again',
     confirmFailTitle: 'We could not confirm your payment.',
-    currencyNotice: 'All payments are charged in Korean won (KRW).',
+    currencyNotice: 'The base currency is Korean won (KRW). Only PayPal is billed in a foreign currency, since PayPal does not support KRW.',
   },
   ja: {
     eyebrow: 'GRIGO PROGRAM',
@@ -304,14 +315,18 @@ export const TRAINING_COPY: Record<TrainingLang, {
     paymentNo: '決済番号',
     payOnce: (amount) => `${amount}をお支払いいただきます。`,
     payInstallment: (amount, months) => `${months}回のうち1回目の${amount}をお支払いいただきます。`,
-    methodDomestic: '韓国内決済 (トスペイメンツ)',
-    methodDomesticDesc: 'カード · 口座振替 · 簡単決済',
-    methodOverseas: '海外決済 (PayPal)',
+    methodCard: 'カード決済',
+    methodCardDesc: '国内外のクレジット・デビットカード（ウォン建て）',
+    methodTransfer: '口座振替',
+    methodTransferDesc: '韓国の銀行からのリアルタイム振替（ウォン建て）',
+    methodOverseas: 'PayPal',
     methodOverseasDesc: '海外カード · PayPal残高',
+    paypalCurrencyNotice: (foreign, krw) =>
+      `PayPalはウォン建て決済に対応していないため${foreign}で請求されます。基準金額は${krw}で、為替変動に備えた余裕分が含まれています。`,
     paySubmit: (amount) => `${amount}を決済する`,
     editInfo: '情報を修正する',
     notice:
-      '韓国内決済はトスペイメンツ、海外決済はPayPalで処理されます。進行経路と必要な範囲は相談後に確定し、変更が必要な場合はご案内します。',
+      'カード決済と口座振替はトスペイメンツ、PayPalはPayPalで処理されます。進行経路と必要な範囲は相談後に確定し、変更が必要な場合はご案内します。',
     emptyTitle: '現在販売中の課程はありません。',
     emptyBody: 'しばらくしてから再度ご確認ください。',
     successTitle: '決済が完了しました。',
@@ -326,6 +341,6 @@ export const TRAINING_COPY: Record<TrainingLang, {
     failContact: '決済されたのにこの画面が表示される場合は、決済番号を添えてお問い合わせください。',
     retry: 'もう一度試す',
     confirmFailTitle: '決済を確認できませんでした。',
-    currencyNotice: 'すべてのお支払いは韓国ウォン(KRW)で請求されます。',
+    currencyNotice: '基本の決済通貨は韓国ウォン(KRW)です。PayPalのみウォンに対応していないため外貨で請求されます。',
   },
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
+import { foreignQuote } from '@/lib/paypal-fx'
 import {
   TRAINING_PRODUCT_SLUG,
   buildDueDates,
@@ -136,6 +137,8 @@ export async function POST(request: NextRequest) {
           ? `${product.title} (${plan.label} 1/${plan.installment_months}회차)`
           : `${product.title} (${plan.label})`,
       customerKey: order.billing_customer_key,
+      // PayPal은 원화를 지원하지 않아 외화로 청구된다. 사용자에게 미리 보여줄 견적.
+      paypalQuote: foreignQuote(plan.amount_per_charge),
     })
   } catch (error) {
     console.error('[training/checkout] unexpected error:', error)
