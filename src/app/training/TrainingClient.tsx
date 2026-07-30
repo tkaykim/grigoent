@@ -1,0 +1,363 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import { ArrowRight, Check, CreditCard, Loader2, ShieldCheck } from 'lucide-react'
+import { Header } from '@/components/layout/Header'
+import { Footer } from '@/components/layout/Footer'
+import { TossCheckout } from '@/components/payments/TossCheckout'
+import { describePlan, formatKrw, type TrainingPlan, type TrainingProduct } from '@/lib/training-package'
+import { cn } from '@/lib/utils'
+
+type CheckoutSession = {
+  orderNo: string
+  pgOrderId: string
+  amount: number
+  totalAmount: number
+  installmentMonths: number
+  orderName: string
+  customerKey: string
+}
+
+const PROCESS = [
+  { title: '상담', body: '현재 상황과 목표를 확인하고 필요한 과정을 함께 정리합니다.' },
+  { title: '트레이닝', body: '전문 트레이닝 과정을 통해 실무에 필요한 기준까지 끌어올립니다.' },
+  { title: '실무 투입', body: '준비가 된 인원부터 실제 현장과 프로젝트에 투입됩니다.' },
+  { title: '활동 관리', body: '계약과 행정 절차, 이후 활동까지 매니지먼트가 함께 관리합니다.' },
+]
+
+function Field({
+  label,
+  required,
+  children,
+  help,
+}: {
+  label: string
+  required?: boolean
+  children: React.ReactNode
+  help?: string
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-semibold text-zinc-950">
+        {label}
+        {required ? <span className="ml-1">*</span> : null}
+      </span>
+      {children}
+      {help ? <span className="mt-1.5 block text-xs leading-5 text-zinc-500">{help}</span> : null}
+    </label>
+  )
+}
+
+const inputClass =
+  'min-h-11 w-full border border-zinc-300 bg-white px-3 text-sm text-zinc-950 outline-none transition focus:border-zinc-950'
+
+export function TrainingClient({ product, plans }: { product: TrainingProduct | null; plans: TrainingPlan[] }) {
+  const [planCode, setPlanCode] = useState(plans[0]?.code ?? '')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [nationality, setNationality] = useState('')
+  const [memo, setMemo] = useState('')
+  const [agreed, setAgreed] = useState(false)
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [session, setSession] = useState<CheckoutSession | null>(null)
+
+  const selected = useMemo(() => plans.find((plan) => plan.code === planCode) ?? null, [plans, planCode])
+
+  const origin = typeof window === 'undefined' ? 'https://grigoent.co.kr' : window.location.origin
+
+  const startCheckout = async () => {
+    if (!selected) {
+      setError('결제 방식을 선택해 주세요.')
+      return
+    }
+    setError(null)
+    setPending(true)
+    try {
+      const response = await fetch('/api/training/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planCode,
+          name,
+          email,
+          phone,
+          nationality,
+          memo,
+          agreed,
+          preferredLang: 'ko',
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.success) {
+        setError(data.error ?? '결제 준비에 실패했습니다.')
+        return
+      }
+      setSession(data as CheckoutSession)
+    } catch {
+      setError('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setPending(false)
+    }
+  }
+
+  if (!product) {
+    return (
+      <>
+        <Header />
+        <main className="bg-white pt-16">
+          <div className="mx-auto max-w-3xl px-4 py-24 text-center sm:px-6 lg:px-8">
+            <h1 className="text-2xl font-bold text-zinc-950">현재 판매 중인 과정이 없습니다.</h1>
+            <p className="mt-3 text-sm text-zinc-600">잠시 후 다시 확인해 주세요.</p>
+          </div>
+        </main>
+        <Footer />
+      </>
+    )
+  }
+
+  return (
+    <>
+      <Header />
+      <main className="bg-white pt-16">
+        <section className="border-b border-zinc-800 bg-zinc-950 text-white">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-20 lg:px-8">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">GRIGO Program</p>
+            <h1 className="mt-6 max-w-4xl text-4xl font-black leading-[1.1] tracking-normal [text-wrap:balance] [word-break:keep-all] sm:text-5xl lg:text-6xl">
+              {product.title}
+            </h1>
+            {product.subtitle ? (
+              <p className="mt-6 max-w-2xl text-base leading-7 text-zinc-300 [word-break:keep-all]">{product.subtitle}</p>
+            ) : null}
+            <div className="mt-10 flex flex-wrap gap-3">
+              {product.highlights.map((item) => (
+                <span key={item} className="border border-white/25 px-3 py-2 text-sm text-zinc-200">
+                  {item}
+                </span>
+              ))}
+            </div>
+            <a
+              href="#apply"
+              className="mt-10 inline-flex items-center gap-3 border border-white px-6 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-zinc-950"
+            >
+              결제하고 시작하기
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="grid gap-3 border-t border-zinc-300 pt-7 md:grid-cols-[80px_1fr]">
+            <div className="font-mono text-sm font-semibold text-zinc-500">01</div>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-zinc-950 [word-break:keep-all]">진행 방식</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600 [word-break:keep-all]">
+                {product.description}
+              </p>
+            </div>
+          </div>
+          <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {PROCESS.map((step, index) => (
+              <div key={step.title} className="border border-zinc-300 p-5">
+                <div className="font-mono text-xs font-semibold text-zinc-500">{String(index + 1).padStart(2, '0')}</div>
+                <h3 className="mt-3 text-lg font-bold text-zinc-950">{step.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-600 [word-break:keep-all]">{step.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section id="apply" className="border-t border-zinc-300 bg-zinc-50">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+            <div className="grid gap-3 md:grid-cols-[80px_1fr]">
+              <div className="font-mono text-sm font-semibold text-zinc-500">02</div>
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-zinc-950 [word-break:keep-all]">결제 방식 선택</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600 [word-break:keep-all]">
+                  일시불과 분납 중 선택할 수 있습니다. 분납은 첫 회차를 지금 결제하고, 이후 회차는 매월 안내에 따라 결제합니다.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {plans.map((plan) => {
+                const active = plan.code === planCode
+                return (
+                  <button
+                    key={plan.code}
+                    type="button"
+                    onClick={() => {
+                      setPlanCode(plan.code)
+                      setSession(null)
+                    }}
+                    className={cn(
+                      'flex flex-col border p-5 text-left transition',
+                      active ? 'border-zinc-950 bg-zinc-950 text-white' : 'border-zinc-300 bg-white hover:border-zinc-500',
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold">{plan.label}</span>
+                      {active ? <Check className="h-4 w-4" /> : null}
+                    </div>
+                    <span className="mt-4 text-2xl font-black tracking-tight">{formatKrw(plan.amount_per_charge)}</span>
+                    <span className={cn('mt-1 text-xs', active ? 'text-zinc-300' : 'text-zinc-500')}>
+                      {plan.installment_months > 1 ? `${plan.installment_months}회 결제` : '한 번에 결제'}
+                    </span>
+                    <span className={cn('mt-4 text-xs', active ? 'text-zinc-300' : 'text-zinc-500')}>
+                      총 {formatKrw(plan.total_amount)}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {selected ? (
+              <div className="mt-6 border border-zinc-300 bg-white p-5">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                  <span className="font-semibold text-zinc-950">{selected.label}</span>
+                  <span className="text-zinc-600">{describePlan(selected)}</span>
+                  <span className="text-zinc-600">총 결제 금액 {formatKrw(selected.total_amount)}</span>
+                  <span className="font-semibold text-zinc-950">
+                    지금 결제할 금액 {formatKrw(selected.amount_per_charge)}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="mt-12 grid gap-3 md:grid-cols-[80px_1fr]">
+              <div className="font-mono text-sm font-semibold text-zinc-500">03</div>
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-zinc-950 [word-break:keep-all]">신청자 정보</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600 [word-break:keep-all]">
+                  결제 확인과 이후 안내에 사용됩니다.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 grid max-w-3xl gap-5">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="이름" required>
+                  <input
+                    value={name}
+                    onChange={(event) => {
+                      setName(event.target.value)
+                      setSession(null)
+                    }}
+                    className={inputClass}
+                    placeholder="홍길동"
+                  />
+                </Field>
+                <Field label="이메일" required>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => {
+                      setEmail(event.target.value)
+                      setSession(null)
+                    }}
+                    className={inputClass}
+                    placeholder="name@example.com"
+                  />
+                </Field>
+                <Field label="연락처">
+                  <input
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    className={inputClass}
+                    placeholder="010-0000-0000"
+                  />
+                </Field>
+                <Field label="국적">
+                  <input
+                    value={nationality}
+                    onChange={(event) => setNationality(event.target.value)}
+                    className={inputClass}
+                    placeholder="대한민국 / Japan / Russia"
+                  />
+                </Field>
+              </div>
+              <Field label="남기실 말씀" help="상담에서 미리 확인이 필요한 내용이 있으면 적어주세요.">
+                <textarea
+                  rows={3}
+                  value={memo}
+                  onChange={(event) => setMemo(event.target.value)}
+                  className="w-full resize-none border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-950 outline-none transition focus:border-zinc-950"
+                />
+              </Field>
+
+              <label className="flex items-start gap-3 border border-zinc-300 bg-white p-4">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(event) => {
+                    setAgreed(event.target.checked)
+                    setSession(null)
+                  }}
+                  className="mt-1 h-4 w-4"
+                />
+                <span className="text-sm leading-6 text-zinc-700 [word-break:keep-all]">
+                  결제 금액과 진행 방식을 확인했으며, 분납을 선택한 경우 남은 회차를 매월 결제한다는 점에 동의합니다.
+                </span>
+              </label>
+
+              {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+              {!session ? (
+                <button
+                  type="button"
+                  onClick={startCheckout}
+                  disabled={pending}
+                  className="inline-flex min-h-12 w-fit items-center gap-2 bg-zinc-950 px-6 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+                >
+                  {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                  {pending ? '준비 중…' : '결제 진행하기'}
+                </button>
+              ) : (
+                <div className="border border-zinc-950 bg-white p-5">
+                  <p className="text-sm font-semibold text-zinc-950">주문번호 {session.orderNo}</p>
+                  <p className="mt-1 text-sm text-zinc-600">
+                    {session.installmentMonths > 1
+                      ? `${session.installmentMonths}회 중 1회차 ${formatKrw(session.amount)}을 결제합니다.`
+                      : `${formatKrw(session.amount)}을 결제합니다.`}
+                  </p>
+                  <div className="mt-5">
+                    <TossCheckout
+                      amount={session.amount}
+                      orderId={session.pgOrderId}
+                      orderName={session.orderName}
+                      customerName={name}
+                      customerEmail={email}
+                      customerMobilePhone={phone}
+                      customerKey={session.customerKey}
+                      successUrl={`${origin}/training/success`}
+                      failUrl={`${origin}/training/fail`}
+                      submitLabel={`${formatKrw(session.amount)} 결제하기`}
+                      onError={(message) => setError(message)}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSession(null)}
+                    className="mt-4 text-sm text-zinc-500 underline underline-offset-4 hover:text-zinc-900"
+                  >
+                    정보 수정하기
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-start gap-2 text-xs leading-6 text-zinc-500 [word-break:keep-all]">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  결제는 토스페이먼츠를 통해 처리됩니다. 진행 경로와 필요한 범위는 상담 후 확정되며, 확정 전 변경이
+                  필요한 경우 안내드립니다.
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
+  )
+}
