@@ -1,10 +1,12 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ArrowRight, Check, CreditCard, Loader2, ShieldCheck } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ArrowRight, Check, CreditCard, Globe, Loader2, ShieldCheck } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { TossCheckout } from '@/components/payments/TossCheckout'
+import { PayPalCheckout } from '@/components/payments/PayPalCheckout'
 import { describePlan, formatKrw, type TrainingPlan, type TrainingProduct } from '@/lib/training-package'
 import { cn } from '@/lib/utils'
 
@@ -51,8 +53,12 @@ function Field({
 const inputClass =
   'min-h-11 w-full border border-zinc-300 bg-white px-3 text-sm text-zinc-950 outline-none transition focus:border-zinc-950'
 
+type PaymentMethod = 'toss' | 'paypal'
+
 export function TrainingClient({ product, plans }: { product: TrainingProduct | null; plans: TrainingPlan[] }) {
+  const router = useRouter()
   const [planCode, setPlanCode] = useState(plans[0]?.code ?? '')
+  const [method, setMethod] = useState<PaymentMethod>('toss')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -321,20 +327,71 @@ export function TrainingClient({ product, plans }: { product: TrainingProduct | 
                       ? `${session.installmentMonths}회 중 1회차 ${formatKrw(session.amount)}을 결제합니다.`
                       : `${formatKrw(session.amount)}을 결제합니다.`}
                   </p>
+                  <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                    {(
+                      [
+                        { value: 'toss' as const, label: '국내 결제 (토스페이먼츠)', desc: '카드 · 계좌이체 · 간편결제' },
+                        { value: 'paypal' as const, label: '해외 결제 (PayPal)', desc: '해외 카드 · PayPal 잔액' },
+                      ]
+                    ).map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          setMethod(option.value)
+                          setError(null)
+                        }}
+                        className={cn(
+                          'flex flex-col border p-4 text-left transition',
+                          method === option.value
+                            ? 'border-zinc-950 bg-zinc-950 text-white'
+                            : 'border-zinc-300 bg-white hover:border-zinc-500',
+                        )}
+                      >
+                        <span className="flex items-center gap-2 text-sm font-semibold">
+                          {option.value === 'paypal' ? <Globe className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                          {option.label}
+                        </span>
+                        <span className={cn('mt-1 text-xs', method === option.value ? 'text-zinc-300' : 'text-zinc-500')}>
+                          {option.desc}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
                   <div className="mt-5">
-                    <TossCheckout
-                      amount={session.amount}
-                      orderId={session.pgOrderId}
-                      orderName={session.orderName}
-                      customerName={name}
-                      customerEmail={email}
-                      customerMobilePhone={phone}
-                      customerKey={session.customerKey}
-                      successUrl={`${origin}/training/success`}
-                      failUrl={`${origin}/training/fail`}
-                      submitLabel={`${formatKrw(session.amount)} 결제하기`}
-                      onError={(message) => setError(message)}
-                    />
+                    {method === 'toss' ? (
+                      <TossCheckout
+                        amount={session.amount}
+                        orderId={session.pgOrderId}
+                        orderName={session.orderName}
+                        customerName={name}
+                        customerEmail={email}
+                        customerMobilePhone={phone}
+                        customerKey={session.customerKey}
+                        successUrl={`${origin}/training/success`}
+                        failUrl={`${origin}/training/fail`}
+                        submitLabel={`${formatKrw(session.amount)} 결제하기`}
+                        onError={(message) => setError(message)}
+                      />
+                    ) : (
+                      <PayPalCheckout
+                        pgOrderId={session.pgOrderId}
+                        orderName={session.orderName}
+                        onSuccess={(paid) => {
+                          const query = new URLSearchParams({
+                            provider: 'paypal',
+                            orderNo: paid.orderNo ?? session.orderNo,
+                            sequence: String(paid.sequence ?? 1),
+                            installmentMonths: String(session.installmentMonths),
+                            paidAmount: String(paid.paidAmount ?? session.amount),
+                            totalAmount: String(paid.totalAmount ?? session.totalAmount),
+                          })
+                          router.push(`/training/success?${query.toString()}`)
+                        }}
+                        onError={(message) => setError(message)}
+                      />
+                    )}
                   </div>
                   <button
                     type="button"
@@ -349,8 +406,8 @@ export function TrainingClient({ product, plans }: { product: TrainingProduct | 
               <div className="flex items-start gap-2 text-xs leading-6 text-zinc-500 [word-break:keep-all]">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
-                  결제는 토스페이먼츠를 통해 처리됩니다. 진행 경로와 필요한 범위는 상담 후 확정되며, 확정 전 변경이
-                  필요한 경우 안내드립니다.
+                  국내 결제는 토스페이먼츠, 해외 결제는 PayPal로 처리됩니다. PayPal은 원화 금액을 USD로 환산해
+                  청구합니다. 진행 경로와 필요한 범위는 상담 후 확정되며, 확정 전 변경이 필요한 경우 안내드립니다.
                 </span>
               </div>
             </div>
