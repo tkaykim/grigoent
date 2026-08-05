@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { TossCheckout, type TossMethod } from '@/components/payments/TossCheckout'
 import { PayPalCheckout } from '@/components/payments/PayPalCheckout'
+import { MerchantInfoFooter } from '@/components/payments/MerchantInfoFooter'
 import { formatForeign, type ForeignQuote } from '@/lib/paypal-fx'
 import { useLanguage } from '@/contexts/LanguageContext'
 import {
@@ -144,6 +145,7 @@ export function TrainingClient({ product, plans }: { product: TrainingProduct | 
             <h1 className="text-2xl font-bold text-zinc-950">{t.emptyTitle}</h1>
             <p className="mt-3 text-sm text-zinc-600">{t.emptyBody}</p>
           </div>
+          <MerchantInfoFooter lang={lang} />
         </main>
         <Footer />
       </>
@@ -453,6 +455,8 @@ export function TrainingClient({ product, plans }: { product: TrainingProduct | 
             </div>
           </div>
         </section>
+
+        <MerchantInfoFooter lang={lang} />
       </main>
       <Footer />
     </>
