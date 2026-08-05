@@ -1,6 +1,7 @@
 // 결제(PG) 심사 요건에 따라 결제 상품 페이지에만 노출하는 사업자 정보.
 // 이 컴포넌트는 /training 계열 페이지에서만 사용한다 (사이트 공통 푸터와 별개).
 
+import Link from 'next/link'
 import type { TrainingLang } from '@/lib/training-package'
 
 const MERCHANT = {
@@ -27,6 +28,9 @@ const COPY: Record<TrainingLang, {
   methods: string
   methodsValue: string
   notice: string
+  terms: string
+  privacy: string
+  refund: string
 }> = {
   ko: {
     title: '판매자 정보',
@@ -42,6 +46,9 @@ const COPY: Record<TrainingLang, {
     methodsValue: '신용·체크카드, 실시간 계좌이체, PayPal',
     notice:
       '결제 및 환불 관련 문의는 위 고객센터 또는 이메일로 연락해 주세요. 상담 가능 시간 내에 순차적으로 안내드립니다.',
+    terms: '이용약관',
+    privacy: '개인정보처리방침',
+    refund: '취소·환불 규정',
   },
   en: {
     title: 'Seller information',
@@ -57,6 +64,9 @@ const COPY: Record<TrainingLang, {
     methodsValue: 'Credit and debit cards, real-time bank transfer, PayPal',
     notice:
       'For payment or refund enquiries, please contact us by phone or email. We reply during the support hours above.',
+    terms: 'Terms of Service',
+    privacy: 'Privacy Policy',
+    refund: 'Cancellation & Refund Policy',
   },
   ja: {
     title: '販売者情報',
@@ -72,6 +82,9 @@ const COPY: Record<TrainingLang, {
     methodsValue: 'クレジット・デビットカード、リアルタイム口座振替、PayPal',
     notice:
       'お支払い・返金に関するお問い合わせは、上記のカスタマーセンターまたはメールへご連絡ください。対応時間内に順次ご案内いたします。',
+    terms: '利用規約',
+    privacy: 'プライバシーポリシー',
+    refund: 'キャンセル・返金規定',
   },
 }
 
@@ -101,7 +114,18 @@ export function MerchantInfoFooter({ lang = 'ko' }: { lang?: TrainingLang }) {
             </div>
           ))}
         </dl>
-        <p className="mt-5 max-w-3xl text-xs leading-6 text-zinc-500">{t.notice}</p>
+        <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] font-medium">
+          <Link href="/terms" className="text-zinc-900 underline underline-offset-4 hover:text-zinc-600">
+            {t.terms}
+          </Link>
+          <Link href="/privacy" className="text-zinc-900 underline underline-offset-4 hover:text-zinc-600">
+            {t.privacy}
+          </Link>
+          <Link href="/refund" className="text-zinc-900 underline underline-offset-4 hover:text-zinc-600">
+            {t.refund}
+          </Link>
+        </div>
+        <p className="mt-4 max-w-3xl text-xs leading-6 text-zinc-500">{t.notice}</p>
       </div>
     </section>
   )
