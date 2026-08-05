@@ -78,6 +78,17 @@ export function Footer() {
 
         {/* 저작권 */}
         <div className="border-t border-zinc-800 mt-8 pt-8 text-center text-zinc-400">
+          <div className="mb-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm">
+            <Link href="/terms" prefetch={false} className="hover:text-white transition-colors">
+              이용약관
+            </Link>
+            <Link href="/privacy" prefetch={false} className="font-semibold text-zinc-200 hover:text-white transition-colors">
+              개인정보처리방침
+            </Link>
+            <Link href="/refund" prefetch={false} className="hover:text-white transition-colors">
+              취소·환불 규정
+            </Link>
+          </div>
           <p>{t('footer.copyright')}</p>
         </div>
       </div>
