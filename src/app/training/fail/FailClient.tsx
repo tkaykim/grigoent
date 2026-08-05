@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { XCircle } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
+import { MerchantInfoFooter } from '@/components/payments/MerchantInfoFooter'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { TRAINING_COPY, type TrainingLang } from '@/lib/training-package'
 
@@ -38,6 +39,7 @@ export function FailClient() {
             </Link>
           </div>
         </div>
+        <MerchantInfoFooter lang={lang} />
       </main>
       <Footer />
     </>
