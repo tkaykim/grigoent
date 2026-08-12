@@ -4,8 +4,9 @@ import { useCallback, useState } from 'react'
 import { ANONYMOUS, loadTossPayments } from '@tosspayments/tosspayments-sdk'
 import { Loader2 } from 'lucide-react'
 import type { TrainingLang } from '@/lib/training-package'
+import { tossClientKey } from '@/lib/toss-keys'
 
-const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY
+const clientKey = tossClientKey()
 
 export type TossMethod = 'CARD' | 'TRANSFER'
 
