@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
   title: '한국 활동 준비 트레이닝 패키지 - 그리고 엔터테인먼트',
   description:
-    '전문 댄스 트레이닝, 한국어 교육, 한국 댄스 업계 실무 교육으로 구성된 GRIGO 교육 패키지입니다. 일시불과 3·4·5개월 분납 중 선택해 결제할 수 있습니다.',
+    '전문 댄스 트레이닝, 한국어 교육, 한국 댄스 업계 실무 교육으로 구성된 GRIGO 교육 패키지입니다. 결제 금액과 결제 수단을 확인한 뒤 결제하실 수 있습니다.',
   alternates: { canonical: '/training' },
   openGraph: {
     title: '한국 활동 준비 트레이닝 패키지 - 그리고 엔터테인먼트',

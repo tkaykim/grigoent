@@ -177,7 +177,7 @@ export const TRAINING_COPY: Record<TrainingLang, {
     ],
     planTitle: '결제 방식 선택',
     planIntro:
-      '일시불과 분납 중 선택할 수 있습니다. 분납은 첫 회차를 지금 결제하고, 이후 회차는 매월 안내에 따라 결제합니다.',
+      '결제 금액과 결제 수단을 확인한 뒤 결제를 진행합니다.',
     planOnce: '한 번에 결제',
     planTimes: (n) => `${n}회 결제`,
     planTotal: '총',
@@ -190,7 +190,7 @@ export const TRAINING_COPY: Record<TrainingLang, {
     fieldNationality: '국적',
     fieldMemo: '남기실 말씀',
     fieldMemoHelp: '상담에서 미리 확인이 필요한 내용이 있으면 적어주세요.',
-    agree: '결제 금액과 진행 방식을 확인했으며, 분납을 선택한 경우 남은 회차를 매월 결제한다는 점에 동의합니다.',
+    agree: '결제 금액과 진행 방식을 확인했으며, 이에 동의합니다.',
     startCheckout: '결제 진행하기',
     preparing: '준비 중…',
     paymentNo: '결제번호',
@@ -236,7 +236,7 @@ export const TRAINING_COPY: Record<TrainingLang, {
     ],
     planTitle: 'Choose how you pay',
     planIntro:
-      'You can pay in full or in monthly instalments. With an instalment plan you pay the first charge now, and the remaining charges monthly as we guide you.',
+      'Review the amount and choose how you want to pay.',
     planOnce: 'Paid at once',
     planTimes: (n) => `${n} payments`,
     planTotal: 'Total',
@@ -250,7 +250,7 @@ export const TRAINING_COPY: Record<TrainingLang, {
     fieldMemo: 'Anything you want to tell us',
     fieldMemoHelp: 'Write anything you would like us to check before the consultation.',
     agree:
-      'I have reviewed the amount and how the programme runs, and I agree to pay the remaining charges monthly if I chose an instalment plan.',
+      'I have reviewed the amount and how the programme runs, and I agree to proceed.',
     startCheckout: 'Continue to payment',
     preparing: 'Preparing…',
     paymentNo: 'Payment number',
@@ -296,7 +296,7 @@ export const TRAINING_COPY: Record<TrainingLang, {
     ],
     planTitle: 'お支払い方法の選択',
     planIntro:
-      '一括払いと分割払いから選べます。分割払いは初回分を今お支払いいただき、残りの回は毎月ご案内に沿ってお支払いいただきます。',
+      'お支払い金額とお支払い方法をご確認のうえ、決済へお進みください。',
     planOnce: '一括でお支払い',
     planTimes: (n) => `${n}回払い`,
     planTotal: '合計',
@@ -310,7 +310,7 @@ export const TRAINING_COPY: Record<TrainingLang, {
     fieldMemo: 'ご要望・ご質問',
     fieldMemoHelp: '相談前に確認しておきたい内容があればご記入ください。',
     agree:
-      '金額と進行方法を確認しました。分割払いを選んだ場合、残りの回を毎月お支払いすることに同意します。',
+      '金額と進行方法を確認しました。内容に同意します。',
     startCheckout: '決済に進む',
     preparing: '準備中…',
     paymentNo: '決済番号',

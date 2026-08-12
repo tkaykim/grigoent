@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: '결제 내역 조회 - 그리고 엔터테인먼트',
-  description: '결제번호와 이메일로 결제 내역을 조회하고 남은 분납 회차를 결제할 수 있습니다.',
+  description: '결제번호와 이메일로 결제 상태와 영수증을 조회할 수 있습니다.',
   alternates: { canonical: '/training/orders' },
 }
 
