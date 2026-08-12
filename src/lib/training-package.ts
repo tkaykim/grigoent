@@ -1,4 +1,5 @@
-// 트레이닝 + 실무투입 패키지 판매 공용 타입/헬퍼.
+// 한국 활동 준비 트레이닝 패키지 판매 공용 타입/헬퍼.
+// slug 은 training-and-placement 로 유지한다(주문·정산 식별자라 변경 시 기존 주문이 끊긴다).
 // 상품·요금제 정본은 grigoent Supabase `training_products` / `training_price_plans` 이며,
 // 금액은 서버가 항상 DB 값으로 재계산한다 (클라이언트 값 신뢰 금지).
 // 결제 통화는 언어와 무관하게 항상 원화(KRW)다.
@@ -170,9 +171,9 @@ export const TRAINING_COPY: Record<TrainingLang, {
     processTitle: '진행 방식',
     process: [
       { title: '상담', body: '현재 상황과 목표를 확인하고 필요한 과정을 함께 정리합니다.' },
-      { title: '트레이닝', body: '전문 트레이닝 과정을 통해 실무에 필요한 기준까지 끌어올립니다.' },
-      { title: '실무 투입', body: '준비가 된 인원부터 실제 현장과 프로젝트에 투입됩니다.' },
-      { title: '활동 관리', body: '계약과 행정 절차, 이후 활동까지 매니지먼트가 함께 관리합니다.' },
+      { title: '댄스 트레이닝', body: '전문 트레이닝 과정을 통해 실무에 필요한 기준까지 끌어올립니다.' },
+      { title: '한국어·업계 교육', body: '한국어와 한국 댄스 업계의 실무 지식을 함께 익힙니다.' },
+      { title: '플랫폼 등록', body: '댄서 활동 플랫폼에 등록해 한국에서의 활동 기반을 마련합니다.' },
     ],
     planTitle: '결제 방식 선택',
     planIntro:
@@ -229,9 +230,9 @@ export const TRAINING_COPY: Record<TrainingLang, {
     processTitle: 'How it works',
     process: [
       { title: 'Consultation', body: 'We review your situation and goals, then map out what you actually need.' },
-      { title: 'Training', body: 'Professional training brings you up to the standard the field requires.' },
-      { title: 'Placement', body: 'Once you are ready, you go into real projects and real sets.' },
-      { title: 'Management', body: 'Contracts, paperwork, and your activity afterwards are managed with you.' },
+      { title: 'Dance training', body: 'Professional training brings you up to the standard the field requires.' },
+      { title: 'Korean and industry', body: 'You learn Korean along with how the Korean dance industry actually works.' },
+      { title: 'Platform registration', body: 'You are registered on a dancer activity platform to build your base in Korea.' },
     ],
     planTitle: 'Choose how you pay',
     planIntro:
@@ -289,9 +290,9 @@ export const TRAINING_COPY: Record<TrainingLang, {
     processTitle: '進行の流れ',
     process: [
       { title: '相談', body: '現在の状況と目標を確認し、必要な過程を一緒に整理します。' },
-      { title: 'トレーニング', body: '専門トレーニングで実務に必要な水準まで引き上げます。' },
-      { title: '実務投入', body: '準備ができた方から実際の現場とプロジェクトに参加します。' },
-      { title: '活動管理', body: '契約や行政手続き、その後の活動までマネジメントが一緒に管理します。' },
+      { title: 'ダンストレーニング', body: '専門トレーニングで実務に必要な水準まで引き上げます。' },
+      { title: '韓国語・業界教育', body: '韓国語と韓国ダンス業界の実務知識を一緒に学びます。' },
+      { title: 'プラットフォーム登録', body: 'ダンサー活動プラットフォームに登録し、韓国での活動基盤を整えます。' },
     ],
     planTitle: 'お支払い方法の選択',
     planIntro:
