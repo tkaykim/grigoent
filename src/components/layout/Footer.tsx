@@ -89,6 +89,14 @@ export function Footer() {
               취소·환불 규정
             </Link>
           </div>
+          {/* 사업자 정보 — 전자상거래법상 사이버몰 초기화면 표시 의무 + PG 심사 요건.
+              상호·대표자·사업자등록번호·주소는 사업자등록증 표기와 글자 단위로 일치해야 하므로 번역하지 않는다. */}
+          <div className="mx-auto mb-4 max-w-3xl text-xs leading-6 text-zinc-500 [word-break:keep-all]">
+            <p className="text-zinc-300">(주) 그리고엔터테인먼트</p>
+            <p>대표자 김현준 · 사업자등록번호 116-81-96848</p>
+            <p>서울특별시 마포구 성지3길 55, 2층 202호 (합정동, 아진)</p>
+            <p>고객센터 02-6229-9229 · contact@grigoent.co.kr · 평일 09:00 ~ 18:00 (KST)</p>
+          </div>
           <p>{t('footer.copyright')}</p>
         </div>
       </div>
