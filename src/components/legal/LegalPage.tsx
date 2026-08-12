@@ -115,9 +115,9 @@ export function LegalPage({
           </div>
 
           <div className="mt-14 border-t border-zinc-200 pt-6 text-sm leading-7 text-zinc-600">
-            <p className="font-semibold text-zinc-900">주식회사 그리고엔터테인먼트</p>
+            <p className="font-semibold text-zinc-900">(주) 그리고엔터테인먼트</p>
             <p>대표자 김현준 · 사업자등록번호 116-81-96848</p>
-            <p>서울특별시 마포구 성지3길 55, 2층</p>
+            <p>서울특별시 마포구 성지3길 55, 2층 202호 (합정동, 아진)</p>
             <p>고객센터 02-6229-9229 · contact@grigoent.co.kr · 평일 09:00 ~ 18:00 (KST)</p>
           </div>
         </div>

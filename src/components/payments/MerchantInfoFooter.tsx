@@ -5,10 +5,12 @@ import Link from 'next/link'
 import type { TrainingLang } from '@/lib/training-package'
 
 const MERCHANT = {
-  companyName: '주식회사 그리고엔터테인먼트',
+  // ⚠️ 상호·주소는 사업자등록증 표기와 글자 단위로 일치해야 한다(토스 카드사 심사 요건).
+  // 정본: 2025-09-17 재발급 사업자등록증 — 층수·동호수·법정동까지 그대로.
+  companyName: '(주) 그리고엔터테인먼트',
   ceo: '김현준',
   businessNumber: '116-81-96848',
-  address: '서울특별시 마포구 성지3길 55, 2층',
+  address: '서울특별시 마포구 성지3길 55, 2층 202호 (합정동, 아진)',
   phone: '02-6229-9229',
   email: 'contact@grigoent.co.kr',
   bankAccount: '우리은행 1005-304-267399 (예금주: 주식회사 그리고엔터테인먼트)',
@@ -42,6 +44,8 @@ const COPY: Record<TrainingLang, {
     email: '이메일',
     bankAccount: '입금 계좌',
     hours: '상담 가능 시간',
+    servicePeriod: '서비스 제공 기간',
+    servicePeriodValue: '결제일로부터 최소 3개월 ~ 최대 6개월 (진행 상황에 따라 변동)',
     methods: '결제 수단',
     methodsValue: '신용·체크카드, 실시간 계좌이체, PayPal',
     notice:
@@ -60,6 +64,8 @@ const COPY: Record<TrainingLang, {
     email: 'Email',
     bankAccount: 'Bank account',
     hours: 'Support hours',
+    servicePeriod: 'Service period',
+    servicePeriodValue: 'From 3 months up to 6 months from the payment date',
     methods: 'Payment methods',
     methodsValue: 'Credit and debit cards, real-time bank transfer, PayPal',
     notice:
@@ -78,6 +84,8 @@ const COPY: Record<TrainingLang, {
     email: 'メール',
     bankAccount: '振込口座',
     hours: '対応時間',
+    servicePeriod: 'サービス提供期間',
+    servicePeriodValue: 'お支払い日から最短3ヶ月〜最長6ヶ月',
     methods: 'お支払い方法',
     methodsValue: 'クレジット・デビットカード、リアルタイム口座振替、PayPal',
     notice:
@@ -99,6 +107,7 @@ export function MerchantInfoFooter({ lang = 'ko' }: { lang?: TrainingLang }) {
     [t.email, MERCHANT.email],
     [t.hours, MERCHANT.hours],
     [t.bankAccount, MERCHANT.bankAccount],
+    [t.servicePeriod, t.servicePeriodValue],
     [t.methods, t.methodsValue],
   ]
 
