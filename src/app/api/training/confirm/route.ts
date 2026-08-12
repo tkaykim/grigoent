@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { installmentPayUrl } from '@/lib/training-installment-token'
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://grigoent.co.kr'
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -117,6 +120,21 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', paymentRow.order_id)
 
+    // 남은 회차 결제 링크. 분납은 회차마다 서명 링크로 직접 결제한다(자동결제 부가계약 전 운영 방식).
+    const { data: remainingRows } = await supabase
+      .from('training_order_payments')
+      .select('id, sequence, amount, due_date')
+      .eq('order_id', paymentRow.order_id)
+      .neq('status', 'paid')
+      .order('sequence', { ascending: true })
+
+    const remaining = (remainingRows ?? []).map((row) => ({
+      sequence: row.sequence as number,
+      amount: row.amount as number,
+      dueDate: row.due_date as string | null,
+      payUrl: installmentPayUrl(row.id as string, SITE_URL),
+    }))
+
     return NextResponse.json({
       success: true,
       orderNo: order?.order_no ?? null,
@@ -125,6 +143,7 @@ export async function POST(request: NextRequest) {
       paidAmount,
       totalAmount: order?.total_amount ?? amount,
       receiptUrl: tossData?.receipt?.url ?? null,
+      remaining,
     })
   } catch (error) {
     console.error('[training/confirm] unexpected error:', error)

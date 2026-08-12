@@ -18,7 +18,30 @@ type Result = {
   paidAmount?: number
   totalAmount?: number
   receiptUrl?: string | null
+  remaining?: { sequence: number; amount: number; dueDate: string | null; payUrl: string }[]
   error?: string
+}
+
+// 남은 회차 안내 문구 (분납 전용).
+const REMAINING_COPY: Record<TrainingLang, { title: string; intro: string; due: string; pay: string }> = {
+  ko: {
+    title: '남은 회차',
+    intro: '아래 링크에서 회차별로 결제하실 수 있습니다. 예정일에 맞춰 안내도 드립니다.',
+    due: '예정일',
+    pay: '결제하기',
+  },
+  en: {
+    title: 'Remaining instalments',
+    intro: 'You can pay each instalment from the links below. We will also remind you near each due date.',
+    due: 'Due',
+    pay: 'Pay',
+  },
+  ja: {
+    title: '残りの回次',
+    intro: '下記のリンクから回次ごとにお支払いいただけます。予定日に合わせてご案内もいたします。',
+    due: '予定日',
+    pay: 'お支払い',
+  },
 }
 
 export function SuccessClient() {
@@ -109,6 +132,33 @@ export function SuccessClient() {
                   </dd>
                 </div>
               </dl>
+              {result.remaining && result.remaining.length > 0 ? (
+                <div className="mt-8 border-t border-zinc-300 pt-6">
+                  <p className="text-sm font-bold text-zinc-950">{REMAINING_COPY[lang].title}</p>
+                  <p className="mt-1 text-xs leading-6 text-zinc-500">{REMAINING_COPY[lang].intro}</p>
+                  <ul className="mt-4 grid gap-2">
+                    {result.remaining.map((row) => (
+                      <li
+                        key={row.sequence}
+                        className="flex flex-wrap items-center justify-between gap-3 border border-zinc-200 px-4 py-3 text-sm"
+                      >
+                        <span className="font-semibold text-zinc-950">
+                          {row.sequence} / {result.installmentMonths} · {formatKrw(row.amount, lang)}
+                        </span>
+                        <span className="text-xs text-zinc-500">
+                          {REMAINING_COPY[lang].due} {row.dueDate ?? '-'}
+                        </span>
+                        <a
+                          href={row.payUrl}
+                          className="inline-flex min-h-9 items-center border border-zinc-950 px-3 text-xs font-semibold text-zinc-950 transition hover:bg-zinc-950 hover:text-white"
+                        >
+                          {REMAINING_COPY[lang].pay}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               <div className="mt-8 flex flex-wrap gap-3">
                 {result.receiptUrl ? (
                   <a
