@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { tossSecretKey } from '@/lib/toss-keys'
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '결제 금액이 일치하지 않습니다.' }, { status: 400 })
     }
 
-    const secretKey = process.env.TOSS_SECRET_KEY
+    const secretKey = tossSecretKey()
     if (!secretKey) {
       return NextResponse.json({ success: false, error: '결제 설정이 완료되지 않았습니다.' }, { status: 500 })
     }
