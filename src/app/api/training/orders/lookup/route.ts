@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { installmentPayUrl } from '@/lib/training-installment-token'
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://grigoent.co.kr'
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -44,8 +41,6 @@ export async function POST(request: NextRequest) {
       dueDate: row.due_date as string | null,
       paidAt: row.paid_at as string | null,
       receiptUrl: row.receipt_url as string | null,
-      // 미결제 회차만 결제 링크를 내려준다.
-      payUrl: row.status === 'paid' ? null : installmentPayUrl(row.id as string, SITE_URL),
     }))
 
     return NextResponse.json({

@@ -16,7 +16,6 @@ type Payment = {
   dueDate: string | null
   paidAt: string | null
   receiptUrl: string | null
-  payUrl: string | null
 }
 
 type Result = {
@@ -46,7 +45,6 @@ const COPY: Record<TrainingLang, {
   statusPaid: string
   statusPending: string
   statusFailed: string
-  pay: string
   receipt: string
   contact: string
   back: string
@@ -54,7 +52,7 @@ const COPY: Record<TrainingLang, {
   ko: {
     eyebrow: '결제 내역',
     title: '결제 내역 조회',
-    intro: '결제번호와 결제 시 입력하신 이메일로 조회합니다. 남은 회차는 여기서 바로 결제하실 수 있습니다.',
+    intro: '결제번호와 결제 시 입력하신 이메일로 조회합니다. 결제 상태와 영수증을 확인하실 수 있습니다.',
     orderNo: '결제번호',
     orderNoHelp: '결제 완료 화면과 안내 메일에 있는 GRT- 로 시작하는 번호입니다.',
     email: '이메일',
@@ -69,7 +67,6 @@ const COPY: Record<TrainingLang, {
     statusPaid: '결제 완료',
     statusPending: '결제 대기',
     statusFailed: '결제 실패',
-    pay: '결제하기',
     receipt: '영수증',
     contact: '조회가 되지 않으면 고객센터 02-6229-9229 또는 contact@grigoent.co.kr 로 문의해 주세요.',
     back: '상품 페이지로',
@@ -77,7 +74,7 @@ const COPY: Record<TrainingLang, {
   en: {
     eyebrow: 'Payment history',
     title: 'Look up your payment',
-    intro: 'Enter your payment number and the email you used at checkout. You can pay any remaining instalment here.',
+    intro: 'Enter your payment number and the email you used at checkout to see your payment status and receipt.',
     orderNo: 'Payment number',
     orderNoHelp: 'The number starting with GRT- shown on the completion screen and in your email.',
     email: 'Email',
@@ -92,7 +89,6 @@ const COPY: Record<TrainingLang, {
     statusPaid: 'Paid',
     statusPending: 'Not paid',
     statusFailed: 'Failed',
-    pay: 'Pay',
     receipt: 'Receipt',
     contact: 'If you cannot find your payment, contact us at 02-6229-9229 or contact@grigoent.co.kr.',
     back: 'Back to the product page',
@@ -100,7 +96,7 @@ const COPY: Record<TrainingLang, {
   ja: {
     eyebrow: 'お支払い履歴',
     title: 'お支払い内容の照会',
-    intro: '決済番号と決済時にご入力いただいたメールアドレスで照会します。残りの回次はこちらからお支払いいただけます。',
+    intro: '決済番号と決済時にご入力いただいたメールアドレスで照会します。お支払い状況と領収書をご確認いただけます。',
     orderNo: '決済番号',
     orderNoHelp: '決済完了画面とご案内メールに記載された GRT- で始まる番号です。',
     email: 'メールアドレス',
@@ -115,7 +111,6 @@ const COPY: Record<TrainingLang, {
     statusPaid: 'お支払い済み',
     statusPending: '未払い',
     statusFailed: '失敗',
-    pay: 'お支払い',
     receipt: '領収書',
     contact: '照会できない場合は 02-6229-9229 または contact@grigoent.co.kr までお問い合わせください。',
     back: '商品ページへ',
@@ -242,14 +237,7 @@ export function OrdersClient() {
                       {statusLabel(p.status)}
                       {p.status !== 'paid' && p.dueDate ? ` · ${t.labelDue} ${p.dueDate}` : ''}
                     </span>
-                    {p.payUrl ? (
-                      <a
-                        href={p.payUrl}
-                        className="inline-flex min-h-9 items-center border border-zinc-950 px-3 text-xs font-semibold text-zinc-950 transition hover:bg-zinc-950 hover:text-white"
-                      >
-                        {t.pay}
-                      </a>
-                    ) : p.receiptUrl ? (
+                    {p.receiptUrl ? (
                       <a
                         href={p.receiptUrl}
                         target="_blank"
