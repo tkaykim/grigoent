@@ -6,13 +6,13 @@ import { TRAINING_PRODUCT_SLUG, type TrainingPlan, type TrainingProduct } from '
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '트레이닝 + 실무투입 패키지 - 그리고 엔터테인먼트',
+  title: '한국 활동 준비 트레이닝 패키지 - 그리고 엔터테인먼트',
   description:
-    '전문 트레이닝과 실무 투입을 결합한 GRIGO 패키지입니다. 일시불과 3·4·5개월 분납 중 선택해 결제할 수 있습니다.',
+    '전문 댄스 트레이닝, 한국어 교육, 한국 댄스 업계 실무 교육으로 구성된 GRIGO 교육 패키지입니다. 일시불과 3·4·5개월 분납 중 선택해 결제할 수 있습니다.',
   alternates: { canonical: '/training' },
   openGraph: {
-    title: '트레이닝 + 실무투입 패키지 - 그리고 엔터테인먼트',
-    description: '전문 트레이닝과 실무 투입을 결합한 GRIGO 패키지 결제 페이지입니다.',
+    title: '한국 활동 준비 트레이닝 패키지 - 그리고 엔터테인먼트',
+    description: '전문 댄스 트레이닝과 한국어·업계 교육으로 구성된 GRIGO 교육 패키지 결제 페이지입니다.',
     url: 'https://grigoent.co.kr/training',
     type: 'website',
   },
