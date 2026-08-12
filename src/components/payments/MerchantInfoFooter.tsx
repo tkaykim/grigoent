@@ -33,6 +33,7 @@ const COPY: Record<TrainingLang, {
   terms: string
   privacy: string
   refund: string
+  orders: string
 }> = {
   ko: {
     title: '판매자 정보',
@@ -53,6 +54,7 @@ const COPY: Record<TrainingLang, {
     terms: '이용약관',
     privacy: '개인정보처리방침',
     refund: '취소·환불 규정',
+    orders: '결제 내역 조회',
   },
   en: {
     title: 'Seller information',
@@ -73,6 +75,7 @@ const COPY: Record<TrainingLang, {
     terms: 'Terms of Service',
     privacy: 'Privacy Policy',
     refund: 'Cancellation & Refund Policy',
+    orders: 'Look up your payment',
   },
   ja: {
     title: '販売者情報',
@@ -93,6 +96,7 @@ const COPY: Record<TrainingLang, {
     terms: '利用規約',
     privacy: 'プライバシーポリシー',
     refund: 'キャンセル・返金規定',
+    orders: 'お支払い履歴の照会',
   },
 }
 
@@ -132,6 +136,9 @@ export function MerchantInfoFooter({ lang = 'ko' }: { lang?: TrainingLang }) {
           </Link>
           <Link href="/refund" className="text-zinc-900 underline underline-offset-4 hover:text-zinc-600">
             {t.refund}
+          </Link>
+          <Link href="/training/orders" className="text-zinc-900 underline underline-offset-4 hover:text-zinc-600">
+            {t.orders}
           </Link>
         </div>
         <p className="mt-4 max-w-3xl text-xs leading-6 text-zinc-500">{t.notice}</p>
