@@ -15,6 +15,9 @@ function getSupabase() {
 
 type Body = {
   planCode?: string
+  // 어떤 상품을 결제할지. 생략하면 기존 트레이닝 패키지(하위호환).
+  // 허용 목록에 있는 slug 만 받는다 — 임의 slug 로 비활성 상품을 팔 수 없게.
+  productSlug?: string
   name?: string
   email?: string
   phone?: string
@@ -23,6 +26,8 @@ type Body = {
   memo?: string
   agreed?: boolean
 }
+
+const ALLOWED_PRODUCT_SLUGS = new Set([TRAINING_PRODUCT_SLUG, 'audition-fee'])
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -49,12 +54,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '결제 진행에 동의해 주세요.' }, { status: 400 })
     }
 
+    const requestedSlug = (body.productSlug ?? '').trim() || TRAINING_PRODUCT_SLUG
+    if (!ALLOWED_PRODUCT_SLUGS.has(requestedSlug)) {
+      return NextResponse.json({ success: false, error: '판매 중인 상품을 찾을 수 없습니다.' }, { status: 404 })
+    }
+
     const supabase = getSupabase()
 
     const { data: product, error: productError } = await supabase
       .from('training_products')
       .select('id, title, currency, is_active')
-      .eq('slug', TRAINING_PRODUCT_SLUG)
+      .eq('slug', requestedSlug)
       .maybeSingle()
 
     if (productError || !product || !product.is_active) {
