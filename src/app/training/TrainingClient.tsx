@@ -66,7 +66,16 @@ const inputClass =
 
 const LANG_LABEL: Record<TrainingLang, string> = { ko: '한국어', en: 'EN', ja: '日本語' }
 
-export function TrainingClient({ product, plans }: { product: TrainingProduct | null; plans: TrainingPlan[] }) {
+export function TrainingClient({
+  product,
+  plans,
+  productSlug,
+}: {
+  product: TrainingProduct | null
+  plans: TrainingPlan[]
+  // 생략하면 서버가 기존 트레이닝 패키지로 처리한다(기존 /training 동작 그대로).
+  productSlug?: string
+}) {
   const router = useRouter()
   // 사이트 전역 언어 상태를 그대로 쓴다 (헤더 언어 선택과 연동).
   const { language, setLanguage } = useLanguage()
@@ -101,7 +110,7 @@ export function TrainingClient({ product, plans }: { product: TrainingProduct | 
       const response = await fetch('/api/training/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planCode, name, email, phone, nationality, memo, agreed, preferredLang: lang }),
+        body: JSON.stringify({ planCode, productSlug, name, email, phone, nationality, memo, agreed, preferredLang: lang }),
       })
       const data = await response.json()
       if (!response.ok || !data.success) {
