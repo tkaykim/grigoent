@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notifyVisaCasePayment } from '@/lib/visa-payment-ref'
+import { sendPaymentReceipt } from '@/lib/payment-receipt'
 import { foreignQuote } from '@/lib/paypal-fx'
 
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
@@ -188,6 +189,17 @@ export async function POST(request: NextRequest) {
         .update({ confirmed_at: paidAt, updated_at: paidAt })
         .eq('order_id', paymentRow.order_id)
     }
+
+    // 결제 완료 메일 (구매자 영수증 + contact@deetz.kr 내부 알림).
+    // 발송 실패가 결제 응답을 막지 않는다 — 결제는 이미 승인됐다.
+    await sendPaymentReceipt(supabase, {
+      paymentId: paymentRow.id as string,
+      orderId: paymentRow.order_id as string,
+      provider: 'paypal',
+      paidAmount: paidAmount,
+      paidAt,
+      receiptUrl: null,
+    })
 
     // deetz 케이스에서 발급한 링크로 결제한 건이면 그쪽 케이스에도 결제 완료를 반영한다.
     // 실패해도 결제는 이미 승인됐으므로 응답을 막지 않는다.
