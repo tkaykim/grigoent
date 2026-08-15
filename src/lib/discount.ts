@@ -24,7 +24,9 @@ export type DiscountCode = {
 
 export type DiscountResult =
   | { ok: true; code: DiscountCode; discountAmount: number; finalAmount: number }
-  | { ok: false; error: string }
+  // needsEmail: 한도는 찼지만 요청자가 누구인지 몰라 "소진"이라고 단정할 수 없는 상태.
+  // 이미 슬롯을 가진 본인일 수 있으므로 이메일을 받아 다시 판단해야 한다.
+  | { ok: false; error: string; needsEmail?: boolean }
 
 const MESSAGES = {
   notFound: '사용할 수 없는 할인코드입니다.',
@@ -34,6 +36,7 @@ const MESSAGES = {
   productMismatch: '이 상품에는 사용할 수 없는 할인코드입니다.',
   minOrder: (min: number) => `${min.toLocaleString('ko-KR')}원 이상 결제 시 사용할 수 있습니다.`,
   exhausted: '이미 모두 사용된 할인코드입니다.',
+  exhaustedNeedsEmail: '이메일을 입력하신 뒤 다시 적용해 주세요.',
 }
 
 // 존재하지 않는 코드와 비활성 코드의 메시지를 같게 둔다.
@@ -108,7 +111,11 @@ export async function evaluateDiscount(
         .select('id', { count: 'exact', head: true })
         .eq('code_id', code.id)
       if ((count ?? 0) >= code.max_uses) {
-        return { ok: false, error: MESSAGES.exhausted }
+        // 이메일을 모르면 "이미 쓴 본인"과 "남이 다 쓴 것"을 구분할 수 없다.
+        // 여기서 소진이라고 단정하면, 결제를 중단했다 돌아온 본인이 자기 코드를 못 쓴다고 오해한다.
+        return email
+          ? { ok: false, error: MESSAGES.exhausted }
+          : { ok: false, error: MESSAGES.exhaustedNeedsEmail, needsEmail: true }
       }
     }
   }

@@ -125,35 +125,50 @@ export async function POST(request: NextRequest) {
     const firstCharge = totalAmount - perCharge * (plan.installment_months - 1)
 
     const now = new Date()
-    const orderNo = buildOrderNo(now, randomBytes(3).toString('hex'))
     const dueDates = buildDueDates(now, plan.installment_months)
 
-    const { data: order, error: orderError } = await supabase
-      .from('training_orders')
-      .insert({
-        order_no: orderNo,
-        product_id: product.id,
-        plan_id: plan.id,
-        customer_name: name,
-        customer_email: email,
-        customer_phone: phone || null,
-        customer_nationality: nationality || null,
-        preferred_lang: preferredLang,
-        visa_application_id: visaApplicationId,
-        pg_provider: 'toss',
-        currency: plan.currency,
-        total_amount: totalAmount,
-        original_amount: plan.total_amount,
-        discount_code: discountCode,
-        discount_amount: discountAmount,
-        installment_months: plan.installment_months,
-        status: 'pending',
-        memo: (body.memo ?? '').trim() || null,
-        billing_customer_key: randomUUID(),
-        next_billing_at: plan.installment_months > 1 ? `${dueDates[1]}T00:00:00+09:00` : null,
-      })
-      .select('id, order_no, billing_customer_key')
-      .single()
+    // order_no 는 24비트 난수라 드물게 겹칠 수 있다.
+    // 겹치면 UNIQUE 위반으로 결제가 시작조차 못 하므로 번호만 바꿔 몇 번 다시 시도한다.
+    let order: { id: string; order_no: string; billing_customer_key: string } | null = null
+    let orderError: { code?: string; message?: string } | null = null
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const candidate = buildOrderNo(now, randomBytes(3).toString('hex'))
+      const result = await supabase
+        .from('training_orders')
+        .insert({
+          order_no: candidate,
+          product_id: product.id,
+          plan_id: plan.id,
+          customer_name: name,
+          customer_email: email,
+          customer_phone: phone || null,
+          customer_nationality: nationality || null,
+          preferred_lang: preferredLang,
+          visa_application_id: visaApplicationId,
+          pg_provider: 'toss',
+          currency: plan.currency,
+          total_amount: totalAmount,
+          original_amount: plan.total_amount,
+          discount_code: discountCode,
+          discount_amount: discountAmount,
+          installment_months: plan.installment_months,
+          status: 'pending',
+          memo: (body.memo ?? '').trim() || null,
+          billing_customer_key: randomUUID(),
+          next_billing_at: plan.installment_months > 1 ? `${dueDates[1]}T00:00:00+09:00` : null,
+        })
+        .select('id, order_no, billing_customer_key')
+        .single()
+
+      if (!result.error) {
+        order = result.data as { id: string; order_no: string; billing_customer_key: string }
+        orderError = null
+        break
+      }
+      orderError = result.error
+      // 23505 = UNIQUE 위반. 번호만 바꿔 재시도한다. 다른 오류는 재시도해도 소용없다.
+      if (result.error.code !== '23505') break
+    }
 
     if (orderError || !order) {
       console.error('[training/checkout] order insert failed:', orderError)

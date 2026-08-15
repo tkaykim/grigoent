@@ -11,7 +11,13 @@ const IS_SANDBOX = process.env.NEXT_PUBLIC_PAYPAL_SANDBOX === 'true'
 const PAYPAL_API_URL = IS_SANDBOX ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com'
 
 // 환산 정책은 src/lib/paypal-fx.ts 에 모아둔다 (checkout 응답의 견적과 동일한 값을 쓰기 위함).
-const FORCE_FOREIGN = process.env.PAYPAL_FORCE_USD === 'true'
+//
+// PayPal 은 KRW 를 지원하지 않는다. 그래서 기본값은 외화다.
+// 예전에는 KRW 로 먼저 만들어 보고 거절되면 외화로 재시도했는데,
+// 그러면 결제 한 건마다 반드시 실패하는 주문 생성 요청이 한 번씩 PayPal 에 쌓인다.
+// 브라우저 SDK 도 외화로 로드되므로 통화를 처음부터 맞추는 편이 안전하다.
+// PayPal 이 KRW 를 지원하게 되면 PAYPAL_TRY_KRW=true 로 예전 동작을 켠다.
+const TRY_KRW_FIRST = process.env.PAYPAL_TRY_KRW === 'true'
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -100,7 +106,7 @@ export async function POST(request: NextRequest) {
       return { response, body: await response.json() }
     }
 
-    let currency = FORCE_FOREIGN ? PAYPAL_FOREIGN_CURRENCY : 'KRW'
+    let currency = TRY_KRW_FIRST ? 'KRW' : PAYPAL_FOREIGN_CURRENCY
     let attempt = await createWith(currency)
 
     // PayPal이 원화를 거절하면(CURRENCY_NOT_SUPPORTED) 외화 환산으로 한 번만 재시도한다.

@@ -15,6 +15,14 @@ type Body = {
 
 // 토스 결제 승인 → 회차 결제 레코드 확정.
 // 금액은 DB의 청구 레코드와 대조해 위변조를 막고, paymentKey 기준으로 멱등 처리한다.
+// PG 승인 이후의 DB 갱신은 실패해도 결제를 되돌릴 수 없다.
+// 조용히 넘어가면 "돈은 들어왔는데 미결제로 보이는" 주문이 생기므로,
+// 실패를 반드시 눈에 띄게 남긴다. 응답은 성공으로 준다 — 결제는 실제로 됐다.
+function logPostPaymentFailure(step: string, orderNo: string | null, error: unknown) {
+  if (!error) return
+  console.error('[POST-PAYMENT-DB-FAILURE]', JSON.stringify({ step, orderNo, error }))
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { paymentKey, orderId, amount } = (await request.json()) as Body
@@ -75,6 +83,8 @@ export async function POST(request: NextRequest) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', paymentRow.id)
+        // 동시 요청이 이미 승인시킨 행을 failed 로 덮지 않게 한다.
+        .eq('status', 'pending')
       return NextResponse.json(
         { success: false, error: tossData?.message || '결제 승인에 실패했습니다.', code: tossData?.code },
         { status: tossResponse.status },
@@ -82,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     const paidAt = new Date().toISOString()
-    await supabase
+    const { error: paidUpdateError } = await supabase
       .from('training_order_payments')
       .update({
         status: 'paid',
@@ -94,6 +104,7 @@ export async function POST(request: NextRequest) {
         updated_at: paidAt,
       })
       .eq('id', paymentRow.id)
+    logPostPaymentFailure('payment_row_paid', orderId ?? null, paidUpdateError)
 
     const { data: order } = await supabase
       .from('training_orders')
@@ -112,7 +123,7 @@ export async function POST(request: NextRequest) {
     const paidAmount = (paidRows ?? []).reduce((sum, row) => sum + (row.amount as number), 0)
     const isComplete = order ? paidAmount >= order.total_amount : false
 
-    await supabase
+    const { error: orderUpdateError } = await supabase
       .from('training_orders')
       .update({
         paid_amount: paidAmount,
@@ -120,6 +131,7 @@ export async function POST(request: NextRequest) {
         updated_at: paidAt,
       })
       .eq('id', paymentRow.order_id)
+    logPostPaymentFailure('order_totals', order?.order_no ?? null, orderUpdateError)
 
     // 할인코드를 쓴 주문이면 사용 이력을 확정 처리한다(예약 → 확정).
     if (order?.discount_code) {

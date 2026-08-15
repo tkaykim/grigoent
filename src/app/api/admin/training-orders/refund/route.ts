@@ -80,11 +80,35 @@ export async function POST(request: NextRequest) {
     }
     const isPartial = requested < paidAmount
 
+    // 같은 결제건에 환불 요청이 두 번 들어오면 PG 에 두 번 취소가 걸린다.
+    // PG 를 부르기 전에 전용 잠금 컬럼으로 선점한다. 이미 처리 중이면 여기서 멈춘다.
+    // (표시용 필드로 선점하면 부분환불 메모와 충돌해 2차 부분환불이 막힌다.)
+    const { data: claimed } = await svc
+      .from('training_order_payments')
+      .update({ refund_lock_at: new Date().toISOString() })
+      .eq('id', payment.id)
+      .eq('status', 'paid')
+      .is('refund_lock_at', null)
+      .select('id')
+      .maybeSingle()
+
+    if (!claimed) {
+      return NextResponse.json(
+        { error: '이미 환불이 진행 중이거나 처리된 건입니다. 잠시 후 목록을 새로고침해 주세요.' },
+        { status: 409 },
+      )
+    }
+
+    // PG 호출이 실패하거나 환불이 끝나면 잠금을 푼다.
+    const releaseClaim = async () => {
+      await svc.from('training_order_payments').update({ refund_lock_at: null }).eq('id', payment.id)
+    }
     let pgResult: unknown = null
 
     // --- PG 취소 (실패하면 여기서 끝. DB는 건드리지 않는다) ---
     if (payment.pg_provider === 'toss') {
       if (!payment.payment_key) {
+        await releaseClaim()
         return NextResponse.json({ error: '토스 결제키가 없어 취소할 수 없습니다.' }, { status: 400 })
       }
       const response = await fetch(
@@ -105,10 +129,12 @@ export async function POST(request: NextRequest) {
         const message =
           (pgResult as { message?: string })?.message ?? '토스 결제 취소에 실패했습니다.'
         console.error('[training/refund] toss cancel failed:', pgResult)
+        await releaseClaim()
         return NextResponse.json({ error: message }, { status: 502 })
       }
     } else if (payment.pg_provider === 'paypal') {
       if (isPartial) {
+        await releaseClaim()
         return NextResponse.json(
           { error: 'PayPal 은 외화 결제라 부분환불을 지원하지 않습니다. 전액 환불만 가능합니다.' },
           { status: 400 },
@@ -121,6 +147,7 @@ export async function POST(request: NextRequest) {
       const captureId =
         (payment.payment_key as string | null) ?? raw?.purchase_units?.[0]?.payments?.captures?.[0]?.id
       if (!captureId) {
+        await releaseClaim()
         return NextResponse.json(
           { error: 'PayPal 캡처 ID를 찾을 수 없습니다. PayPal 콘솔에서 직접 환불해 주세요.' },
           { status: 400 },
@@ -129,7 +156,12 @@ export async function POST(request: NextRequest) {
       const token = await paypalAccessToken()
       const response = await fetch(`${PAYPAL_API_URL}/v2/payments/captures/${captureId}/refund`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          // 같은 캡처에 대한 재요청이 두 번 환불되지 않게 한다.
+          'PayPal-Request-Id': `refund-${captureId}`,
+        },
         body: JSON.stringify({ note_to_payer: reason.slice(0, 255) }),
       })
       pgResult = await response.json()
@@ -137,9 +169,11 @@ export async function POST(request: NextRequest) {
         const message =
           (pgResult as { message?: string })?.message ?? 'PayPal 환불에 실패했습니다.'
         console.error('[training/refund] paypal refund failed:', pgResult)
+        await releaseClaim()
         return NextResponse.json({ error: message }, { status: 502 })
       }
     } else {
+      await releaseClaim()
       return NextResponse.json(
         { error: `자동 환불을 지원하지 않는 결제수단입니다: ${payment.pg_provider ?? '미상'}` },
         { status: 400 },
@@ -175,6 +209,7 @@ export async function POST(request: NextRequest) {
     if (paymentUpdateError) {
       // 환불은 이미 성공했다. 운영자가 다시 누르지 않도록 그 사실을 분명히 알린다.
       console.error('[training/refund] payment row update failed AFTER pg refund:', paymentUpdateError)
+      await releaseClaim()
       return NextResponse.json(
         {
           error:
@@ -226,6 +261,8 @@ export async function POST(request: NextRequest) {
         meta: { reason, sequence: payment.sequence },
       })
     }
+
+    await releaseClaim()
 
     return NextResponse.json({
       success: true,

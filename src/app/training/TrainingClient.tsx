@@ -121,6 +121,8 @@ export function TrainingClient({
   const [discountPending, setDiscountPending] = useState(false)
   // 할인코드가 있는 사람은 소수라 기본은 접어두고, 링크를 눌러야 입력칸이 열린다.
   const [discountOpen, setDiscountOpen] = useState(false)
+  // 서버가 "이메일을 알아야 판단 가능"이라고 답한 상태. 이메일이 채워지면 자동 재확인한다.
+  const [discountNeedsEmail, setDiscountNeedsEmail] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [session, setSession] = useState<CheckoutSession | null>(null)
@@ -148,9 +150,11 @@ export function TrainingClient({
       const data = await response.json()
       if (!data.success) {
         setDiscount(null)
+        setDiscountNeedsEmail(Boolean(data.needsEmail))
         setDiscountError(data.error ?? '사용할 수 없는 할인코드입니다.')
         return
       }
+      setDiscountNeedsEmail(false)
       setDiscount({
         code: data.code,
         label: data.label,
@@ -167,10 +171,21 @@ export function TrainingClient({
     }
   }
 
+  // 이메일을 입력해야 판단할 수 있는 코드였다면, 이메일이 채워지는 즉시 다시 확인해 준다.
+  // 사용자가 "적용"을 한 번 더 눌러야 한다는 걸 알아채지 못하고 포기하는 걸 막는다.
+  useEffect(() => {
+    if (!discountNeedsEmail) return
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return
+    void applyDiscount()
+    // applyDiscount 는 매 렌더마다 새로 만들어지므로 의존성에서 제외한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [discountNeedsEmail, email])
+
   const removeDiscount = () => {
     setDiscount(null)
     setDiscountInput('')
     setDiscountError(null)
+    setDiscountNeedsEmail(false)
     setDiscountOpen(false)
     setSession(null)
   }
