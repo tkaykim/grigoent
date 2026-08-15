@@ -53,6 +53,12 @@ export type PayPalCheckoutProps = {
   /** 우리 시스템의 회차 결제 식별자 (training_order_payments.pg_order_id) */
   pgOrderId: string
   orderName: string
+  /**
+   * SDK 로드 통화. 서버가 만드는 PayPal 주문 통화(foreignQuote)와 반드시 같아야 한다.
+   * 다르면 버튼이 "Expected currency from order api call to be X, got Y" 로 거부한다.
+   * PayPal 은 KRW 를 지원하지 않으므로 기본값은 USD.
+   */
+  currency?: string
   lang?: TrainingLang
   onSuccess: (result: { orderNo: string | null; sequence?: number; paidAmount?: number; totalAmount?: number }) => void
   onError?: (message: string) => void
@@ -151,8 +157,9 @@ export function PayPalCheckout(props: PayPalCheckoutProps) {
       </div>
     )
   }
+  const currency = (props.currency || 'USD').toUpperCase()
   return (
-    <PayPalScriptProvider options={{ clientId, currency: 'KRW', intent: 'capture' }}>
+    <PayPalScriptProvider options={{ clientId, currency, intent: 'capture' }}>
       <Inner {...props} />
     </PayPalScriptProvider>
   )

@@ -424,6 +424,7 @@ export function TrainingClient({
                       <PayPalCheckout
                         pgOrderId={session.pgOrderId}
                         orderName={session.orderName}
+                        currency={session.paypalQuote?.currency}
                         lang={lang}
                         onSuccess={(paid) => {
                           const query = new URLSearchParams({
