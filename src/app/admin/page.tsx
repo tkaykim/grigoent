@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 import Papa from 'papaparse';
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger, TabsContent as UITabsContent } from '@/components/ui/tabs';
 import { SEOSettingsManager } from '@/components/dashboard/SEOSettingsManager';
-import { AlertTriangle, Users, UserCheck, FileText, Link, Receipt, Scale, UserPlus, BriefcaseBusiness } from 'lucide-react'
+import { AlertTriangle, Users, UserCheck, FileText, Link, Receipt, Scale, UserPlus, BriefcaseBusiness, CreditCard } from 'lucide-react'
 import { ClaimRequestModal } from '@/components/proposals/ClaimRequestModal'
 import { DirectLinkModal } from '@/components/proposals/DirectLinkModal'
 
@@ -846,6 +846,9 @@ export default function AdminPage() {
               <TabsTrigger value="fee-reports">
                 미수 제보
               </TabsTrigger>
+              <TabsTrigger value="training-orders">
+                결제 주문
+              </TabsTrigger>
               <TabsTrigger value="quotes">
                 견적서
               </TabsTrigger>
@@ -1265,6 +1268,36 @@ export default function AdminPage() {
                     >
                       <Scale className="w-4 h-4" />
                       미수·정산 제보 관리로 이동
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="training-orders">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5" />
+                    결제 주문
+                  </CardTitle>
+                  <p className="text-sm text-zinc-600">
+                    결제 내역을 확인하고 취소·환불을 처리합니다
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <CreditCard className="w-16 h-16 text-zinc-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-zinc-900 mb-2">결제 주문</h3>
+                    <p className="text-zinc-600 mb-6">
+                      토스페이먼츠·PayPal 결제 건을 조회하고 환불할 수 있습니다.
+                    </p>
+                    <Button
+                      onClick={() => router.push('/admin/training-orders')}
+                      className="flex items-center gap-2"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      결제 주문 관리로 이동
                     </Button>
                   </div>
                 </CardContent>
