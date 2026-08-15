@@ -147,6 +147,7 @@ export const TRAINING_COPY: Record<TrainingLang, {
   methodOverseasDesc: string
   paypalCurrencyNotice: (foreign: string, krw: string) => string
   discountTitle: string
+  discountToggle: string
   discountPlaceholder: string
   discountApply: string
   discountRemove: string
@@ -212,6 +213,7 @@ export const TRAINING_COPY: Record<TrainingLang, {
     paypalCurrencyNotice: (foreign, krw) =>
       `PayPal은 원화 결제를 지원하지 않습니다. 결제 금액 ${krw}은 ${foreign}로 청구됩니다.`,
     discountTitle: '할인코드',
+    discountToggle: '할인코드가 있으신가요?',
     discountPlaceholder: '할인코드를 입력하세요',
     discountApply: '적용',
     discountRemove: '해제',
@@ -279,6 +281,7 @@ export const TRAINING_COPY: Record<TrainingLang, {
     paypalCurrencyNotice: (foreign, krw) =>
       `PayPal cannot charge Korean won. Your payment of ${krw} will be billed as ${foreign}.`,
     discountTitle: 'Discount code',
+    discountToggle: 'Have a discount code?',
     discountPlaceholder: 'Enter your discount code',
     discountApply: 'Apply',
     discountRemove: 'Remove',
@@ -346,6 +349,7 @@ export const TRAINING_COPY: Record<TrainingLang, {
     paypalCurrencyNotice: (foreign, krw) =>
       `PayPalはウォン建て決済に対応していません。お支払い金額${krw}は${foreign}で請求されます。`,
     discountTitle: '割引コード',
+    discountToggle: '割引コードをお持ちですか？',
     discountPlaceholder: '割引コードを入力してください',
     discountApply: '適用',
     discountRemove: '解除',
