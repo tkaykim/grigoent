@@ -112,6 +112,8 @@ export function TrainingClient({
   const [discount, setDiscount] = useState<AppliedDiscount | null>(null)
   const [discountError, setDiscountError] = useState<string | null>(null)
   const [discountPending, setDiscountPending] = useState(false)
+  // 할인코드가 있는 사람은 소수라 기본은 접어두고, 링크를 눌러야 입력칸이 열린다.
+  const [discountOpen, setDiscountOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [session, setSession] = useState<CheckoutSession | null>(null)
@@ -162,6 +164,7 @@ export function TrainingClient({
     setDiscount(null)
     setDiscountInput('')
     setDiscountError(null)
+    setDiscountOpen(false)
     setSession(null)
   }
 
@@ -346,7 +349,9 @@ export function TrainingClient({
                 </div>
 
                 <div className="mt-5 border-t border-zinc-200 pt-4">
-                  <p className="mb-2 text-sm font-semibold text-zinc-950">{t.discountTitle}</p>
+                  {discount || discountOpen ? (
+                    <p className="mb-2 text-sm font-semibold text-zinc-950">{t.discountTitle}</p>
+                  ) : null}
                   {discount ? (
                     <div className="flex flex-wrap items-center justify-between gap-3 border border-emerald-300 bg-emerald-50 px-4 py-3">
                       <div className="text-sm text-emerald-900">
@@ -365,10 +370,19 @@ export function TrainingClient({
                         {t.discountRemove}
                       </button>
                     </div>
+                  ) : !discountOpen ? (
+                    <button
+                      type="button"
+                      onClick={() => setDiscountOpen(true)}
+                      className="text-xs text-zinc-500 underline underline-offset-4 transition hover:text-zinc-900"
+                    >
+                      {t.discountToggle}
+                    </button>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       <input
                         type="text"
+                        autoFocus
                         value={discountInput}
                         onChange={(event) => setDiscountInput(event.target.value.toUpperCase())}
                         onKeyDown={(event) => {
