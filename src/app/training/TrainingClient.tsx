@@ -70,11 +70,18 @@ export function TrainingClient({
   product,
   plans,
   productSlug,
+  paymentRef,
+  copyOverride,
 }: {
   product: TrainingProduct | null
   plans: TrainingPlan[]
   // 생략하면 서버가 기존 트레이닝 패키지로 처리한다(기존 /training 동작 그대로).
   productSlug?: string
+  // deetz 비자 케이스에서 발급한 결제 링크 토큰(?ref=). 주문을 그 케이스에 연결한다.
+  paymentRef?: string
+  // 상품별 카피 덮어쓰기. 생략하면 트레이닝 패키지 기준값을 쓴다.
+  // 화면 언어는 클라이언트에서 결정되므로 언어별 맵으로 받는다.
+  copyOverride?: Record<TrainingLang, { process: { title: string; body: string }[]; servicePeriod: string }>
 }) {
   const router = useRouter()
   // 사이트 전역 언어 상태를 그대로 쓴다 (헤더 언어 선택과 연동).
@@ -110,7 +117,7 @@ export function TrainingClient({
       const response = await fetch('/api/training/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planCode, productSlug, name, email, phone, nationality, memo, agreed, preferredLang: lang }),
+        body: JSON.stringify({ planCode, productSlug, ref: paymentRef, name, email, phone, nationality, memo, agreed, preferredLang: lang }),
       })
       const data = await response.json()
       if (!response.ok || !data.success) {
@@ -154,7 +161,7 @@ export function TrainingClient({
             <h1 className="text-2xl font-bold text-zinc-950">{t.emptyTitle}</h1>
             <p className="mt-3 text-sm text-zinc-600">{t.emptyBody}</p>
           </div>
-          <MerchantInfoFooter lang={lang} />
+          <MerchantInfoFooter lang={lang} servicePeriod={copyOverride?.[lang]?.servicePeriod} />
         </main>
         <Footer />
       </>
@@ -204,7 +211,7 @@ export function TrainingClient({
             </div>
           </div>
           <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {t.process.map((step, index) => (
+            {(copyOverride?.[lang]?.process ?? t.process).map((step, index) => (
               <div key={step.title} className="border border-zinc-300 p-5">
                 <div className="font-mono text-xs font-semibold text-zinc-500">{String(index + 1).padStart(2, '0')}</div>
                 <h3 className="mt-3 text-lg font-bold text-zinc-950">{step.title}</h3>
@@ -466,7 +473,7 @@ export function TrainingClient({
           </div>
         </section>
 
-        <MerchantInfoFooter lang={lang} />
+        <MerchantInfoFooter lang={lang} servicePeriod={copyOverride?.[lang]?.servicePeriod} />
       </main>
       <Footer />
     </>

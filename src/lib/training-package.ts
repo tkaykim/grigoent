@@ -345,3 +345,39 @@ export const TRAINING_COPY: Record<TrainingLang, {
     currencyNotice: '基本の決済通貨は韓国ウォン(KRW)です。PayPalのみウォンに対応していないため外貨で請求されます。',
   },
 }
+
+// 오디션 참석 확정비(/audition-fee) 전용 카피.
+// TRAINING_COPY 의 "진행 방식"은 트레이닝 패키지 4단계라 참가비 상품에는 맞지 않는다.
+// 서비스 제공 기간도 상품별로 다르므로 같이 둔다.
+export const AUDITION_FEE_COPY: Record<
+  TrainingLang,
+  { process: { title: string; body: string }[]; servicePeriod: string }
+> = {
+  ko: {
+    process: [
+      { title: '참가비 결제', body: '오디션 참석을 확정하기 위한 참가비를 결제합니다.' },
+      { title: '일정·장소 안내', body: '결제 확인 후 오디션 일시와 장소를 개별 안내드립니다.' },
+      { title: '오디션 참석', body: '안내받은 일정에 맞춰 오디션에 참석합니다.' },
+      { title: '결과 안내', body: '오디션 결과와 이후 진행 방식을 안내드립니다.' },
+    ],
+    servicePeriod: '결제일로부터 오디션 종료 시점까지 (일정은 개별 안내)',
+  },
+  en: {
+    process: [
+      { title: 'Pay the fee', body: 'Pay the fee that confirms your audition slot.' },
+      { title: 'Schedule sent', body: 'Once payment is confirmed we send you the date and venue.' },
+      { title: 'Attend', body: 'Attend the audition at the scheduled time.' },
+      { title: 'Result', body: 'We share the result and what happens next.' },
+    ],
+    servicePeriod: 'From the payment date until the audition is completed (schedule sent individually)',
+  },
+  ja: {
+    process: [
+      { title: '参加費のお支払い', body: 'オーディション参加を確定するための参加費をお支払いいただきます。' },
+      { title: '日程・会場のご案内', body: '入金確認後、オーディションの日時と会場を個別にご案内します。' },
+      { title: 'オーディション参加', body: 'ご案内した日程に合わせてオーディションにご参加ください。' },
+      { title: '結果のご案内', body: 'オーディション結果と今後の進め方をご案内します。' },
+    ],
+    servicePeriod: 'お支払い日からオーディション終了まで（日程は個別にご案内）',
+  },
+}
