@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
 
     const { data: order } = await supabase
       .from('training_orders')
-      .select('id, order_no, total_amount, installment_months, visa_application_id')
+      .select('id, order_no, total_amount, installment_months, visa_application_id, discount_code')
       .eq('id', paymentRow.order_id)
       .maybeSingle()
 
@@ -121,6 +121,14 @@ export async function POST(request: NextRequest) {
         updated_at: paidAt,
       })
       .eq('id', paymentRow.order_id)
+
+    // 할인코드를 쓴 주문이면 사용 이력을 확정 처리한다(예약 → 확정).
+    if (order?.discount_code) {
+      await supabase
+        .from('training_discount_redemptions')
+        .update({ confirmed_at: paidAt, updated_at: paidAt })
+        .eq('order_id', paymentRow.order_id)
+    }
 
     // deetz 케이스에서 발급한 링크로 결제한 건이면 그쪽 케이스에도 결제 완료를 반영한다.
     // 실패해도 결제는 이미 승인됐으므로 응답을 막지 않는다.
