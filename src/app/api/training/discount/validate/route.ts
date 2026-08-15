@@ -68,7 +68,10 @@ export async function POST(request: NextRequest) {
     })
 
     if (!result.ok) {
-      return NextResponse.json({ success: false, error: result.error }, { status: 200 })
+      return NextResponse.json(
+        { success: false, error: result.error, needsEmail: result.needsEmail ?? false },
+        { status: 200 },
+      )
     }
 
     return NextResponse.json({

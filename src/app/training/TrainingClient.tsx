@@ -90,7 +90,14 @@ export function TrainingClient({
   paymentRef?: string
   // 상품별 카피 덮어쓰기. 생략하면 트레이닝 패키지 기준값을 쓴다.
   // 화면 언어는 클라이언트에서 결정되므로 언어별 맵으로 받는다.
-  copyOverride?: Record<TrainingLang, { process: { title: string; body: string }[]; servicePeriod: string }>
+  copyOverride?: Record<
+    TrainingLang,
+    {
+      process: { title: string; body: string }[]
+      servicePeriod: string
+      terms?: { title: string; items: string[] }
+    }
+  >
 }) {
   const router = useRouter()
   // 사이트 전역 언어 상태를 그대로 쓴다 (헤더 언어 선택과 연동).
@@ -114,6 +121,8 @@ export function TrainingClient({
   const [discountPending, setDiscountPending] = useState(false)
   // 할인코드가 있는 사람은 소수라 기본은 접어두고, 링크를 눌러야 입력칸이 열린다.
   const [discountOpen, setDiscountOpen] = useState(false)
+  // 서버가 "이메일을 알아야 판단 가능"이라고 답한 상태. 이메일이 채워지면 자동 재확인한다.
+  const [discountNeedsEmail, setDiscountNeedsEmail] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [session, setSession] = useState<CheckoutSession | null>(null)
@@ -141,9 +150,11 @@ export function TrainingClient({
       const data = await response.json()
       if (!data.success) {
         setDiscount(null)
+        setDiscountNeedsEmail(Boolean(data.needsEmail))
         setDiscountError(data.error ?? '사용할 수 없는 할인코드입니다.')
         return
       }
+      setDiscountNeedsEmail(false)
       setDiscount({
         code: data.code,
         label: data.label,
@@ -160,10 +171,21 @@ export function TrainingClient({
     }
   }
 
+  // 이메일을 입력해야 판단할 수 있는 코드였다면, 이메일이 채워지는 즉시 다시 확인해 준다.
+  // 사용자가 "적용"을 한 번 더 눌러야 한다는 걸 알아채지 못하고 포기하는 걸 막는다.
+  useEffect(() => {
+    if (!discountNeedsEmail) return
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return
+    void applyDiscount()
+    // applyDiscount 는 매 렌더마다 새로 만들어지므로 의존성에서 제외한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [discountNeedsEmail, email])
+
   const removeDiscount = () => {
     setDiscount(null)
     setDiscountInput('')
     setDiscountError(null)
+    setDiscountNeedsEmail(false)
     setDiscountOpen(false)
     setSession(null)
   }
@@ -462,6 +484,30 @@ export function TrainingClient({
                   className="w-full resize-none border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-950 outline-none transition focus:border-zinc-950"
                 />
               </Field>
+
+              {copyOverride?.[lang]?.terms ? (
+                <div className="border border-zinc-950 bg-zinc-50 p-5">
+                  <p className="text-sm font-bold text-zinc-950">
+                    {copyOverride[lang].terms!.title}
+                  </p>
+                  <ul className="mt-3 space-y-2">
+                    {copyOverride[lang].terms!.items.map((item) => (
+                      <li key={item} className="flex gap-2 text-sm leading-6 text-zinc-700">
+                        <span aria-hidden className="mt-2 h-1 w-1 shrink-0 bg-zinc-950" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href="/refund"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-block text-xs text-zinc-500 underline underline-offset-4 hover:text-zinc-900"
+                  >
+                    취소·환불 규정 전문 보기
+                  </a>
+                </div>
+              ) : null}
 
               <label className="flex items-start gap-3 border border-zinc-300 bg-white p-4">
                 <input

@@ -383,7 +383,12 @@ export const TRAINING_COPY: Record<TrainingLang, {
 // 서비스 제공 기간도 상품별로 다르므로 같이 둔다.
 export const AUDITION_FEE_COPY: Record<
   TrainingLang,
-  { process: { title: string; body: string }[]; servicePeriod: string }
+  {
+    process: { title: string; body: string }[]
+    servicePeriod: string
+    // 결제 전에 반드시 보여야 하는 조건. 규정 전문은 /refund 제4조.
+    terms: { title: string; items: string[] }
+  }
 > = {
   ko: {
     process: [
@@ -393,6 +398,16 @@ export const AUDITION_FEE_COPY: Record<
       { title: '결과 안내', body: '오디션 결과와 이후 진행 방식을 안내드립니다.' },
     ],
     servicePeriod: '결제일로부터 오디션 종료 시점까지 (일정은 개별 안내)',
+    terms: {
+      title: '결제 전 확인해 주세요',
+      items: [
+        '이 참가비는 이후 트레이닝 패키지를 결제하실 때 패키지 금액에서 전액 공제됩니다. 별도로 다시 내지 않으셔도 됩니다.',
+        '오디션 일정이 확정되어 안내되기 전까지는 사유를 불문하고 전액 환불해 드립니다.',
+        '회사 사정으로 오디션이 취소되거나 일정이 바뀌어 참석하지 못하시는 경우에도 전액 환불해 드립니다.',
+        '다만 본인 사유로 확정된 오디션에 불참하시거나 사전 연락 없이 오지 않으시는 경우에는 환불되지 않습니다.',
+        '일정 변경이 필요하시면 오디션 전에 미리 연락 주세요. 잔여 일정 범위에서 1회 변경을 도와드립니다.',
+      ],
+    },
   },
   en: {
     process: [
@@ -402,6 +417,16 @@ export const AUDITION_FEE_COPY: Record<
       { title: 'Result', body: 'We share the result and what happens next.' },
     ],
     servicePeriod: 'From the payment date until the audition is completed (schedule sent individually)',
+    terms: {
+      title: 'Before you pay',
+      items: [
+        'This fee is fully credited toward the training package if you enroll later. You will not be charged for it twice.',
+        'You get a full refund for any reason until the audition date is confirmed and sent to you.',
+        'You also get a full refund if we cancel or move the audition and you can no longer attend.',
+        'However, the fee is not refunded if you miss a confirmed audition or do not show up without telling us in advance.',
+        'If you need a different date, contact us before the audition. We can reschedule you once, subject to remaining slots.',
+      ],
+    },
   },
   ja: {
     process: [
@@ -411,5 +436,15 @@ export const AUDITION_FEE_COPY: Record<
       { title: '結果のご案内', body: 'オーディション結果と今後の進め方をご案内します。' },
     ],
     servicePeriod: 'お支払い日からオーディション終了まで（日程は個別にご案内）',
+    terms: {
+      title: 'お支払い前にご確認ください',
+      items: [
+        'この参加費は、後日トレーニングパッケージをお申し込みの際に全額差し引かれます。二重にお支払いいただくことはありません。',
+        'オーディションの日程が確定してご案内する前であれば、理由を問わず全額返金いたします。',
+        '当社の都合でオーディションが中止・変更となりご参加いただけない場合も、全額返金いたします。',
+        'ただし、ご本人の都合で確定したオーディションに参加されない場合や、事前のご連絡なく来られない場合は返金いたしかねます。',
+        '日程の変更が必要な場合はオーディション前にご連絡ください。残りの日程の範囲で1回まで変更を承ります。',
+      ],
+    },
   },
 }
