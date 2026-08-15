@@ -16,7 +16,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-export default async function AuditionFeePage() {
+export default async function AuditionFeePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ref?: string }>
+}) {
+  // deetz 케이스에서 발급한 결제 링크 토큰. 검증은 서버(checkout)에서만 한다.
+  const { ref } = await searchParams
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -47,5 +53,5 @@ export default async function AuditionFeePage() {
       } as TrainingProduct)
     : null
 
-  return <TrainingClient product={product} plans={plans} productSlug={PRODUCT_SLUG} />
+  return <TrainingClient product={product} plans={plans} productSlug={PRODUCT_SLUG} paymentRef={ref} />
 }

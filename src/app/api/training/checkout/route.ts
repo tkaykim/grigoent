@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { foreignQuote } from '@/lib/paypal-fx'
+import { verifyVisaPaymentRef } from '@/lib/visa-payment-ref'
 import {
   TRAINING_PRODUCT_SLUG,
   buildDueDates,
@@ -18,6 +19,8 @@ type Body = {
   // 어떤 상품을 결제할지. 생략하면 기존 트레이닝 패키지(하위호환).
   // 허용 목록에 있는 slug 만 받는다 — 임의 slug 로 비활성 상품을 팔 수 없게.
   productSlug?: string
+  // deetz 비자 케이스에서 발급한 결제 링크 토큰. 있으면 주문을 그 케이스에 연결한다.
+  ref?: string
   name?: string
   email?: string
   phone?: string
@@ -59,6 +62,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '판매 중인 상품을 찾을 수 없습니다.' }, { status: 404 })
     }
 
+    // 토큰이 있어도 결제는 막지 않는다. 검증에 실패하면 케이스 연결만 포기한다.
+    // (링크 만료 때문에 결제를 못 하게 만들면 매출을 잃는다 — 연결은 나중에 수기로도 붙일 수 있다.)
+    const ref = verifyVisaPaymentRef(body.ref)
+    const visaApplicationId = ref && ref.productSlug === requestedSlug ? ref.applicationId : null
+
     const supabase = getSupabase()
 
     const { data: product, error: productError } = await supabase
@@ -99,6 +107,7 @@ export async function POST(request: NextRequest) {
         customer_phone: phone || null,
         customer_nationality: nationality || null,
         preferred_lang: preferredLang,
+        visa_application_id: visaApplicationId,
         pg_provider: 'toss',
         currency: plan.currency,
         total_amount: plan.total_amount,

@@ -18,7 +18,13 @@ export const metadata: Metadata = {
   },
 }
 
-export default async function TrainingPage() {
+export default async function TrainingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ref?: string }>
+}) {
+  // deetz 케이스에서 발급한 결제 링크 토큰. 검증은 서버(checkout)에서만 한다.
+  const { ref } = await searchParams
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -49,5 +55,5 @@ export default async function TrainingPage() {
       } as TrainingProduct)
     : null
 
-  return <TrainingClient product={product} plans={plans} />
+  return <TrainingClient product={product} plans={plans} paymentRef={ref} />
 }
