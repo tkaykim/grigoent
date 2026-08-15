@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import { TrainingClient } from '@/app/training/TrainingClient'
+import { AUDITION_FEE_COPY } from '@/lib/training-package'
 import type { TrainingPlan, TrainingProduct } from '@/lib/training-package'
 
 // 오디션 참석 확정비 결제 페이지.
@@ -53,5 +54,13 @@ export default async function AuditionFeePage({
       } as TrainingProduct)
     : null
 
-  return <TrainingClient product={product} plans={plans} productSlug={PRODUCT_SLUG} paymentRef={ref} />
+  return (
+    <TrainingClient
+      product={product}
+      plans={plans}
+      productSlug={PRODUCT_SLUG}
+      paymentRef={ref}
+      copyOverride={AUDITION_FEE_COPY}
+    />
+  )
 }

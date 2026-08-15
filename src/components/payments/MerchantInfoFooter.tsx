@@ -27,6 +27,8 @@ const COPY: Record<TrainingLang, {
   email: string
   bankAccount: string
   hours: string
+  servicePeriod: string
+  servicePeriodValue: string
   methods: string
   methodsValue: string
   notice: string
@@ -100,7 +102,14 @@ const COPY: Record<TrainingLang, {
   },
 }
 
-export function MerchantInfoFooter({ lang = 'ko' }: { lang?: TrainingLang }) {
+export function MerchantInfoFooter({
+  lang = 'ko',
+  servicePeriod,
+}: {
+  lang?: TrainingLang
+  // 상품마다 제공 기간이 다르다. 생략하면 트레이닝 패키지 기준(3~6개월).
+  servicePeriod?: string
+}) {
   const t = COPY[lang]
   const rows: [string, string][] = [
     [t.companyName, MERCHANT.companyName],
@@ -111,7 +120,7 @@ export function MerchantInfoFooter({ lang = 'ko' }: { lang?: TrainingLang }) {
     [t.email, MERCHANT.email],
     [t.hours, MERCHANT.hours],
     [t.bankAccount, MERCHANT.bankAccount],
-    [t.servicePeriod, t.servicePeriodValue],
+    [t.servicePeriod, servicePeriod || t.servicePeriodValue],
     [t.methods, t.methodsValue],
   ]
 
