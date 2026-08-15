@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 import Papa from 'papaparse';
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger, TabsContent as UITabsContent } from '@/components/ui/tabs';
 import { SEOSettingsManager } from '@/components/dashboard/SEOSettingsManager';
-import { AlertTriangle, Users, UserCheck, FileText, Link, Receipt, Scale, UserPlus, BriefcaseBusiness, CreditCard } from 'lucide-react'
+import { AlertTriangle, Users, UserCheck, FileText, Link, Receipt, Scale, UserPlus, BriefcaseBusiness, CreditCard, Ticket } from 'lucide-react'
 import { ClaimRequestModal } from '@/components/proposals/ClaimRequestModal'
 import { DirectLinkModal } from '@/components/proposals/DirectLinkModal'
 
@@ -849,6 +849,9 @@ export default function AdminPage() {
               <TabsTrigger value="training-orders">
                 결제 주문
               </TabsTrigger>
+              <TabsTrigger value="discount-codes">
+                할인코드
+              </TabsTrigger>
               <TabsTrigger value="quotes">
                 견적서
               </TabsTrigger>
@@ -1298,6 +1301,36 @@ export default function AdminPage() {
                     >
                       <CreditCard className="w-4 h-4" />
                       결제 주문 관리로 이동
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="discount-codes">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Ticket className="w-5 h-5" />
+                    할인코드
+                  </CardTitle>
+                  <p className="text-sm text-zinc-600">
+                    결제 페이지에서 쓸 할인코드를 등록하고 사용 현황을 확인합니다
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <Ticket className="w-16 h-16 text-zinc-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-zinc-900 mb-2">할인코드</h3>
+                    <p className="text-zinc-600 mb-6">
+                      퍼센트·금액 할인코드를 만들고 사용 횟수를 제한할 수 있습니다.
+                    </p>
+                    <Button
+                      onClick={() => router.push('/admin/discount-codes')}
+                      className="flex items-center gap-2"
+                    >
+                      <Ticket className="w-4 h-4" />
+                      할인코드 관리로 이동
                     </Button>
                   </div>
                 </CardContent>

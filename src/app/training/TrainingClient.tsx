@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Building2, Check, CreditCard, Globe, Loader2, ShieldCheck } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
@@ -34,6 +34,15 @@ type CheckoutSession = {
   orderName: string
   customerKey: string
   paypalQuote: ForeignQuote | null
+}
+
+type AppliedDiscount = {
+  code: string
+  label: string
+  summary: string
+  originalAmount: number
+  discountAmount: number
+  finalAmount: number
 }
 
 type PaymentMethod = 'card' | 'transfer' | 'paypal'
@@ -99,12 +108,62 @@ export function TrainingClient({
   const [nationality, setNationality] = useState('')
   const [memo, setMemo] = useState('')
   const [agreed, setAgreed] = useState(false)
+  const [discountInput, setDiscountInput] = useState('')
+  const [discount, setDiscount] = useState<AppliedDiscount | null>(null)
+  const [discountError, setDiscountError] = useState<string | null>(null)
+  const [discountPending, setDiscountPending] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [session, setSession] = useState<CheckoutSession | null>(null)
 
   const selected = useMemo(() => plans.find((plan) => plan.code === planCode) ?? null, [plans, planCode])
+  // 요금제가 바뀌면 기준 금액이 달라지므로 적용된 할인을 비운다(재확인하게 만든다).
+  useEffect(() => {
+    setDiscount(null)
+    setDiscountError(null)
+  }, [planCode])
   const origin = typeof window === 'undefined' ? 'https://grigoent.co.kr' : window.location.origin
+
+  // 할인코드 확인. 금액은 서버가 계산한 값만 표시한다.
+  const applyDiscount = async () => {
+    const code = discountInput.trim()
+    if (!code) return
+    setDiscountPending(true)
+    setDiscountError(null)
+    try {
+      const response = await fetch('/api/training/discount/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, productSlug, planCode, email }),
+      })
+      const data = await response.json()
+      if (!data.success) {
+        setDiscount(null)
+        setDiscountError(data.error ?? '사용할 수 없는 할인코드입니다.')
+        return
+      }
+      setDiscount({
+        code: data.code,
+        label: data.label,
+        summary: data.summary,
+        originalAmount: data.originalAmount,
+        discountAmount: data.discountAmount,
+        finalAmount: data.finalAmount,
+      })
+      setSession(null)
+    } catch {
+      setDiscountError('확인 중 오류가 발생했습니다.')
+    } finally {
+      setDiscountPending(false)
+    }
+  }
+
+  const removeDiscount = () => {
+    setDiscount(null)
+    setDiscountInput('')
+    setDiscountError(null)
+    setSession(null)
+  }
 
   const startCheckout = async () => {
     if (!selected) {
@@ -117,7 +176,7 @@ export function TrainingClient({
       const response = await fetch('/api/training/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planCode, productSlug, ref: paymentRef, name, email, phone, nationality, memo, agreed, preferredLang: lang }),
+        body: JSON.stringify({ planCode, productSlug, ref: paymentRef, discountCode: discount?.code, name, email, phone, nationality, memo, agreed, preferredLang: lang }),
       })
       const data = await response.json()
       if (!response.ok || !data.success) {
@@ -271,11 +330,69 @@ export function TrainingClient({
                   <span className="font-semibold text-zinc-950">{planLabel(selected, lang)}</span>
                   <span className="text-zinc-600">{describePlan(selected, lang)}</span>
                   <span className="text-zinc-600">
-                    {t.planTotal} {formatKrw(selected.total_amount, lang)}
+                    {t.planTotal}{' '}
+                    {discount ? (
+                      <span className="text-zinc-400 line-through">
+                        {formatKrw(discount.originalAmount, lang)}
+                      </span>
+                    ) : (
+                      formatKrw(selected.total_amount, lang)
+                    )}
                   </span>
                   <span className="font-semibold text-zinc-950">
-                    {t.planPayNow} {formatKrw(selected.amount_per_charge, lang)}
+                    {t.planPayNow}{' '}
+                    {formatKrw(discount ? discount.finalAmount : selected.amount_per_charge, lang)}
                   </span>
+                </div>
+
+                <div className="mt-5 border-t border-zinc-200 pt-4">
+                  <p className="mb-2 text-sm font-semibold text-zinc-950">{t.discountTitle}</p>
+                  {discount ? (
+                    <div className="flex flex-wrap items-center justify-between gap-3 border border-emerald-300 bg-emerald-50 px-4 py-3">
+                      <div className="text-sm text-emerald-900">
+                        <p className="font-semibold">
+                          {t.discountApplied(discount.label, formatKrw(discount.discountAmount, lang))}
+                        </p>
+                        <p className="mt-0.5 text-xs">
+                          {t.discountFinal} {formatKrw(discount.finalAmount, lang)}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeDiscount}
+                        className="border border-emerald-400 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 transition hover:border-emerald-600"
+                      >
+                        {t.discountRemove}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        type="text"
+                        value={discountInput}
+                        onChange={(event) => setDiscountInput(event.target.value.toUpperCase())}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault()
+                            applyDiscount()
+                          }
+                        }}
+                        placeholder={t.discountPlaceholder}
+                        className="min-h-11 flex-1 border border-zinc-300 bg-white px-3 text-sm uppercase tracking-wide text-zinc-950 outline-none transition focus:border-zinc-950"
+                      />
+                      <button
+                        type="button"
+                        onClick={applyDiscount}
+                        disabled={discountPending || !discountInput.trim()}
+                        className="min-h-11 border border-zinc-950 bg-white px-5 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-950 hover:text-white disabled:cursor-not-allowed disabled:border-zinc-300 disabled:text-zinc-400 disabled:hover:bg-white"
+                      >
+                        {discountPending ? t.discountChecking : t.discountApply}
+                      </button>
+                    </div>
+                  )}
+                  {discountError ? (
+                    <p className="mt-2 text-sm text-red-600">{discountError}</p>
+                  ) : null}
                 </div>
               </div>
             ) : null}

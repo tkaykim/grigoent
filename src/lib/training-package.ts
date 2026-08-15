@@ -146,6 +146,13 @@ export const TRAINING_COPY: Record<TrainingLang, {
   methodOverseas: string
   methodOverseasDesc: string
   paypalCurrencyNotice: (foreign: string, krw: string) => string
+  discountTitle: string
+  discountPlaceholder: string
+  discountApply: string
+  discountRemove: string
+  discountChecking: string
+  discountApplied: (label: string, amount: string) => string
+  discountFinal: string
   paySubmit: (amount: string) => string
   editInfo: string
   notice: string
@@ -204,6 +211,13 @@ export const TRAINING_COPY: Record<TrainingLang, {
     methodOverseasDesc: '해외 카드 · PayPal 잔액',
     paypalCurrencyNotice: (foreign, krw) =>
       `PayPal은 원화 결제를 지원하지 않습니다. 결제 금액 ${krw}은 ${foreign}로 청구됩니다.`,
+    discountTitle: '할인코드',
+    discountPlaceholder: '할인코드를 입력하세요',
+    discountApply: '적용',
+    discountRemove: '해제',
+    discountChecking: '확인 중…',
+    discountApplied: (label, amount) => `${label} 적용 — ${amount} 할인`,
+    discountFinal: '할인 적용 후 결제 금액',
     paySubmit: (amount) => `${amount} 결제하기`,
     editInfo: '정보 수정하기',
     notice:
@@ -264,6 +278,13 @@ export const TRAINING_COPY: Record<TrainingLang, {
     methodOverseasDesc: 'International cards · PayPal balance',
     paypalCurrencyNotice: (foreign, krw) =>
       `PayPal cannot charge Korean won. Your payment of ${krw} will be billed as ${foreign}.`,
+    discountTitle: 'Discount code',
+    discountPlaceholder: 'Enter your discount code',
+    discountApply: 'Apply',
+    discountRemove: 'Remove',
+    discountChecking: 'Checking…',
+    discountApplied: (label, amount) => `${label} applied — ${amount} off`,
+    discountFinal: 'Amount after discount',
     paySubmit: (amount) => `Pay ${amount}`,
     editInfo: 'Edit my details',
     notice:
@@ -324,6 +345,13 @@ export const TRAINING_COPY: Record<TrainingLang, {
     methodOverseasDesc: '海外カード · PayPal残高',
     paypalCurrencyNotice: (foreign, krw) =>
       `PayPalはウォン建て決済に対応していません。お支払い金額${krw}は${foreign}で請求されます。`,
+    discountTitle: '割引コード',
+    discountPlaceholder: '割引コードを入力してください',
+    discountApply: '適用',
+    discountRemove: '解除',
+    discountChecking: '確認中…',
+    discountApplied: (label, amount) => `${label} 適用 — ${amount} 割引`,
+    discountFinal: '割引適用後のお支払い金額',
     paySubmit: (amount) => `${amount}を決済する`,
     editInfo: '情報を修正する',
     notice:

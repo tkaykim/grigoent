@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     const { data: order } = await svc
       .from('training_orders')
-      .select('id, order_no, total_amount, visa_application_id')
+      .select('id, order_no, total_amount, visa_application_id, discount_code')
       .eq('id', payment.order_id)
       .maybeSingle()
 
@@ -184,6 +184,11 @@ export async function POST(request: NextRequest) {
         updated_at: refundedAt,
       })
       .eq('id', payment.order_id)
+
+    // 전액 환불이면 할인 슬롯을 돌려준다. 안 그러면 1회용 코드가 환불 후에도 소진된 채 남는다.
+    if (order?.discount_code && newPaidAmount <= 0) {
+      await svc.from('training_discount_redemptions').delete().eq('order_id', order.id)
+    }
 
     // 전액 환불로 주문에 남은 결제가 없어졌을 때만 케이스에 알린다.
     // 부분환불은 여전히 "결제된 상태"라 케이스를 환불로 뒤집으면 오히려 틀린다.
