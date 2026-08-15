@@ -90,7 +90,14 @@ export function TrainingClient({
   paymentRef?: string
   // 상품별 카피 덮어쓰기. 생략하면 트레이닝 패키지 기준값을 쓴다.
   // 화면 언어는 클라이언트에서 결정되므로 언어별 맵으로 받는다.
-  copyOverride?: Record<TrainingLang, { process: { title: string; body: string }[]; servicePeriod: string }>
+  copyOverride?: Record<
+    TrainingLang,
+    {
+      process: { title: string; body: string }[]
+      servicePeriod: string
+      terms?: { title: string; items: string[] }
+    }
+  >
 }) {
   const router = useRouter()
   // 사이트 전역 언어 상태를 그대로 쓴다 (헤더 언어 선택과 연동).
@@ -462,6 +469,30 @@ export function TrainingClient({
                   className="w-full resize-none border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-950 outline-none transition focus:border-zinc-950"
                 />
               </Field>
+
+              {copyOverride?.[lang]?.terms ? (
+                <div className="border border-zinc-950 bg-zinc-50 p-5">
+                  <p className="text-sm font-bold text-zinc-950">
+                    {copyOverride[lang].terms!.title}
+                  </p>
+                  <ul className="mt-3 space-y-2">
+                    {copyOverride[lang].terms!.items.map((item) => (
+                      <li key={item} className="flex gap-2 text-sm leading-6 text-zinc-700">
+                        <span aria-hidden className="mt-2 h-1 w-1 shrink-0 bg-zinc-950" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href="/refund"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-block text-xs text-zinc-500 underline underline-offset-4 hover:text-zinc-900"
+                  >
+                    취소·환불 규정 전문 보기
+                  </a>
+                </div>
+              ) : null}
 
               <label className="flex items-start gap-3 border border-zinc-300 bg-white p-4">
                 <input

@@ -146,21 +146,44 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // --- 여기부터는 실제로 돈이 나간 상태. DB 갱신 실패해도 환불은 유효하다. ---
+    // --- 여기부터는 실제로 돈이 나간 상태. ---
     const refundedAt = new Date().toISOString()
     const remaining = paidAmount - requested
 
-    await svc
+    // 전액 환불이면 amount 를 건드리지 않는다.
+    // training_order_payments 에 CHECK (amount > 0) 이 있어서 0 으로 내리면 갱신이 통째로 실패하고,
+    // 그러면 "돈은 나갔는데 DB 는 결제완료" 상태가 되어 운영자가 PG 에서 한 번 더 환불하게 된다.
+    // 얼마가 환불됐는지는 status='refunded' 와 raw.refund 로 알 수 있다.
+    const paymentPatch = isPartial
+      ? {
+          status: 'paid',
+          amount: remaining,
+          failure_reason: `부분환불 ${requested.toLocaleString('ko-KR')}원: ${reason}`,
+        }
+      : { status: 'refunded', failure_reason: reason }
+
+    const { error: paymentUpdateError } = await svc
       .from('training_order_payments')
       .update({
-        // 부분환불이면 남은 금액이 있으므로 paid 를 유지하고 금액만 줄인다.
-        status: isPartial ? 'paid' : 'refunded',
-        amount: remaining,
-        failure_reason: isPartial ? `부분환불 ${requested.toLocaleString('ko-KR')}원: ${reason}` : reason,
-        raw: pgResult,
+        ...paymentPatch,
+        // 승인 원본을 덮어쓰지 않는다 — PayPal 캡처 ID 등 근거가 사라진다.
+        raw: { ...(payment.raw as Record<string, unknown> | null), refund: pgResult },
         updated_at: refundedAt,
       })
       .eq('id', payment.id)
+
+    if (paymentUpdateError) {
+      // 환불은 이미 성공했다. 운영자가 다시 누르지 않도록 그 사실을 분명히 알린다.
+      console.error('[training/refund] payment row update failed AFTER pg refund:', paymentUpdateError)
+      return NextResponse.json(
+        {
+          error:
+            `PG 환불은 완료되었으나 기록 갱신에 실패했습니다. 다시 환불하지 마세요. ` +
+            `결제건 ${payment.id} / 환불 ${requested.toLocaleString('ko-KR')}원 — 개발자에게 알려주세요.`,
+        },
+        { status: 500 },
+      )
+    }
 
     const { data: order } = await svc
       .from('training_orders')
