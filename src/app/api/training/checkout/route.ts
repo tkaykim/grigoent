@@ -6,6 +6,7 @@ import { verifyVisaPaymentRef } from '@/lib/visa-payment-ref'
 import { evaluateDiscount } from '@/lib/discount'
 import {
   TRAINING_PRODUCT_SLUG,
+  VILLAGE_DEPOSIT_PRODUCT_SLUG,
   buildDueDates,
   buildOrderNo,
   type TrainingPlan,
@@ -33,7 +34,11 @@ type Body = {
   agreed?: boolean
 }
 
-const ALLOWED_PRODUCT_SLUGS = new Set([TRAINING_PRODUCT_SLUG, 'audition-fee'])
+const ALLOWED_PRODUCT_SLUGS = new Set([
+  TRAINING_PRODUCT_SLUG,
+  'audition-fee',
+  VILLAGE_DEPOSIT_PRODUCT_SLUG,
+])
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 

@@ -448,3 +448,79 @@ export const AUDITION_FEE_COPY: Record<
     },
   },
 }
+
+// deetz Village 사전예약금(/village-deposit) 전용 카피.
+// Village 는 아직 오픈 전이라 "크라우드펀딩형 사전예약"이다 —
+// 정원이 차지 않거나 오픈이 무산되면 전액 환불하고, 입주가 시작되면 첫 결제에서 차감한다.
+// 이 조건은 결제 전에 반드시 보여야 하므로 terms 로 고정한다.
+export const VILLAGE_DEPOSIT_COPY: Record<
+  TrainingLang,
+  {
+    process: { title: string; body: string }[]
+    servicePeriod: string
+    terms: { title: string; items: string[] }
+  }
+> = {
+  ko: {
+    process: [
+      { title: '사전예약금 결제', body: '입주 자리를 먼저 확보하기 위한 사전예약금을 결제합니다.' },
+      { title: '준비 진행', body: '건물과 방 구성을 확정하고 진행 상황을 개별 안내드립니다.' },
+      { title: '오픈·입주 안내', body: '오픈이 확정되면 정확한 주소와 입주 가능일을 가장 먼저 안내드립니다.' },
+      { title: '첫 결제에서 차감', body: '입주하시면 사전예약금이 첫 결제 금액에서 전액 차감됩니다.' },
+    ],
+    servicePeriod: '결제일로부터 입주 시작 시점까지 (오픈 일정은 개별 안내)',
+    terms: {
+      title: '결제 전 확인해 주세요',
+      items: [
+        'deetz Village 는 아직 오픈 전이며, 이 결제는 입주 자리를 먼저 확보하는 사전예약금입니다.',
+        '입주하시면 이 금액은 첫 결제 금액에서 전액 차감됩니다. 별도로 다시 내지 않으셔도 됩니다.',
+        '정원이 차지 않거나 오픈이 무산되는 경우 전액 환불해 드립니다.',
+        '입주가 시작되기 전까지는 사유를 불문하고 요청하시면 전액 환불해 드립니다.',
+        '비자 발급이 되지 않아 입주하실 수 없게 된 경우에도 전액 환불해 드립니다.',
+        '건물·방 구성·요금·오픈 시기는 준비 과정에서 변경될 수 있으며, 변경 시 개별 안내드립니다.',
+      ],
+    },
+  },
+  en: {
+    process: [
+      { title: 'Pay the deposit', body: 'Pay the pre-registration deposit to reserve your place.' },
+      { title: 'We prepare', body: 'We confirm the building and room mix, and keep you updated.' },
+      { title: 'Opening & move-in', body: 'Once opening is confirmed, you get the exact address and move-in dates first.' },
+      { title: 'Credited to your first payment', body: 'When you move in, the deposit is fully deducted from your first payment.' },
+    ],
+    servicePeriod: 'From the payment date until move-in begins (opening schedule sent individually)',
+    terms: {
+      title: 'Before you pay',
+      items: [
+        'deetz Village has not opened yet. This payment is a pre-registration deposit that reserves your place.',
+        'When you move in, this amount is fully deducted from your first payment. You will not be charged for it twice.',
+        'If we do not reach enough residents, or the opening does not happen, you get a full refund.',
+        'You can request a full refund for any reason at any time before move-in begins.',
+        'You also get a full refund if your visa is not granted and you cannot move in.',
+        'The building, room mix, prices, and opening date may change while we prepare. We will tell you if they do.',
+      ],
+    },
+  },
+  ja: {
+    process: [
+      { title: '事前予約金のお支払い', body: '入居枠を先に確保するための事前予約金をお支払いいただきます。' },
+      { title: '準備の進行', body: '物件と部屋構成を確定し、進捗を個別にご案内します。' },
+      { title: 'オープン・入居のご案内', body: 'オープンが確定次第、正確な住所と入居可能日を最初にご案内します。' },
+      { title: '初回お支払いから差引', body: 'ご入居いただくと、事前予約金は初回のお支払い金額から全額差し引かれます。' },
+    ],
+    servicePeriod: 'お支払い日から入居開始まで（オープン日程は個別にご案内）',
+    terms: {
+      title: 'お支払い前にご確認ください',
+      items: [
+        'deetz Village はまだオープン前で、この決済は入居枠を確保するための事前予約金です。',
+        'ご入居いただくと、この金額は初回のお支払い金額から全額差し引かれます。二重にお支払いいただくことはありません。',
+        '入居者が定員に満たない場合、またはオープンが実現しない場合は全額返金いたします。',
+        '入居開始前であれば、理由を問わずご請求により全額返金いたします。',
+        'ビザが発給されず入居できなくなった場合も全額返金いたします。',
+        '物件・部屋構成・料金・オープン時期は準備の過程で変更される場合があり、その際は個別にご案内します。',
+      ],
+    },
+  },
+}
+
+export const VILLAGE_DEPOSIT_PRODUCT_SLUG = 'village-deposit'
