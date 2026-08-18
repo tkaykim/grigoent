@@ -68,6 +68,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, idempotent: true, orderNo: paidOrder?.order_no ?? null })
     }
 
+    // 프로덕션에서 sandbox 승인 금지 — 돈이 안 움직이는데 '결제 완료'가 되는 것을 막는다.
+    if (
+      process.env.VERCEL_ENV === 'production' &&
+      IS_SANDBOX &&
+      process.env.PAYPAL_ALLOW_SANDBOX_IN_PROD !== 'true'
+    ) {
+      console.error('[training/paypal] BLOCKED: sandbox capture attempted in production', { pgOrderId })
+      return NextResponse.json(
+        { success: false, error: '결제 환경 설정 오류로 결제를 완료할 수 없습니다. 청구되지 않았습니다.' },
+        { status: 503 },
+      )
+    }
+
     const accessToken = await getAccessToken()
 
     // 캡처하기 전에 이 PayPal 주문이 정말 이 결제건(pgOrderId)의 것인지 확인한다.
@@ -156,7 +169,7 @@ export async function POST(request: NextRequest) {
 
     const { data: order } = await supabase
       .from('training_orders')
-      .select('id, order_no, total_amount, installment_months, visa_application_id, discount_code')
+      .select('id, order_no, total_amount, installment_months, visa_application_id, discount_code, customer_email')
       .eq('id', paymentRow.order_id)
       .maybeSingle()
 
@@ -211,7 +224,7 @@ export async function POST(request: NextRequest) {
         provider: 'paypal',
         amountKrw: paidAmount,
         occurredAt: paidAt,
-        meta: { paypalTransactionId: captureDetails?.id ?? null, sequence: paymentRow.sequence },
+        meta: { paypalTransactionId: captureDetails?.id ?? null, sequence: paymentRow.sequence, customerEmail: order.customer_email ?? null },
       })
     }
 

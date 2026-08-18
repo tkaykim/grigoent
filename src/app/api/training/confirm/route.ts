@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { tossSecretKey } from '@/lib/toss-keys'
+import { TOSS_USE_LIVE, tossSecretKey } from '@/lib/toss-keys'
 import { notifyVisaCasePayment } from '@/lib/visa-payment-ref'
 import { sendPaymentReceipt } from '@/lib/payment-receipt'
 
@@ -61,6 +61,22 @@ export async function POST(request: NextRequest) {
     const secretKey = tossSecretKey()
     if (!secretKey) {
       return NextResponse.json({ success: false, error: '결제 설정이 완료되지 않았습니다.' }, { status: 500 })
+    }
+
+    // 프로덕션에서 테스트키 승인 금지.
+    // 테스트키로 승인하면 돈은 안 움직이는데 DB 는 '결제 완료'가 되고 영수증까지 나간다.
+    // 실제로 2026-08-18 스위치 미전환 상태에서 sandbox 결제가 '완료' 처리된 사고가 있었다.
+    // 라이브 전환 전 검수가 필요하면 TOSS_ALLOW_TEST_IN_PROD=true 로 명시적으로만 연다.
+    if (
+      process.env.VERCEL_ENV === 'production' &&
+      !TOSS_USE_LIVE &&
+      process.env.TOSS_ALLOW_TEST_IN_PROD !== 'true'
+    ) {
+      console.error('[training/confirm] BLOCKED: test-key confirm attempted in production', { orderId })
+      return NextResponse.json(
+        { success: false, error: '결제 환경 설정 오류로 결제를 완료할 수 없습니다. 카드에는 청구되지 않았습니다.' },
+        { status: 503 },
+      )
     }
 
     const tossResponse = await fetch('https://api.tosspayments.com/v1/payments/confirm', {
@@ -163,7 +179,7 @@ export async function POST(request: NextRequest) {
         provider: 'toss',
         amountKrw: paidAmount,
         occurredAt: paidAt,
-        meta: { paymentKey, sequence: paymentRow.sequence, receiptUrl: tossData?.receipt?.url ?? null },
+        meta: { paymentKey, sequence: paymentRow.sequence, receiptUrl: tossData?.receipt?.url ?? null, customerEmail: order.customer_email ?? null },
       })
     }
 
