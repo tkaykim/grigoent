@@ -10,6 +10,7 @@ import {
   buildDueDates,
   buildOrderNo,
   type TrainingPlan,
+  MONTHLY_TRAINING_PRODUCT_SLUG,
 } from '@/lib/training-package'
 
 function getSupabase() {
@@ -38,6 +39,7 @@ const ALLOWED_PRODUCT_SLUGS = new Set([
   TRAINING_PRODUCT_SLUG,
   'audition-fee',
   VILLAGE_DEPOSIT_PRODUCT_SLUG,
+  MONTHLY_TRAINING_PRODUCT_SLUG,
 ])
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

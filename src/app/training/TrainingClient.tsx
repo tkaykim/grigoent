@@ -25,6 +25,14 @@ import {
 } from '@/lib/training-package'
 import { cn } from '@/lib/utils'
 
+// 트레이닝 패키지 화면 하단에서 월 단위 상품으로 넘어가는 안내 문구.
+// ⚠ 금액·개월수·총액을 넣지 않는다. 넣는 순간 분납 안내로 읽힌다.
+const MONTHLY_TRAINING_LINK: Record<'ko' | 'en' | 'ja', string> = {
+  ko: '트레이닝만 월 단위로 이용하실 수도 있습니다',
+  en: 'You can also take the training on a monthly basis',
+  ja: 'トレーニングのみを月単位でご利用いただくこともできます',
+}
+
 type CheckoutSession = {
   orderNo: string
   pgOrderId: string
@@ -649,6 +657,23 @@ export function TrainingClient({
             </div>
           </div>
         </section>
+
+        {/* 트레이닝 패키지 화면에서만 노출하는 별개 상품 안내.
+            ⚠ 분납·할부 안내가 아니다. 비자 행정이 빠진 월 단위 상품이 따로 있다는 안내이며,
+               금액·총액을 여기서 노출하지 않는다 (토스페이먼츠 심사 조건). */}
+        {!productSlug ? (
+          <section className="border-t border-zinc-200 bg-white">
+            <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+              <a
+                href="/monthly-training"
+                className="inline-flex items-center gap-2 text-sm text-zinc-600 underline underline-offset-4 transition hover:text-zinc-950"
+              >
+                {MONTHLY_TRAINING_LINK[lang]}
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            </div>
+          </section>
+        ) : null}
 
         <MerchantInfoFooter lang={lang} servicePeriod={copyOverride?.[lang]?.servicePeriod} />
       </main>
