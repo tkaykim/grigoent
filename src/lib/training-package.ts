@@ -597,3 +597,79 @@ export const MONTHLY_TRAINING_COPY: Record<
 }
 
 export const MONTHLY_TRAINING_PRODUCT_SLUG = 'monthly-training'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 결제 수단 점검(내부용) — 실결제 승인·취소가 실제로 도는지 최소 금액으로 확인한다.
+//
+// ⚠ 판매 상품이 아니다. 어디에서도 링크하지 않고 검색엔진에서도 제외한다.
+//    실제 상품(400만원·140만원)은 금액이 커서 소액 테스트가 불가능하기 때문에,
+//    "승인이 되는가 / 취소가 되는가"만 100원·1,000원으로 확인하기 위한 경로다.
+//
+// 끄는 방법(운영 중 즉시 차단):
+//   update training_products set is_active = false where slug = 'payment-test';
+//   → 페이지는 "판매 중인 상품이 없습니다"로 바뀌고 checkout API 도 404 로 막힌다.
+export const PAYMENT_TEST_PRODUCT_SLUG = 'payment-test'
+
+export const PAYMENT_TEST_COPY: Record<
+  TrainingLang,
+  {
+    process: { title: string; body: string }[]
+    servicePeriod: string
+    terms: { title: string; items: string[] }
+  }
+> = {
+  ko: {
+    process: [
+      { title: '금액 선택', body: '100원 또는 1,000원 중 하나를 선택합니다.' },
+      { title: '결제', body: '카드(토스페이먼츠) 또는 PayPal 로 실제 결제를 진행합니다.' },
+      { title: '승인 확인', body: 'PG 상점관리자와 관리자 화면에서 승인 내역과 금액을 대조합니다.' },
+      { title: '즉시 취소', body: '/admin/training-orders 에서 전액 환불하고 취소 반영까지 확인합니다.' },
+    ],
+    servicePeriod: '해당 없음 (결제 수단 점검용)',
+    terms: {
+      title: '이 페이지에 대하여',
+      items: [
+        '이 페이지는 판매 페이지가 아니라 결제 수단이 정상 동작하는지 확인하기 위한 내부 점검용 경로입니다.',
+        '결제하시면 실제로 대금이 청구됩니다. 점검이 끝나면 바로 전액 취소합니다.',
+        '어떤 상품이나 서비스도 제공되지 않습니다.',
+        '고객님께서 이 페이지에 잘못 들어오셨다면 결제하지 마시고 창을 닫아 주세요.',
+      ],
+    },
+  },
+  en: {
+    process: [
+      { title: 'Pick an amount', body: 'Choose either KRW 100 or KRW 1,000.' },
+      { title: 'Pay', body: 'Run a real payment by card (Toss Payments) or PayPal.' },
+      { title: 'Check the approval', body: 'Match the approval and amount in the PG console and the admin screen.' },
+      { title: 'Cancel right away', body: 'Refund in full from /admin/training-orders and confirm the cancellation.' },
+    ],
+    servicePeriod: 'Not applicable (payment smoke test)',
+    terms: {
+      title: 'About this page',
+      items: [
+        'This is not a sales page. It exists only to verify that our payment methods work.',
+        'A payment made here is a real charge. It is refunded in full as soon as the check is done.',
+        'No product or service is provided.',
+        'If you reached this page by mistake, please close it without paying.',
+      ],
+    },
+  },
+  ja: {
+    process: [
+      { title: '金額の選択', body: '100ウォンまたは1,000ウォンを選びます。' },
+      { title: '決済', body: 'カード（トスペイメンツ）または PayPal で実際に決済します。' },
+      { title: '承認の確認', body: 'PG 管理画面と管理者画面で承認内容と金額を照合します。' },
+      { title: '即時キャンセル', body: '/admin/training-orders から全額返金し、取消の反映まで確認します。' },
+    ],
+    servicePeriod: '該当なし（決済手段の点検用）',
+    terms: {
+      title: 'このページについて',
+      items: [
+        'こちらは販売ページではなく、決済手段が正常に動作するかを確認するための内部点検用ページです。',
+        '決済すると実際に請求が発生します。点検が終わり次第、全額を取り消します。',
+        '商品やサービスの提供はありません。',
+        '誤ってこのページに入られた場合は、決済せずに閉じてください。',
+      ],
+    },
+  },
+}
