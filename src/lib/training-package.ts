@@ -610,6 +610,10 @@ export const MONTHLY_TRAINING_PRODUCT_SLUG = 'monthly-training'
 //   → 페이지는 "판매 중인 상품이 없습니다"로 바뀌고 checkout API 도 404 로 막힌다.
 export const PAYMENT_TEST_PRODUCT_SLUG = 'payment-test'
 
+// 점검용 취소 경로(/api/payment-test/refund)가 손댈 수 있는 금액 상한.
+// 이 위로는 관리자 화면에서만 취소할 수 있다 — 실제 판매 주문이 섞여 들어오는 것을 막는다.
+export const PAYMENT_TEST_MAX_AMOUNT = 1000
+
 export const PAYMENT_TEST_COPY: Record<
   TrainingLang,
   {
@@ -631,6 +635,7 @@ export const PAYMENT_TEST_COPY: Record<
       items: [
         '이 페이지는 판매 페이지가 아니라 결제 수단이 정상 동작하는지 확인하기 위한 내부 점검용 경로입니다.',
         '결제하시면 실제로 대금이 청구됩니다. 점검이 끝나면 바로 전액 취소합니다.',
+        '취소는 결제 후 받으시는 주문번호로 /payment-test/refund 에서 직접 하실 수 있습니다.',
         '어떤 상품이나 서비스도 제공되지 않습니다.',
         '고객님께서 이 페이지에 잘못 들어오셨다면 결제하지 마시고 창을 닫아 주세요.',
       ],
@@ -649,6 +654,7 @@ export const PAYMENT_TEST_COPY: Record<
       items: [
         'This is not a sales page. It exists only to verify that our payment methods work.',
         'A payment made here is a real charge. It is refunded in full as soon as the check is done.',
+        'You can cancel it yourself at /payment-test/refund using the order number shown after payment.',
         'No product or service is provided.',
         'If you reached this page by mistake, please close it without paying.',
       ],
@@ -667,6 +673,7 @@ export const PAYMENT_TEST_COPY: Record<
       items: [
         'こちらは販売ページではなく、決済手段が正常に動作するかを確認するための内部点検用ページです。',
         '決済すると実際に請求が発生します。点検が終わり次第、全額を取り消します。',
+        '取消は決済後に表示される注文番号を使って /payment-test/refund でご自身で行えます。',
         '商品やサービスの提供はありません。',
         '誤ってこのページに入られた場合は、決済せずに閉じてください。',
       ],
