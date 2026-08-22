@@ -11,6 +11,7 @@ import {
   buildOrderNo,
   type TrainingPlan,
   MONTHLY_TRAINING_PRODUCT_SLUG,
+  PAYMENT_TEST_PRODUCT_SLUG,
 } from '@/lib/training-package'
 
 function getSupabase() {
@@ -40,6 +41,8 @@ const ALLOWED_PRODUCT_SLUGS = new Set([
   'audition-fee',
   VILLAGE_DEPOSIT_PRODUCT_SLUG,
   MONTHLY_TRAINING_PRODUCT_SLUG,
+  // 결제 수단 점검용(내부). training_products.is_active 로 즉시 차단할 수 있다.
+  PAYMENT_TEST_PRODUCT_SLUG,
 ])
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
