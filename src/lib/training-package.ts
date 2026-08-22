@@ -524,3 +524,76 @@ export const VILLAGE_DEPOSIT_COPY: Record<
 }
 
 export const VILLAGE_DEPOSIT_PRODUCT_SLUG = 'village-deposit'
+
+// 1개월 트레이닝 비용(/monthly-training) 전용 카피.
+// ⚠ 이 상품은 "400만원 패키지를 나눠 내는 것"이 아니라 월 단위로 판매하는 별개 상품이다.
+// 비자 행정 대행이 포함되지 않으며, 매달 그 달의 이용료만 받고 다음 달 계속 여부는 매달 정한다.
+// 따라서 총액 합산·회차·분납·할부 표현을 절대 쓰지 않는다 (토스페이먼츠 심사 조건).
+export const MONTHLY_TRAINING_COPY: Record<
+  TrainingLang,
+  {
+    process: { title: string; body: string }[]
+    servicePeriod: string
+    terms: { title: string; items: string[] }
+  }
+> = {
+  ko: {
+    process: [
+      { title: '1개월권 결제', body: '이용하실 한 달의 이용료를 결제합니다.' },
+      { title: '수업 배정', body: '결제 확인 후 수업 일정과 시작일을 개별 안내드립니다.' },
+      { title: '한 달 이용', body: '트레이닝 수강, 실무 한국어 교육, 실무 투입 업무교육을 이용하십니다.' },
+      { title: '다음 달 선택', body: '다음 달 계속하실지는 매달 다시 정하시면 됩니다.' },
+    ],
+    servicePeriod: '이용 시작일로부터 1개월',
+    terms: {
+      title: '결제 전 확인해 주세요',
+      items: [
+        '이 상품은 한 달 단위 이용권입니다. 결제하신 금액은 이용하실 한 달분이며, 다음 달 이용료가 자동으로 청구되지 않습니다.',
+        '다음 달에도 계속 이용하실지는 매달 다시 선택하시면 됩니다. 중단하시면 이후 달은 청구되지 않습니다.',
+        '트레이닝 수강권, 실무 한국어 교육, 실무 투입 업무교육이 포함됩니다.',
+        '비자 신청·서류 대행 등 행정 지원은 이 상품에 포함되지 않습니다. 해당 지원이 필요하시면 별도로 문의해 주세요.',
+        '이용 시작 전에는 전액 환불해 드립니다. 이용을 시작하신 뒤의 환불은 취소·환불 규정을 따릅니다.',
+      ],
+    },
+  },
+  en: {
+    process: [
+      { title: 'Pay for one month', body: 'Pay the fee for the month you plan to attend.' },
+      { title: 'Class assignment', body: 'Once payment is confirmed we send your schedule and start date.' },
+      { title: 'Attend for a month', body: 'Take training classes, practical Korean lessons, and on-the-job work preparation.' },
+      { title: 'Choose again', body: 'You decide each month whether to continue.' },
+    ],
+    servicePeriod: 'One month from your start date',
+    terms: {
+      title: 'Before you pay',
+      items: [
+        'This is a one-month pass. You are paying for one month only, and the next month is not charged automatically.',
+        'You decide each month whether to continue. If you stop, nothing further is charged.',
+        'It includes training classes, practical Korean lessons, and on-the-job work preparation.',
+        'Visa applications and document handling are not included in this product. Please contact us separately if you need that support.',
+        'You get a full refund before your start date. After you begin, refunds follow our cancellation and refund policy.',
+      ],
+    },
+  },
+  ja: {
+    process: [
+      { title: '1ヶ月分のお支払い', body: 'ご利用になる1ヶ月分の利用料をお支払いいただきます。' },
+      { title: 'クラスのご案内', body: '入金確認後、レッスン日程と開始日を個別にご案内します。' },
+      { title: '1ヶ月のご利用', body: 'トレーニング受講、実務韓国語教育、実務投入業務教育をご利用いただきます。' },
+      { title: '翌月のご選択', body: '翌月も続けるかどうかは毎月あらためてお選びいただけます。' },
+    ],
+    servicePeriod: 'ご利用開始日から1ヶ月',
+    terms: {
+      title: 'お支払い前にご確認ください',
+      items: [
+        'こちらは1ヶ月単位の利用券です。お支払いいただくのは1ヶ月分のみで、翌月分が自動的に請求されることはありません。',
+        '翌月も継続されるかどうかは毎月あらためてお選びいただけます。中止された場合、それ以降のご請求はありません。',
+        'トレーニング受講券、実務韓国語教育、実務投入業務教育が含まれます。',
+        'ビザ申請・書類代行などの行政サポートは本商品に含まれません。必要な場合は別途お問い合わせください。',
+        'ご利用開始前であれば全額返金いたします。ご利用開始後の返金はキャンセル・返金規定に従います。',
+      ],
+    },
+  },
+}
+
+export const MONTHLY_TRAINING_PRODUCT_SLUG = 'monthly-training'
