@@ -145,6 +145,8 @@ export const TRAINING_COPY: Record<TrainingLang, {
   methodTransferDesc: string
   methodOverseas: string
   methodOverseasDesc: string
+  // 결제수단 선택 아래 안내. 해외 발급 카드가 국내 MID 로 들어와 실패하는 것을 막는다.
+  methodHint: string
   paypalCurrencyNotice: (foreign: string, krw: string) => string
   discountTitle: string
   discountToggle: string
@@ -205,11 +207,13 @@ export const TRAINING_COPY: Record<TrainingLang, {
     payOnce: (amount) => `${amount}을 결제합니다.`,
     payInstallment: (amount, months) => `${months}회 중 1회차 ${amount}을 결제합니다.`,
     methodCard: '카드결제',
-    methodCardDesc: '국내외 신용·체크카드 (원화 결제)',
+    methodCardDesc: '한국에서 발급된 신용·체크카드 (원화 결제)',
     methodTransfer: '계좌이체',
     methodTransferDesc: '국내 은행 실시간 계좌이체 (원화 결제)',
     methodOverseas: 'PayPal',
-    methodOverseasDesc: '해외 카드 · PayPal 잔액',
+    methodOverseasDesc: '해외에서 발급된 카드 · PayPal 잔액',
+    methodHint:
+      '해외에서 발급된 카드는 카드결제가 아니라 PayPal 을 선택해 주세요. 한국 계좌가 있으시면 계좌이체도 이용하실 수 있습니다.',
     paypalCurrencyNotice: (foreign, krw) =>
       `PayPal은 원화 결제를 지원하지 않습니다. 결제 금액 ${krw}은 ${foreign}로 청구됩니다.`,
     discountTitle: '할인코드',
@@ -273,11 +277,13 @@ export const TRAINING_COPY: Record<TrainingLang, {
     payOnce: (amount) => `You are paying ${amount}.`,
     payInstallment: (amount, months) => `You are paying ${amount}, the 1st of ${months} charges.`,
     methodCard: 'Card',
-    methodCardDesc: 'Korean and international cards, charged in KRW',
+    methodCardDesc: 'Cards issued in Korea, charged in KRW',
     methodTransfer: 'Bank transfer',
     methodTransferDesc: 'Real-time transfer from a Korean bank, charged in KRW',
     methodOverseas: 'PayPal',
-    methodOverseasDesc: 'International cards · PayPal balance',
+    methodOverseasDesc: 'Cards issued outside Korea · PayPal balance',
+    methodHint:
+      'If your card was issued outside Korea, choose PayPal rather than Card. If you have a Korean bank account, bank transfer also works.',
     paypalCurrencyNotice: (foreign, krw) =>
       `PayPal cannot charge Korean won. Your payment of ${krw} will be billed as ${foreign}.`,
     discountTitle: 'Discount code',
@@ -341,11 +347,13 @@ export const TRAINING_COPY: Record<TrainingLang, {
     payOnce: (amount) => `${amount}をお支払いいただきます。`,
     payInstallment: (amount, months) => `${months}回のうち1回目の${amount}をお支払いいただきます。`,
     methodCard: 'カード決済',
-    methodCardDesc: '国内外のクレジット・デビットカード（ウォン建て）',
+    methodCardDesc: '韓国発行のクレジット・デビットカード（ウォン建て）',
     methodTransfer: '口座振替',
     methodTransferDesc: '韓国の銀行からのリアルタイム振替（ウォン建て）',
     methodOverseas: 'PayPal',
-    methodOverseasDesc: '海外カード · PayPal残高',
+    methodOverseasDesc: '韓国外で発行されたカード · PayPal残高',
+    methodHint:
+      '韓国外で発行されたカードをお使いの場合は、カード決済ではなく PayPal をお選びください。韓国の銀行口座をお持ちであれば口座振替もご利用いただけます。',
     paypalCurrencyNotice: (foreign, krw) =>
       `PayPalはウォン建て決済に対応していません。お支払い金額${krw}は${foreign}で請求されます。`,
     discountTitle: '割引コード',
