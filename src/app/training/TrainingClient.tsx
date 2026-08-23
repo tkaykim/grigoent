@@ -586,6 +586,8 @@ export function TrainingClient({
                     ))}
                   </div>
 
+                  <p className="mt-3 text-xs leading-6 text-zinc-500">{t.methodHint}</p>
+
                   {method === 'paypal' && session.paypalQuote ? (
                     <p className="mt-4 border border-amber-300 bg-amber-50 p-4 text-xs leading-6 text-amber-900">
                       {t.paypalCurrencyNotice(
