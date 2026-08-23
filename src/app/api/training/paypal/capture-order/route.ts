@@ -112,18 +112,38 @@ export async function POST(request: NextRequest) {
 
     if (!captureResponse.ok || captureData.status !== 'COMPLETED') {
       console.error('[training/paypal] capture failed:', captureData)
+
+      // PayPal 이 결제자의 카드·잔액을 거절한 경우(INSTRUMENT_DECLINED)는
+      // 우리 잘못도, 되돌릴 수 없는 실패도 아니다. 결제자가 다른 결제수단을 고르면 된다.
+      // 거절 사유 코드는 PayPal 이 가맹점에 주지 않으므로(발급사만 안다),
+      // 화면에서는 "다른 수단으로 다시" 를 안내할 수 있게 코드만 넘긴다.
+      const issue = (captureData?.details ?? []).find(
+        (detail: { issue?: string }) => typeof detail?.issue === 'string',
+      )?.issue as string | undefined
+      const declined = issue === 'INSTRUMENT_DECLINED'
+
       await supabase
         .from('training_order_payments')
         .update({
           status: 'failed',
-          failure_reason: captureData?.message ?? `paypal status ${captureData?.status ?? 'unknown'}`,
+          failure_reason: issue ?? captureData?.message ?? `paypal status ${captureData?.status ?? 'unknown'}`,
           raw: captureData,
           updated_at: new Date().toISOString(),
         })
         .eq('id', paymentRow.id)
-        .eq('status', 'pending')
+        // 두 번째 실패도 기록해야 마지막 사유가 남는다. 승인된 건만 덮어쓰지 않는다.
+        .in('status', ['pending', 'failed'])
+
       return NextResponse.json(
-        { success: false, error: 'PayPal 결제 승인에 실패했습니다.' },
+        {
+          success: false,
+          code: issue ?? null,
+          // 결제자가 같은 화면에서 다른 결제수단으로 다시 시도할 수 있는 실패인지.
+          recoverable: declined,
+          error: declined
+            ? '결제수단이 거절되었습니다. 다른 결제수단으로 다시 시도해 주세요.'
+            : 'PayPal 결제 승인에 실패했습니다.',
+        },
         { status: captureResponse.ok ? 400 : captureResponse.status },
       )
     }
