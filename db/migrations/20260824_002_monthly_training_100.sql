@@ -16,24 +16,24 @@ insert into public.training_products (
 values (
   '7b9ac78c-aee6-42b4-8e46-13ef7b62a3b8',
   'monthly-training-100',
-  '1개월 트레이닝 비용',
-  '트레이닝·실무 한국어·실무 투입 교육이 포함된 1개월 이용권입니다.',
-  '1개월권에는 트레이닝 수강권, 실무 한국어 교육, 실무 투입 업무교육이 포함됩니다. 이용하실 달의 비용만 결제하시며, 다음 달 계속 여부는 매달 다시 선택하실 수 있습니다.',
+  '4개월 월간 트레이닝 프로그램',
+  '월 100만원의 1개월 이용권을 매달 결제하며, 총 4개월 동안 진행하는 트레이닝 프로그램입니다.',
+  '트레이닝 수강권, 실무 한국어 교육, 실무 투입 업무교육을 4개월 동안 제공합니다. 이 페이지의 결제 금액은 해당 월의 1개월 이용료 100만원입니다. 전체 과정에 계속 참여하시면 매월 한 번씩 총 4번 결제합니다.',
   array['트레이닝 수강권', '실무 한국어 교육', '실무 투입 업무교육'],
   'KRW',
   true,
   21,
   '{
     "en": {
-      "title": "Monthly Training Fee",
-      "subtitle": "A one-month pass covering training, Korean for work, and on-the-job preparation.",
-      "description": "The one-month pass includes training classes, practical Korean lessons, and on-the-job work preparation. You pay only for the month you use, and you decide each month whether to continue.",
+      "title": "Four-Month Monthly Training Program",
+      "subtitle": "A four-month training program paid as a KRW 1,000,000 one-month pass each month.",
+      "description": "Training classes, practical Korean lessons, and on-the-job work preparation are provided for four months. This page charges KRW 1,000,000 for the current one-month pass. If you continue through the full program, you make one payment each month, four payments in total.",
       "highlights": ["Training classes", "Practical Korean lessons", "On-the-job work preparation"]
     },
     "ja": {
-      "title": "1ヶ月トレーニング費用",
-      "subtitle": "トレーニング・実務韓国語・実務投入教育を含む1ヶ月利用券です。",
-      "description": "1ヶ月券にはトレーニング受講券、実務韓国語教育、実務投入業務教育が含まれます。ご利用になる月の費用のみお支払いいただき、翌月の継続は毎月あらためてお選びいただけます。",
+      "title": "4ヶ月月間トレーニングプログラム",
+      "subtitle": "月100万ウォンの1ヶ月利用券を毎月お支払いいただき、全4ヶ月間進行するトレーニングプログラムです。",
+      "description": "トレーニング受講、実務韓国語教育、実務投入業務教育を4ヶ月間提供します。このページのお支払い金額は該当月の1ヶ月利用料100万ウォンです。全課程を継続される場合は、毎月1回、合計4回お支払いいただきます。",
       "highlights": ["トレーニング受講券", "実務韓国語教育", "実務投入業務教育"]
     }
   }'::jsonb
@@ -75,12 +75,12 @@ select
   1000000,
   1000000,
   'KRW',
-  '이용하실 달의 비용입니다.',
+  '4개월 과정 중 해당 월의 1개월 이용료입니다.',
   true,
   1,
   '{
-    "en": {"label": "1 month", "note": "The fee for the month you use."},
-    "ja": {"label": "1ヶ月", "note": "ご利用になる月の費用です。"}
+    "en": {"label": "1 month", "note": "The one-month fee for the current month of the four-month program."},
+    "ja": {"label": "1ヶ月", "note": "4ヶ月課程のうち、該当月の1ヶ月利用料です。"}
   }'::jsonb
 from public.training_products as product
 where product.slug = 'monthly-training-100'

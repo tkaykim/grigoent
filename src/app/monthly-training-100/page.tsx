@@ -1,19 +1,19 @@
 import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import { TrainingClient } from '@/app/training/TrainingClient'
-import { MONTHLY_TRAINING_100_PRODUCT_SLUG, MONTHLY_TRAINING_COPY } from '@/lib/training-package'
+import { MONTHLY_TRAINING_100_COPY, MONTHLY_TRAINING_100_PRODUCT_SLUG } from '@/lib/training-package'
 import type { TrainingPlan, TrainingProduct } from '@/lib/training-package'
 
-// 기존 /monthly-training 과 제공 내용은 같고 가격만 100만원인 별도 1개월 이용권이다.
-// 한 달분만 결제하며, 다음 달 이용료는 자동으로 청구하지 않는다.
+// 월 100만원의 독립적인 1개월 이용권을 매달 직접 결제하는 4개월 과정이다.
+// 현재는 자동청구하지 않으며, 주문·정산은 전용 slug 로 구분한다.
 // 토스 카드사 심사 대상 URL(/training)과 분리하고 검색엔진에서도 제외한다.
 export const dynamic = 'force-dynamic'
 
 const PRODUCT_SLUG = MONTHLY_TRAINING_100_PRODUCT_SLUG
 
 export const metadata: Metadata = {
-  title: '1개월 트레이닝 비용 - 그리고 엔터테인먼트',
-  description: '트레이닝 수강권, 실무 한국어 교육, 실무 투입 업무교육이 포함된 1개월 이용권 결제 페이지입니다.',
+  title: '4개월 월간 트레이닝 프로그램 - 그리고 엔터테인먼트',
+  description: '월 100만원의 1개월 이용권을 매달 결제하며 총 4개월 동안 진행하는 트레이닝 프로그램입니다.',
   robots: { index: false, follow: false },
 }
 
@@ -60,7 +60,7 @@ export default async function MonthlyTraining100Page({
       plans={plans}
       productSlug={PRODUCT_SLUG}
       paymentRef={ref}
-      copyOverride={MONTHLY_TRAINING_COPY}
+      copyOverride={MONTHLY_TRAINING_100_COPY}
     />
   )
 }

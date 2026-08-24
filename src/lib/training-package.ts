@@ -606,9 +606,84 @@ export const MONTHLY_TRAINING_COPY: Record<
 
 export const MONTHLY_TRAINING_PRODUCT_SLUG = 'monthly-training'
 
-// 기존 140만원 월간 상품과 화면·제공내용은 같고 가격만 다른 100만원 월간 상품.
-// 별도 slug 로 주문·정산을 구분하되, 사용자용 카피는 MONTHLY_TRAINING_COPY 를 함께 쓴다.
+// 월 100만원의 1개월 이용권을 매달 직접 결제하는 4개월 과정이다.
+// 별도 slug 와 카피로 주문·정산, 4개월 과정 안내를 구분한다.
 export const MONTHLY_TRAINING_100_PRODUCT_SLUG = 'monthly-training-100'
+
+// 100만원 월간 상품은 4개월 권장 과정이다.
+// 결제 1건은 해당 월의 독립적인 1개월 이용권이며, 현재는 자동청구하지 않는다.
+export const MONTHLY_TRAINING_100_COPY: Record<
+  TrainingLang,
+  {
+    process: { title: string; body: string }[]
+    servicePeriod: string
+    terms: { title: string; items: string[] }
+  }
+> = {
+  ko: {
+    process: [
+      { title: '이번 달 이용권 결제', body: '이번 달 1개월 이용료 100만원을 결제합니다.' },
+      { title: '수업 배정', body: '결제 확인 후 수업 일정과 시작일을 개별 안내드립니다.' },
+      { title: '월간 트레이닝', body: '트레이닝 수강, 실무 한국어 교육, 실무 투입 업무교육을 한 달 동안 이용합니다.' },
+      { title: '다음 달 이용권 결제', body: '전체 4개월 과정에 참여하는 동안 매달 다음 1개월 이용권을 결제합니다.' },
+    ],
+    servicePeriod: '결제 1건당 이용 시작일로부터 1개월 · 전체 과정 4개월',
+    terms: {
+      title: '결제 전 확인해 주세요',
+      items: [
+        '이 프로그램의 전체 트레이닝 기간은 4개월입니다.',
+        '이 페이지의 결제 금액은 이번 달 1개월 이용료 100만원입니다. 전체 과정에 계속 참여하시면 매월 한 번씩 총 4번 결제합니다.',
+        '각 결제는 해당 월의 독립적인 1개월 이용권이며, 다음 달 이용료는 자동으로 청구되지 않습니다.',
+        '다음 달 결제 전에 참여를 중단하시면 이후 달의 이용료는 결제하지 않으며 서비스도 제공되지 않습니다.',
+        '트레이닝 수강권, 실무 한국어 교육, 실무 투입 업무교육이 포함됩니다.',
+        '비자 신청·서류 대행 등 행정 지원은 이 상품에 포함되지 않습니다. 해당 지원이 필요하시면 별도로 문의해 주세요.',
+        '각 이용월의 시작 전에는 해당 월 이용료를 전액 환불해 드립니다. 이용을 시작하신 뒤의 환불은 취소·환불 규정을 따릅니다.',
+      ],
+    },
+  },
+  en: {
+    process: [
+      { title: 'Pay for this month', body: 'Pay KRW 1,000,000 for the current one-month pass.' },
+      { title: 'Class assignment', body: 'Once payment is confirmed, we send your schedule and start date.' },
+      { title: 'Monthly training', body: 'Attend training classes, practical Korean lessons, and on-the-job work preparation for one month.' },
+      { title: 'Pay for the next month', body: 'While continuing the full four-month program, pay for the next one-month pass each month.' },
+    ],
+    servicePeriod: 'One month per payment · Four-month program in total',
+    terms: {
+      title: 'Before you pay',
+      items: [
+        'The full training program runs for four months.',
+        'This page charges KRW 1,000,000 for the current one-month pass. If you continue through the full program, you make one payment each month, four payments in total.',
+        'Each payment purchases a separate one-month pass. The next month is not charged automatically.',
+        'If you stop before paying for the next month, no later fee is charged and no later service is provided.',
+        'The pass includes training classes, practical Korean lessons, and on-the-job work preparation.',
+        'Visa applications and document handling are not included in this product. Please contact us separately if you need that support.',
+        'You receive a full refund for a month if you cancel before that month begins. After the month begins, refunds follow our cancellation and refund policy.',
+      ],
+    },
+  },
+  ja: {
+    process: [
+      { title: '今月分のお支払い', body: '今月の1ヶ月利用料100万ウォンをお支払いいただきます。' },
+      { title: 'クラスのご案内', body: '入金確認後、レッスン日程と開始日を個別にご案内します。' },
+      { title: '月間トレーニング', body: 'トレーニング受講、実務韓国語教育、実務投入業務教育を1ヶ月間ご利用いただきます。' },
+      { title: '翌月分のお支払い', body: '4ヶ月の全課程に参加される間、毎月次の1ヶ月利用券をお支払いいただきます。' },
+    ],
+    servicePeriod: '1回のお支払いにつき利用開始日から1ヶ月・全課程4ヶ月',
+    terms: {
+      title: 'お支払い前にご確認ください',
+      items: [
+        '本トレーニングプログラムの全期間は4ヶ月です。',
+        'このページのお支払い金額は今月の1ヶ月利用料100万ウォンです。全課程を継続される場合は、毎月1回、合計4回お支払いいただきます。',
+        '各お支払いは該当月の独立した1ヶ月利用券で、翌月分が自動的に請求されることはありません。',
+        '翌月分のお支払い前に参加を中止された場合、それ以降の料金は発生せず、サービスも提供されません。',
+        'トレーニング受講券、実務韓国語教育、実務投入業務教育が含まれます。',
+        'ビザ申請・書類代行などの行政サポートは本商品に含まれません。必要な場合は別途お問い合わせください。',
+        '各利用月の開始前であれば、その月の利用料を全額返金いたします。利用開始後の返金はキャンセル・返金規定に従います。',
+      ],
+    },
+  },
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 결제 수단 점검(내부용) — 실결제 승인·취소가 실제로 도는지 최소 금액으로 확인한다.
