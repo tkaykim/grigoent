@@ -606,6 +606,10 @@ export const MONTHLY_TRAINING_COPY: Record<
 
 export const MONTHLY_TRAINING_PRODUCT_SLUG = 'monthly-training'
 
+// 기존 140만원 월간 상품과 화면·제공내용은 같고 가격만 다른 100만원 월간 상품.
+// 별도 slug 로 주문·정산을 구분하되, 사용자용 카피는 MONTHLY_TRAINING_COPY 를 함께 쓴다.
+export const MONTHLY_TRAINING_100_PRODUCT_SLUG = 'monthly-training-100'
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 결제 수단 점검(내부용) — 실결제 승인·취소가 실제로 도는지 최소 금액으로 확인한다.
 //
