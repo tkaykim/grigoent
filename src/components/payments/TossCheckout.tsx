@@ -41,6 +41,7 @@ export type TossCheckoutProps = {
   failUrl: string
   submitLabel: string
   lang?: TrainingLang
+  onPaymentStart?: () => void
   onError?: (message: string) => void
 }
 
@@ -59,6 +60,7 @@ export function TossCheckout({
   failUrl,
   submitLabel,
   lang = 'ko',
+  onPaymentStart,
   onError,
 }: TossCheckoutProps) {
   const c = COPY[lang]
@@ -84,6 +86,9 @@ export function TossCheckout({
         customerEmail: customerEmail || undefined,
         customerMobilePhone: customerMobilePhone || undefined,
       }
+      // 외부 카드 앱으로 이동하기 직전에 복구 정보를 브라우저에 남긴다.
+      // 카카오톡 인앱 브라우저가 successUrl 대신 원래 페이지로 돌아와도 서버 대사를 재개할 수 있다.
+      onPaymentStart?.()
       if (method === 'TRANSFER') {
         await payment.requestPayment({
           ...common,
@@ -117,6 +122,7 @@ export function TossCheckout({
     customerEmail,
     customerMobilePhone,
     customerKey,
+    onPaymentStart,
     onError,
   ])
 

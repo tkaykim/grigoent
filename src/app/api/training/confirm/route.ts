@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { TOSS_USE_LIVE, tossSecretKey } from '@/lib/toss-keys'
-import { notifyVisaCasePayment } from '@/lib/visa-payment-ref'
-import { sendPaymentReceipt } from '@/lib/payment-receipt'
-
-function getSupabase() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-}
+import { confirmTrainingTossPayment } from '@/lib/training-toss-payment'
 
 type Body = {
   paymentKey?: string
@@ -14,186 +7,31 @@ type Body = {
   amount?: number
 }
 
-// 토스 결제 승인 → 회차 결제 레코드 확정.
-// 금액은 DB의 청구 레코드와 대조해 위변조를 막고, paymentKey 기준으로 멱등 처리한다.
-// PG 승인 이후의 DB 갱신은 실패해도 결제를 되돌릴 수 없다.
-// 조용히 넘어가면 "돈은 들어왔는데 미결제로 보이는" 주문이 생기므로,
-// 실패를 반드시 눈에 띄게 남긴다. 응답은 성공으로 준다 — 결제는 실제로 됐다.
-function logPostPaymentFailure(step: string, orderNo: string | null, error: unknown) {
-  if (!error) return
-  console.error('[POST-PAYMENT-DB-FAILURE]', JSON.stringify({ step, orderNo, error }))
-}
-
+// 브라우저 successUrl과 서버 복구 경로가 동일한 승인 코어를 사용한다.
+// 결제창에서 돌아오지 못한 경우에도 복구 크론이 같은 멱등 로직으로 승인한다.
 export async function POST(request: NextRequest) {
   try {
     const { paymentKey, orderId, amount } = (await request.json()) as Body
     if (!paymentKey || !orderId || typeof amount !== 'number') {
-      return NextResponse.json({ success: false, error: '결제 정보가 누락되었습니다.' }, { status: 400 })
-    }
-
-    const supabase = getSupabase()
-
-    const { data: paymentRow, error: paymentError } = await supabase
-      .from('training_order_payments')
-      .select('id, order_id, sequence, amount, status, payment_key')
-      .eq('pg_order_id', orderId)
-      .maybeSingle()
-
-    if (paymentError || !paymentRow) {
-      return NextResponse.json({ success: false, error: '주문을 찾을 수 없습니다.' }, { status: 404 })
-    }
-
-    // 멱등: 이미 승인된 회차면 그대로 성공 응답.
-    if (paymentRow.status === 'paid') {
-      const { data: paidOrder } = await supabase
-        .from('training_orders')
-        .select('order_no')
-        .eq('id', paymentRow.order_id)
-        .maybeSingle()
-      return NextResponse.json({ success: true, idempotent: true, orderNo: paidOrder?.order_no ?? null })
-    }
-
-    if (paymentRow.amount !== amount) {
-      console.error('[training/confirm] amount mismatch', { expected: paymentRow.amount, received: amount })
-      return NextResponse.json({ success: false, error: '결제 금액이 일치하지 않습니다.' }, { status: 400 })
-    }
-
-    const secretKey = tossSecretKey()
-    if (!secretKey) {
-      return NextResponse.json({ success: false, error: '결제 설정이 완료되지 않았습니다.' }, { status: 500 })
-    }
-
-    // 프로덕션에서 테스트키 승인 금지.
-    // 테스트키로 승인하면 돈은 안 움직이는데 DB 는 '결제 완료'가 되고 영수증까지 나간다.
-    // 실제로 2026-08-18 스위치 미전환 상태에서 sandbox 결제가 '완료' 처리된 사고가 있었다.
-    // 라이브 전환 전 검수가 필요하면 TOSS_ALLOW_TEST_IN_PROD=true 로 명시적으로만 연다.
-    if (
-      process.env.VERCEL_ENV === 'production' &&
-      !TOSS_USE_LIVE &&
-      process.env.TOSS_ALLOW_TEST_IN_PROD !== 'true'
-    ) {
-      console.error('[training/confirm] BLOCKED: test-key confirm attempted in production', { orderId })
       return NextResponse.json(
-        { success: false, error: '결제 환경 설정 오류로 결제를 완료할 수 없습니다. 카드에는 청구되지 않았습니다.' },
-        { status: 503 },
+        { success: false, state: 'failed', charged: false, error: '결제 정보가 누락되었습니다.' },
+        { status: 400 },
       )
     }
 
-    const tossResponse = await fetch('https://api.tosspayments.com/v1/payments/confirm', {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${secretKey}:`).toString('base64')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ orderId, amount, paymentKey }),
-    })
-    const tossData = await tossResponse.json()
-
-    if (!tossResponse.ok) {
-      console.error('[training/confirm] toss confirm failed:', tossData)
-      await supabase
-        .from('training_order_payments')
-        .update({
-          status: 'failed',
-          failure_reason: tossData?.message ?? 'toss confirm failed',
-          raw: tossData,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', paymentRow.id)
-        // 동시 요청이 이미 승인시킨 행을 failed 로 덮지 않게 한다.
-        .eq('status', 'pending')
-      return NextResponse.json(
-        { success: false, error: tossData?.message || '결제 승인에 실패했습니다.', code: tossData?.code },
-        { status: tossResponse.status },
-      )
-    }
-
-    const paidAt = new Date().toISOString()
-    const { error: paidUpdateError } = await supabase
-      .from('training_order_payments')
-      .update({
-        status: 'paid',
-        pg_provider: 'toss',
-        payment_key: paymentKey,
-        paid_at: paidAt,
-        receipt_url: tossData?.receipt?.url ?? null,
-        raw: tossData,
-        updated_at: paidAt,
-      })
-      .eq('id', paymentRow.id)
-    logPostPaymentFailure('payment_row_paid', orderId ?? null, paidUpdateError)
-
-    const { data: order } = await supabase
-      .from('training_orders')
-      .select(
-        'id, order_no, total_amount, installment_months, customer_name, customer_email, visa_application_id, discount_code',
-      )
-      .eq('id', paymentRow.order_id)
-      .maybeSingle()
-
-    const { data: paidRows } = await supabase
-      .from('training_order_payments')
-      .select('amount')
-      .eq('order_id', paymentRow.order_id)
-      .eq('status', 'paid')
-
-    const paidAmount = (paidRows ?? []).reduce((sum, row) => sum + (row.amount as number), 0)
-    const isComplete = order ? paidAmount >= order.total_amount : false
-
-    const { error: orderUpdateError } = await supabase
-      .from('training_orders')
-      .update({
-        paid_amount: paidAmount,
-        status: isComplete ? 'completed' : 'active',
-        updated_at: paidAt,
-      })
-      .eq('id', paymentRow.order_id)
-    logPostPaymentFailure('order_totals', order?.order_no ?? null, orderUpdateError)
-
-    // 할인코드를 쓴 주문이면 사용 이력을 확정 처리한다(예약 → 확정).
-    if (order?.discount_code) {
-      await supabase
-        .from('training_discount_redemptions')
-        .update({ confirmed_at: paidAt, updated_at: paidAt })
-        .eq('order_id', paymentRow.order_id)
-    }
-
-    // 결제 완료 메일 (구매자 영수증 + contact@deetz.kr 내부 알림).
-    // 발송 실패가 결제 응답을 막지 않는다 — 결제는 이미 승인됐다.
-    await sendPaymentReceipt(supabase, {
-      paymentId: paymentRow.id as string,
-      orderId: paymentRow.order_id as string,
-      provider: 'toss',
-      paidAmount: paidAmount,
-      paidAt,
-      receiptUrl: tossData?.receipt?.url ?? null,
-    })
-
-    // deetz 케이스에서 발급한 링크로 결제한 건이면 그쪽 케이스에도 결제 완료를 반영한다.
-    // 실패해도 결제는 이미 승인됐으므로 응답을 막지 않는다.
-    if (order?.visa_application_id && order.order_no) {
-      await notifyVisaCasePayment({
-        applicationId: order.visa_application_id as string,
-        event: 'paid',
-        orderNo: order.order_no,
-        provider: 'toss',
-        amountKrw: paidAmount,
-        occurredAt: paidAt,
-        meta: { paymentKey, sequence: paymentRow.sequence, receiptUrl: tossData?.receipt?.url ?? null, customerEmail: order.customer_email ?? null },
-      })
-    }
-
-    return NextResponse.json({
-      success: true,
-      orderNo: order?.order_no ?? null,
-      sequence: paymentRow.sequence,
-      installmentMonths: order?.installment_months ?? 1,
-      paidAmount,
-      totalAmount: order?.total_amount ?? amount,
-      receiptUrl: tossData?.receipt?.url ?? null,
-    })
+    const result = await confirmTrainingTossPayment({ paymentKey, orderId, amount })
+    return NextResponse.json(result.body, { status: result.status })
   } catch (error) {
     console.error('[training/confirm] unexpected error:', error)
-    return NextResponse.json({ success: false, error: '결제 처리 중 오류가 발생했습니다.' }, { status: 500 })
+    // PG 응답을 받기 전 네트워크 오류일 수 있으므로 실패로 단정하지 않는다.
+    // 복구 API와 1분 크론이 PG 원장을 다시 조회해 최종 상태를 결정한다.
+    return NextResponse.json(
+      {
+        success: false,
+        state: 'waiting',
+        error: '결제 결과를 다시 확인하고 있습니다. 중복 결제하지 마세요.',
+      },
+      { status: 503 },
+    )
   }
 }

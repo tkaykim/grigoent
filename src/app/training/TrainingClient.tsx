@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Building2, Check, CreditCard, Globe, Loader2, ShieldCheck } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
@@ -24,6 +24,12 @@ import {
   type TrainingProduct,
 } from '@/lib/training-package'
 import { cn } from '@/lib/utils'
+import {
+  PAYMENT_RECOVERY_STORAGE_KEY,
+  parsePendingTossRecovery,
+  type PendingTossRecovery,
+} from '@/lib/training-payment-recovery-client'
+import { trainingPaymentFailureCopy } from '@/lib/training-payment-failure'
 
 // 트레이닝 패키지 화면 하단에서 월 단위 상품으로 넘어가는 안내 문구.
 // ⚠ 금액·개월수·총액을 넣지 않는다. 넣는 순간 분납 안내로 읽힌다.
@@ -83,6 +89,43 @@ const inputClass =
 
 const LANG_LABEL: Record<TrainingLang, string> = { ko: '한국어', en: 'EN', ja: '日本語' }
 
+const RECOVERY_COPY: Record<
+  TrainingLang,
+  { checking: string; waiting: string; failed: string; order: string }
+> = {
+  ko: {
+    checking: '결제 결과를 확인하고 있습니다. 중복 결제하지 마세요.',
+    waiting: '카드 앱 인증 후 이 화면에서 “결제 완료”가 표시되어야 최종 완료입니다. 창을 닫지 마세요.',
+    failed: '결제가 완료되지 않았고 카드에는 청구되지 않았습니다. 아래에서 새 결제를 한 번만 진행해 주세요.',
+    order: '확인 중인 결제번호',
+  },
+  en: {
+    checking: 'We are checking the payment result. Do not make another payment.',
+    waiting: 'The payment is final only when this page shows “Payment complete” after card authentication. Keep this page open.',
+    failed: 'The payment was not completed and your card was not charged. Start one new payment below.',
+    order: 'Payment being checked',
+  },
+  ja: {
+    checking: '決済結果を確認しています。重複して決済しないでください。',
+    waiting: 'カード認証後、この画面に「決済完了」と表示されて初めて完了となります。画面を閉じないでください。',
+    failed: '決済は完了しておらず、カードへの請求もありません。下から新しい決済を一度だけ行ってください。',
+    order: '確認中の決済番号',
+  },
+}
+
+type RecoveryResponse = {
+  success: boolean
+  state: 'paid' | 'waiting' | 'failed'
+  orderNo?: string | null
+  sequence?: number
+  installmentMonths?: number
+  paidAmount?: number
+  totalAmount?: number
+  receiptUrl?: string | null
+  error?: string
+  code?: string
+}
+
 export function TrainingClient({
   product,
   plans,
@@ -134,6 +177,108 @@ export function TrainingClient({
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [session, setSession] = useState<CheckoutSession | null>(null)
+  const [recovery, setRecovery] = useState<PendingTossRecovery | null>(null)
+  const [recoveryNotice, setRecoveryNotice] = useState<{
+    tone: 'checking' | 'waiting' | 'failed'
+    message: string
+    orderNo: string
+  } | null>(null)
+  const recoveryRequestInFlight = useRef(false)
+
+  const clearStoredRecovery = useCallback(() => {
+    window.localStorage.removeItem(PAYMENT_RECOVERY_STORAGE_KEY)
+    setRecovery(null)
+  }, [])
+
+  const armPaymentRecovery = useCallback((checkout: CheckoutSession) => {
+    const value: PendingTossRecovery = {
+      orderId: checkout.pgOrderId,
+      orderNo: checkout.orderNo,
+      customerKey: checkout.customerKey,
+      amount: checkout.amount,
+      totalAmount: checkout.totalAmount,
+      installmentMonths: checkout.installmentMonths,
+      createdAt: new Date().toISOString(),
+    }
+    window.localStorage.setItem(PAYMENT_RECOVERY_STORAGE_KEY, JSON.stringify(value))
+    setRecovery(value)
+    setRecoveryNotice({ tone: 'checking', message: RECOVERY_COPY[lang].checking, orderNo: value.orderNo })
+  }, [lang])
+
+  // 외부 카드 앱이 successUrl이 아니라 원래 카카오톡 페이지로 돌려보내도 결제 확인을 이어간다.
+  useEffect(() => {
+    const restored = parsePendingTossRecovery(window.localStorage.getItem(PAYMENT_RECOVERY_STORAGE_KEY))
+    if (!restored) return
+    setRecovery(restored)
+    setRecoveryNotice({ tone: 'checking', message: RECOVERY_COPY[lang].checking, orderNo: restored.orderNo })
+  }, [lang])
+
+  useEffect(() => {
+    if (!recovery) return
+    let stopped = false
+
+    const check = async () => {
+      if (stopped || recoveryRequestInFlight.current) return
+      recoveryRequestInFlight.current = true
+      try {
+        const response = await fetch('/api/training/recover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: recovery.orderId, customerKey: recovery.customerKey }),
+          cache: 'no-store',
+        })
+        const data = (await response.json()) as RecoveryResponse
+        if (stopped) return
+
+        if (data.state === 'paid' && data.success) {
+          clearStoredRecovery()
+          const query = new URLSearchParams({
+            provider: 'recovered',
+            orderNo: data.orderNo ?? recovery.orderNo,
+            sequence: String(data.sequence ?? 1),
+            installmentMonths: String(data.installmentMonths ?? recovery.installmentMonths),
+            paidAmount: String(data.paidAmount ?? recovery.amount),
+            totalAmount: String(data.totalAmount ?? recovery.totalAmount),
+          })
+          if (data.receiptUrl) query.set('receiptUrl', data.receiptUrl)
+          router.replace(`/training/success?${query.toString()}`)
+          return
+        }
+
+        if (data.state === 'failed') {
+          clearStoredRecovery()
+          setSession(null)
+          const failure = trainingPaymentFailureCopy(data.code, lang, data.error, false)
+          setRecoveryNotice({ tone: 'failed', message: failure.message, orderNo: recovery.orderNo })
+          return
+        }
+
+        setRecoveryNotice({ tone: 'waiting', message: RECOVERY_COPY[lang].waiting, orderNo: recovery.orderNo })
+      } catch {
+        if (!stopped) {
+          setRecoveryNotice({ tone: 'checking', message: RECOVERY_COPY[lang].checking, orderNo: recovery.orderNo })
+        }
+      } finally {
+        recoveryRequestInFlight.current = false
+      }
+    }
+
+    void check()
+    const interval = window.setInterval(check, 3000)
+    const onFocus = () => void check()
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') void check()
+    }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+
+    return () => {
+      stopped = true
+      window.clearInterval(interval)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [clearStoredRecovery, lang, recovery, router])
 
   const selected = useMemo(() => plans.find((plan) => plan.code === planCode) ?? null, [plans, planCode])
   // 요금제가 바뀌면 기준 금액이 달라지므로 적용된 할인을 비운다(재확인하게 만든다).
@@ -532,7 +677,24 @@ export function TrainingClient({
 
               {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-              {!session ? (
+              {recoveryNotice ? (
+                <div
+                  role="status"
+                  className={cn(
+                    'border p-4 text-sm leading-6',
+                    recoveryNotice.tone === 'failed'
+                      ? 'border-red-300 bg-red-50 text-red-900'
+                      : 'border-amber-300 bg-amber-50 text-amber-950',
+                  )}
+                >
+                  <p className="font-semibold">
+                    {RECOVERY_COPY[lang].order} {recoveryNotice.orderNo}
+                  </p>
+                  <p className="mt-1">{recoveryNotice.message}</p>
+                </div>
+              ) : null}
+
+              {recovery ? null : !session ? (
                 <button
                   type="button"
                   onClick={startCheckout}
@@ -612,7 +774,13 @@ export function TrainingClient({
                         failUrl={`${origin}/training/fail`}
                         submitLabel={t.paySubmit(formatKrw(session.amount, lang))}
                         lang={lang}
-                        onError={(message) => setError(message)}
+                        onPaymentStart={() => armPaymentRecovery(session)}
+                        onError={(message) => {
+                          // 결제창이 즉시 취소되거나 열리지 못한 경우에는 남은 READY 복구 잠금을 해제한다.
+                          clearStoredRecovery()
+                          setRecoveryNotice(null)
+                          setError(message)
+                        }}
                       />
                     ) : (
                       <PayPalCheckout
@@ -621,6 +789,7 @@ export function TrainingClient({
                         currency={session.paypalQuote?.currency}
                         lang={lang}
                         onSuccess={(paid) => {
+                          clearStoredRecovery()
                           const query = new URLSearchParams({
                             provider: 'paypal',
                             orderNo: paid.orderNo ?? session.orderNo,

@@ -47,6 +47,7 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
   pending: '결제 대기',
   active: '결제 진행',
   completed: '결제 완료',
+  failed: '결제 실패',
   refunded: '환불됨',
 }
 
@@ -67,6 +68,11 @@ function formatKst(value: string | null): string {
   } catch {
     return value
   }
+}
+
+function effectiveOrderStatus(order: Order): string {
+  if (order.paid_amount <= 0 && order.payments.some((payment) => payment.status === 'failed')) return 'failed'
+  return order.status
 }
 
 async function authHeaders(): Promise<Record<string, string>> {
@@ -225,7 +231,7 @@ export default function AdminTrainingOrdersPage() {
                     </div>
                     <div className="text-right">
                       <span className="inline-block bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700">
-                        {ORDER_STATUS_LABEL[order.status] ?? order.status}
+                        {ORDER_STATUS_LABEL[effectiveOrderStatus(order)] ?? effectiveOrderStatus(order)}
                       </span>
                       <p className="mt-2 text-sm text-zinc-900">
                         {krw(order.paid_amount)} / {krw(order.total_amount)}
@@ -257,7 +263,9 @@ export default function AdminTrainingOrdersPage() {
                             ? '결제 완료'
                             : payment.status === 'refunded'
                               ? '환불됨'
-                              : '대기'}
+                              : payment.status === 'failed'
+                                ? '결제 실패'
+                                : '대기'}
                           {payment.pg_provider ? (
                             <>
                               <span className="mx-2 text-zinc-400">·</span>

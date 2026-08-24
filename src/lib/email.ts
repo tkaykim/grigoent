@@ -330,6 +330,124 @@ export async function sendDancerApplicationReceiptEmail(params: {
   })
 }
 
+type PaymentFailureLanguage = 'ko' | 'en' | 'ja'
+
+const PAYMENT_FAILURE_COPY: Record<
+  PaymentFailureLanguage,
+  {
+    subject: string
+    greeting: (name: string) => string
+    lines: string[]
+    orderLabel: string
+    amountLabel: string
+    retry: string
+    contact: string
+  }
+> = {
+  ko: {
+    subject: '[그리고 엔터테인먼트] 결제가 완료되지 않았습니다',
+    greeting: (name) => `${name}님, 안녕하세요.`,
+    lines: [
+      '카드 또는 계좌 인증 후 가맹점 최종 승인이 완료되지 않아 결제가 실패했습니다.',
+      '그리고 엔터테인먼트의 토스페이먼츠 원장에는 승인번호와 결제 완료 내역이 없습니다.',
+      '카드 앱에서 인증 완료 화면을 보셨더라도 아래 결제번호의 결제는 완료되지 않았습니다.',
+    ],
+    orderLabel: '결제번호',
+    amountLabel: '결제 시도 금액',
+    retry: '다시 결제하기',
+    contact: '카드사 승인 내역이 보이면 결제번호와 함께 contact@grigoent.co.kr로 알려주세요.',
+  },
+  en: {
+    subject: '[GRIGO ENTERTAINMENT] Your payment was not completed',
+    greeting: (name) => `Hello ${name},`,
+    lines: [
+      'The payment failed because the merchant approval was not completed after card or bank authentication.',
+      'There is no approval number or completed charge in the GRIGO ENTERTAINMENT Toss Payments record.',
+      'Even if your card app showed that authentication was complete, the payment number below was not completed.',
+    ],
+    orderLabel: 'Payment number',
+    amountLabel: 'Attempted amount',
+    retry: 'Try the payment again',
+    contact: 'If your card issuer shows an approved charge, contact contact@grigoent.co.kr with the payment number.',
+  },
+  ja: {
+    subject: '[GRIGO ENTERTAINMENT] 決済が完了しませんでした',
+    greeting: (name) => `${name}様`,
+    lines: [
+      'カードまたは口座の認証後に加盟店の最終承認が完了しなかったため、決済は失敗しました。',
+      'GRIGO ENTERTAINMENTのToss Payments記録には、承認番号および決済完了履歴がありません。',
+      'カードアプリに認証完了と表示されていても、下記の決済番号のお支払いは完了していません。',
+    ],
+    orderLabel: '決済番号',
+    amountLabel: '決済試行金額',
+    retry: 'もう一度決済する',
+    contact: 'カード会社に承認履歴がある場合は、決済番号を添えてcontact@grigoent.co.krまでご連絡ください。',
+  },
+}
+
+// 토스 인증 후 브라우저 복귀가 끊겨 결제가 만료된 경우 구매자에게 결과를 명확히 알린다.
+// 호출부가 pending -> failed 전이를 선점한 한 요청에서만 실행하므로 중복 메일을 보내지 않는다.
+export async function sendTrainingPaymentFailureEmail(params: {
+  to: string
+  name: string
+  lang?: string | null
+  orderNo: string
+  amount: number
+}) {
+  const transporter = getTransporter()
+  const lang: PaymentFailureLanguage =
+    params.lang === 'en' || params.lang === 'ja' || params.lang === 'ko' ? params.lang : 'ko'
+  const copy = PAYMENT_FAILURE_COPY[lang]
+  const name = params.name.trim() || 'customer'
+  const amount = `${params.amount.toLocaleString('ko-KR')} KRW`
+  const retryUrl = 'https://www.grigoent.co.kr/training'
+
+  const text = [
+    copy.greeting(name),
+    '',
+    ...copy.lines,
+    '',
+    `${copy.orderLabel}: ${params.orderNo}`,
+    `${copy.amountLabel}: ${amount}`,
+    '',
+    `${copy.retry}: ${retryUrl}`,
+    '',
+    copy.contact,
+  ].join('\n')
+
+  const html = `
+<!DOCTYPE html>
+<html lang="${lang}">
+<head><meta charset="utf-8"/></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:'Apple SD Gothic Neo','Malgun Gothic','Helvetica Neue',Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;background:#ffffff;">
+  <div style="padding:34px 40px 0;">
+    <div style="font-size:20px;font-weight:800;color:#111;letter-spacing:0.5px;">GRIGO ENTERTAINMENT</div>
+    <div style="border-bottom:2.5px solid #111;margin-top:16px;"></div>
+  </div>
+  <div style="padding:28px 40px 34px;">
+    <p style="font-size:17px;font-weight:700;color:#111;line-height:1.7;margin:0 0 14px;">${escapeHtml(copy.greeting(name))}</p>
+    <p style="font-size:14px;color:#444;line-height:1.85;margin:0;">${copy.lines.map(escapeHtml).join('<br>')}</p>
+    <div style="margin-top:24px;padding:16px 18px;background:#fff7ed;border:1px solid #fed7aa;">
+      <p style="font-size:13px;color:#333;line-height:1.75;margin:0;">${escapeHtml(copy.orderLabel)}: <strong>${escapeHtml(params.orderNo)}</strong><br>${escapeHtml(copy.amountLabel)}: <strong>${escapeHtml(amount)}</strong></p>
+    </div>
+    <a href="${retryUrl}" style="display:inline-block;margin-top:22px;background:#111;color:#fff;text-decoration:none;padding:12px 18px;font-size:13px;font-weight:700;">${escapeHtml(copy.retry)}</a>
+    <p style="font-size:13px;color:#666;line-height:1.75;margin:22px 0 0;">${escapeHtml(copy.contact)}</p>
+  </div>
+</div>
+</body>
+</html>`
+
+  await transporter.sendMail({
+    from: `"그리고 엔터테인먼트" <${getSmtpUser()}>`,
+    to: params.to,
+    bcc: process.env.PAYMENT_FAILURE_ALERT_TO || 'contact@deetz.kr',
+    subject: copy.subject,
+    text,
+    html,
+  })
+}
+
 export async function sendRecruitingApplicationReceiptEmail(params: {
   to: string
   name: string
