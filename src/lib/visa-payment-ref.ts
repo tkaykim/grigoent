@@ -103,3 +103,45 @@ export async function notifyVisaCasePayment(input: {
     return false
   }
 }
+
+export async function notifyVisaProgramEnrollment(input: {
+  externalTrainingOrderId: string
+  orderNo: string
+  provider: 'toss' | 'paypal'
+  amountKrw: number
+  occurredAt: string
+  productSlug: 'training-and-placement' | 'monthly-training' | 'monthly-training-100'
+  customer: {
+    name: string
+    email: string
+    phone?: string | null
+    nationality?: string | null
+    preferredLang: 'ko' | 'en' | 'ja'
+  }
+  meta?: Record<string, unknown>
+}): Promise<string | null> {
+  const secret = process.env.VISA_PAYMENT_LINK_SECRET
+  if (!secret) {
+    console.error('[visa-payment-ref] VISA_PAYMENT_LINK_SECRET 미설정 — 프로그램 연결 생략', input.orderNo)
+    return null
+  }
+  const base = (process.env.DEETZ_SITE_URL || 'https://deetz.kr').replace(/\/$/, '')
+  const body = JSON.stringify({ kind: 'program_enrollment', event: 'paid', ...input })
+  try {
+    const response = await fetch(`${base}/api/visa/payment-callback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-visa-signature': sign(body, secret) },
+      body,
+      signal: AbortSignal.timeout(8000),
+    })
+    const result = (await response.json().catch(() => null)) as { visaApplicationId?: string; error?: string } | null
+    if (!response.ok || !result?.visaApplicationId) {
+      console.error('[visa-payment-ref] 프로그램 연결 실패', input.orderNo, response.status, result?.error ?? 'invalid response')
+      return null
+    }
+    return result.visaApplicationId
+  } catch (error) {
+    console.error('[visa-payment-ref] 프로그램 연결 오류', input.orderNo, error)
+    return null
+  }
+}

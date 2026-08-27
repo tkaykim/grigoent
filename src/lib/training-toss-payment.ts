@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { sendTrainingPaymentFailureEmail } from '@/lib/email'
 import { notifyVisaCasePayment } from '@/lib/visa-payment-ref'
+import { syncPaidProgramOrderToDeetz } from '@/lib/visa-program-sync'
 import { sendPaymentReceipt } from '@/lib/payment-receipt'
 import { TOSS_USE_LIVE, tossSecretKey } from '@/lib/toss-keys'
 import { missingPaymentExpired, tossRecoveryAction } from '@/lib/training-toss-state'
@@ -33,12 +34,15 @@ type PaymentRow = {
 
 type OrderRow = {
   id: string
+  product_id: string
   order_no: string
   total_amount: number
   paid_amount?: number | null
   installment_months: number
   customer_name: string | null
   customer_email: string | null
+  customer_phone: string | null
+  customer_nationality: string | null
   preferred_lang?: string | null
   visa_application_id: string | null
   discount_code: string | null
@@ -95,7 +99,7 @@ async function getOrderRow(supabase: SupabaseClient, orderId: string): Promise<O
   const { data, error } = await supabase
     .from('training_orders')
     .select(
-      'id, order_no, total_amount, paid_amount, installment_months, customer_name, customer_email, preferred_lang, visa_application_id, discount_code, billing_customer_key',
+      'id, product_id, order_no, total_amount, paid_amount, installment_months, customer_name, customer_email, customer_phone, customer_nationality, preferred_lang, visa_application_id, discount_code, billing_customer_key',
     )
     .eq('id', orderId)
     .maybeSingle()
@@ -123,6 +127,23 @@ async function paidResult(
   idempotent = false,
 ): Promise<TrainingTossResult> {
   const paidAmount = await getPaidAmount(supabase, order.id)
+  if (!order.visa_application_id && paidAmount >= order.total_amount) {
+    await syncPaidProgramOrderToDeetz(supabase, {
+      id: order.id,
+      orderNo: order.order_no,
+      productId: order.product_id,
+      visaApplicationId: null,
+      customerName: order.customer_name,
+      customerEmail: order.customer_email,
+      customerPhone: order.customer_phone,
+      customerNationality: order.customer_nationality,
+      preferredLang: order.preferred_lang ?? null,
+      provider: 'toss',
+      amountKrw: paidAmount,
+      occurredAt: new Date().toISOString(),
+      meta: { reconciled: true },
+    })
+  }
   return {
     status: 200,
     body: {
@@ -225,6 +246,22 @@ async function finalizeApprovedPayment(
         customerEmail: order.customer_email,
         recovered: true,
       },
+    })
+  } else if (isComplete) {
+    await syncPaidProgramOrderToDeetz(supabase, {
+      id: order.id,
+      orderNo: order.order_no,
+      productId: order.product_id,
+      visaApplicationId: null,
+      customerName: order.customer_name,
+      customerEmail: order.customer_email,
+      customerPhone: order.customer_phone,
+      customerNationality: order.customer_nationality,
+      preferredLang: order.preferred_lang ?? null,
+      provider: 'toss',
+      amountKrw: paidAmount,
+      occurredAt: paidAt,
+      meta: { paymentKey: tossData.paymentKey ?? payment.payment_key, sequence: payment.sequence, receiptUrl },
     })
   }
 

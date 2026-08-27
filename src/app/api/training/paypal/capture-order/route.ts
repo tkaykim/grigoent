@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notifyVisaCasePayment } from '@/lib/visa-payment-ref'
+import { syncPaidProgramOrderToDeetz } from '@/lib/visa-program-sync'
 import { sendPaymentReceipt } from '@/lib/payment-receipt'
 import { foreignQuote } from '@/lib/paypal-fx'
 
@@ -189,7 +190,7 @@ export async function POST(request: NextRequest) {
 
     const { data: order } = await supabase
       .from('training_orders')
-      .select('id, order_no, total_amount, installment_months, visa_application_id, discount_code, customer_email')
+      .select('id, product_id, order_no, total_amount, installment_months, visa_application_id, discount_code, customer_name, customer_email, customer_phone, customer_nationality, preferred_lang')
       .eq('id', paymentRow.order_id)
       .maybeSingle()
 
@@ -245,6 +246,22 @@ export async function POST(request: NextRequest) {
         amountKrw: paidAmount,
         occurredAt: paidAt,
         meta: { paypalTransactionId: captureDetails?.id ?? null, sequence: paymentRow.sequence, customerEmail: order.customer_email ?? null },
+      })
+    } else if (order && isComplete) {
+      await syncPaidProgramOrderToDeetz(supabase, {
+        id: order.id as string,
+        orderNo: order.order_no as string,
+        productId: order.product_id as string,
+        visaApplicationId: null,
+        customerName: order.customer_name as string | null,
+        customerEmail: order.customer_email as string | null,
+        customerPhone: order.customer_phone as string | null,
+        customerNationality: order.customer_nationality as string | null,
+        preferredLang: order.preferred_lang as string | null,
+        provider: 'paypal',
+        amountKrw: paidAmount,
+        occurredAt: paidAt,
+        meta: { paypalTransactionId: captureDetails?.id ?? null, sequence: paymentRow.sequence },
       })
     }
 
