@@ -26,6 +26,11 @@ function safeEqual(a: string, b: string): boolean {
   return bufA.length === bufB.length && timingSafeEqual(bufA, bufB)
 }
 
+function callbackTimestamp(value?: string): string {
+  const parsed = value ? new Date(value) : new Date()
+  return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString()
+}
+
 export function verifyVisaPaymentRef(token: string | null | undefined): VisaPaymentRef | null {
   try {
     if (!token) return null
@@ -78,7 +83,7 @@ export async function notifyVisaCasePayment(input: {
     orderNo: input.orderNo,
     provider: input.provider,
     amountKrw: input.amountKrw,
-    occurredAt: input.occurredAt ?? new Date().toISOString(),
+    occurredAt: callbackTimestamp(input.occurredAt),
     meta: input.meta ?? {},
   })
 
@@ -126,7 +131,12 @@ export async function notifyVisaProgramEnrollment(input: {
     return null
   }
   const base = (process.env.DEETZ_SITE_URL || 'https://deetz.kr').replace(/\/$/, '')
-  const body = JSON.stringify({ kind: 'program_enrollment', event: 'paid', ...input })
+  const body = JSON.stringify({
+    kind: 'program_enrollment',
+    event: 'paid',
+    ...input,
+    occurredAt: callbackTimestamp(input.occurredAt),
+  })
   try {
     const response = await fetch(`${base}/api/visa/payment-callback`, {
       method: 'POST',
