@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { sendTrainingPaymentFailureEmail } from '@/lib/email'
 import { notifyVisaCasePayment } from '@/lib/visa-payment-ref'
+import { loadVisaDocumentProductSlug, syncPaidProgramOrderToDeetz } from '@/lib/visa-program-sync'
 import { sendPaymentReceipt } from '@/lib/payment-receipt'
 import { TOSS_USE_LIVE, tossSecretKey } from '@/lib/toss-keys'
 import { missingPaymentExpired, tossRecoveryAction } from '@/lib/training-toss-state'
@@ -33,12 +34,15 @@ type PaymentRow = {
 
 type OrderRow = {
   id: string
+  product_id: string
   order_no: string
   total_amount: number
   paid_amount?: number | null
   installment_months: number
   customer_name: string | null
   customer_email: string | null
+  customer_phone: string | null
+  customer_nationality: string | null
   preferred_lang?: string | null
   visa_application_id: string | null
   discount_code: string | null
@@ -56,6 +60,7 @@ export type TrainingTossResult = {
     paidAmount?: number
     totalAmount?: number
     receiptUrl?: string | null
+    documentIntakeReady?: boolean
     idempotent?: boolean
     charged?: boolean
     error?: string
@@ -95,7 +100,7 @@ async function getOrderRow(supabase: SupabaseClient, orderId: string): Promise<O
   const { data, error } = await supabase
     .from('training_orders')
     .select(
-      'id, order_no, total_amount, paid_amount, installment_months, customer_name, customer_email, preferred_lang, visa_application_id, discount_code, billing_customer_key',
+      'id, product_id, order_no, total_amount, paid_amount, installment_months, customer_name, customer_email, customer_phone, customer_nationality, preferred_lang, visa_application_id, discount_code, billing_customer_key',
     )
     .eq('id', orderId)
     .maybeSingle()
@@ -123,6 +128,39 @@ async function paidResult(
   idempotent = false,
 ): Promise<TrainingTossResult> {
   const paidAmount = await getPaidAmount(supabase, order.id)
+  const isComplete = paidAmount >= order.total_amount
+  const productSlug = isComplete
+    ? await loadVisaDocumentProductSlug(supabase, order.product_id)
+    : null
+  let documentIntakeReady = false
+  if (order.visa_application_id && isComplete) {
+    const callbackSynced = await notifyVisaCasePayment({
+      applicationId: order.visa_application_id,
+      event: 'paid',
+      orderNo: order.order_no,
+      provider: 'toss',
+      amountKrw: paidAmount,
+      occurredAt: new Date().toISOString(),
+      meta: { sequence: payment.sequence, reconciled: true, customerEmail: order.customer_email },
+    })
+    documentIntakeReady = Boolean(productSlug && callbackSynced)
+  } else if (productSlug) {
+    documentIntakeReady = Boolean(await syncPaidProgramOrderToDeetz(supabase, {
+      id: order.id,
+      orderNo: order.order_no,
+      productId: order.product_id,
+      visaApplicationId: null,
+      customerName: order.customer_name,
+      customerEmail: order.customer_email,
+      customerPhone: order.customer_phone,
+      customerNationality: order.customer_nationality,
+      preferredLang: order.preferred_lang ?? null,
+      provider: 'toss',
+      amountKrw: paidAmount,
+      occurredAt: new Date().toISOString(),
+      meta: { reconciled: true },
+    }))
+  }
   return {
     status: 200,
     body: {
@@ -134,6 +172,7 @@ async function paidResult(
       paidAmount,
       totalAmount: order.total_amount,
       receiptUrl: receiptUrl ?? null,
+      documentIntakeReady,
       idempotent,
       charged: true,
       pgStatus: 'DONE',
@@ -201,17 +240,12 @@ async function finalizeApprovedPayment(
       .eq('order_id', order.id)
   }
 
-  await sendPaymentReceipt(supabase, {
-    paymentId: payment.id,
-    orderId: order.id,
-    provider: 'toss',
-    paidAmount,
-    paidAt,
-    receiptUrl,
-  })
-
-  if (order.visa_application_id) {
-    await notifyVisaCasePayment({
+  const productSlug = isComplete
+    ? await loadVisaDocumentProductSlug(supabase, order.product_id)
+    : null
+  let documentIntakeReady = false
+  if (order.visa_application_id && isComplete) {
+    const callbackSynced = await notifyVisaCasePayment({
       applicationId: order.visa_application_id,
       event: 'paid',
       orderNo: order.order_no,
@@ -226,7 +260,33 @@ async function finalizeApprovedPayment(
         recovered: true,
       },
     })
+    documentIntakeReady = Boolean(productSlug && callbackSynced)
+  } else if (productSlug) {
+    documentIntakeReady = Boolean(await syncPaidProgramOrderToDeetz(supabase, {
+      id: order.id,
+      orderNo: order.order_no,
+      productId: order.product_id,
+      visaApplicationId: null,
+      customerName: order.customer_name,
+      customerEmail: order.customer_email,
+      customerPhone: order.customer_phone,
+      customerNationality: order.customer_nationality,
+      preferredLang: order.preferred_lang ?? null,
+      provider: 'toss',
+      amountKrw: paidAmount,
+      occurredAt: paidAt,
+      meta: { paymentKey: tossData.paymentKey ?? payment.payment_key, sequence: payment.sequence, receiptUrl },
+    }))
   }
+
+  await sendPaymentReceipt(supabase, {
+    paymentId: payment.id,
+    orderId: order.id,
+    provider: 'toss',
+    paidAmount,
+    paidAt,
+    receiptUrl,
+  })
 
   return {
     status: 200,
@@ -239,6 +299,7 @@ async function finalizeApprovedPayment(
       paidAmount,
       totalAmount: order.total_amount,
       receiptUrl,
+      documentIntakeReady,
       charged: true,
       pgStatus: tossData.status ?? 'DONE',
     },

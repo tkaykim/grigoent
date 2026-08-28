@@ -87,7 +87,7 @@ export type PayPalCheckoutProps = {
    */
   currency?: string
   lang?: TrainingLang
-  onSuccess: (result: { orderNo: string | null; sequence?: number; paidAmount?: number; totalAmount?: number }) => void
+  onSuccess: (result: { orderNo: string | null; sequence?: number; paidAmount?: number; totalAmount?: number; documentIntakeReady?: boolean }) => void
   onError?: (message: string) => void
   onCancel?: () => void
 }

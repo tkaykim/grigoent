@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notifyVisaCasePayment } from '@/lib/visa-payment-ref'
+import { loadVisaDocumentProductSlug, syncPaidProgramOrderToDeetz } from '@/lib/visa-program-sync'
 import { sendPaymentReceipt } from '@/lib/payment-receipt'
 import { foreignQuote } from '@/lib/paypal-fx'
 
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabase()
     const { data: paymentRow } = await supabase
       .from('training_order_payments')
-      .select('id, order_id, sequence, amount, status')
+      .select('id, order_id, sequence, amount, status, paid_at')
       .eq('pg_order_id', pgOrderId)
       .maybeSingle()
 
@@ -58,14 +59,77 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '주문을 찾을 수 없습니다.' }, { status: 404 })
     }
 
-    // 멱등: 이미 승인된 회차면 그대로 성공 응답.
+    // 멱등: 이미 승인된 회차라도 PG 승인 직후 서버가 중단됐을 수 있다.
+    // 누적 결제 완료 여부를 다시 계산하고 deetz 동기화와 영수증 발송을 복구한다.
     if (paymentRow.status === 'paid') {
       const { data: paidOrder } = await supabase
         .from('training_orders')
-        .select('order_no')
+        .select('id, product_id, order_no, total_amount, installment_months, visa_application_id, customer_name, customer_email, customer_phone, customer_nationality, preferred_lang')
         .eq('id', paymentRow.order_id)
         .maybeSingle()
-      return NextResponse.json({ success: true, idempotent: true, orderNo: paidOrder?.order_no ?? null })
+
+      const { data: paidRows } = await supabase
+        .from('training_order_payments')
+        .select('amount')
+        .eq('order_id', paymentRow.order_id)
+        .eq('status', 'paid')
+
+      const paidAmount = (paidRows ?? []).reduce((sum, row) => sum + (row.amount as number), 0)
+      const isComplete = paidOrder ? paidAmount >= paidOrder.total_amount : false
+      const productSlug = paidOrder && isComplete
+        ? await loadVisaDocumentProductSlug(supabase, paidOrder.product_id as string)
+        : null
+      const recoveredAt = (paymentRow.paid_at as string | null) ?? new Date().toISOString()
+      let documentIntakeReady = false
+
+      if (paidOrder?.visa_application_id && paidOrder.order_no && isComplete) {
+        const callbackSynced = await notifyVisaCasePayment({
+          applicationId: paidOrder.visa_application_id as string,
+          event: 'paid',
+          orderNo: paidOrder.order_no,
+          provider: 'paypal',
+          amountKrw: paidAmount,
+          occurredAt: recoveredAt,
+          meta: { sequence: paymentRow.sequence, customerEmail: paidOrder.customer_email ?? null, recovered: true },
+        })
+        documentIntakeReady = Boolean(productSlug && callbackSynced)
+      } else if (productSlug && paidOrder) {
+        documentIntakeReady = Boolean(await syncPaidProgramOrderToDeetz(supabase, {
+          id: paidOrder.id as string,
+          orderNo: paidOrder.order_no as string,
+          productId: paidOrder.product_id as string,
+          visaApplicationId: null,
+          customerName: paidOrder.customer_name as string | null,
+          customerEmail: paidOrder.customer_email as string | null,
+          customerPhone: paidOrder.customer_phone as string | null,
+          customerNationality: paidOrder.customer_nationality as string | null,
+          preferredLang: paidOrder.preferred_lang as string | null,
+          provider: 'paypal',
+          amountKrw: paidAmount,
+          occurredAt: recoveredAt,
+          meta: { sequence: paymentRow.sequence, recovered: true },
+        }))
+      }
+
+      await sendPaymentReceipt(supabase, {
+        paymentId: paymentRow.id as string,
+        orderId: paymentRow.order_id as string,
+        provider: 'paypal',
+        paidAmount,
+        paidAt: recoveredAt,
+        receiptUrl: null,
+      })
+
+      return NextResponse.json({
+        success: true,
+        idempotent: true,
+        orderNo: paidOrder?.order_no ?? null,
+        sequence: paymentRow.sequence,
+        installmentMonths: paidOrder?.installment_months ?? 1,
+        paidAmount,
+        totalAmount: paidOrder?.total_amount ?? paymentRow.amount,
+        documentIntakeReady,
+      })
     }
 
     // 프로덕션에서 sandbox 승인 금지 — 돈이 안 움직이는데 '결제 완료'가 되는 것을 막는다.
@@ -189,7 +253,7 @@ export async function POST(request: NextRequest) {
 
     const { data: order } = await supabase
       .from('training_orders')
-      .select('id, order_no, total_amount, installment_months, visa_application_id, discount_code, customer_email')
+      .select('id, product_id, order_no, total_amount, installment_months, visa_application_id, discount_code, customer_name, customer_email, customer_phone, customer_nationality, preferred_lang')
       .eq('id', paymentRow.order_id)
       .maybeSingle()
 
@@ -223,8 +287,41 @@ export async function POST(request: NextRequest) {
         .eq('order_id', paymentRow.order_id)
     }
 
-    // 결제 완료 메일 (구매자 영수증 + contact@deetz.kr 내부 알림).
-    // 발송 실패가 결제 응답을 막지 않는다 — 결제는 이미 승인됐다.
+    const productSlug = order && isComplete
+      ? await loadVisaDocumentProductSlug(supabase, order.product_id as string)
+      : null
+    let documentIntakeReady = false
+    if (order?.visa_application_id && order.order_no && isComplete) {
+      const callbackSynced = await notifyVisaCasePayment({
+        applicationId: order.visa_application_id as string,
+        event: 'paid',
+        orderNo: order.order_no,
+        provider: 'paypal',
+        amountKrw: paidAmount,
+        occurredAt: paidAt,
+        meta: { paypalTransactionId: captureDetails?.id ?? null, sequence: paymentRow.sequence, customerEmail: order.customer_email ?? null },
+      })
+      documentIntakeReady = Boolean(productSlug && callbackSynced)
+    } else if (productSlug && order) {
+      documentIntakeReady = Boolean(await syncPaidProgramOrderToDeetz(supabase, {
+        id: order.id as string,
+        orderNo: order.order_no as string,
+        productId: order.product_id as string,
+        visaApplicationId: null,
+        customerName: order.customer_name as string | null,
+        customerEmail: order.customer_email as string | null,
+        customerPhone: order.customer_phone as string | null,
+        customerNationality: order.customer_nationality as string | null,
+        preferredLang: order.preferred_lang as string | null,
+        provider: 'paypal',
+        amountKrw: paidAmount,
+        occurredAt: paidAt,
+        meta: { paypalTransactionId: captureDetails?.id ?? null, sequence: paymentRow.sequence },
+      }))
+    }
+
+    // 결제 완료 메일은 케이스 동기화 뒤에 보낸다.
+    // 구매자가 메일 링크를 바로 눌러도 deetz에서 케이스를 찾을 수 있게 하기 위함이다.
     await sendPaymentReceipt(supabase, {
       paymentId: paymentRow.id as string,
       orderId: paymentRow.order_id as string,
@@ -234,20 +331,6 @@ export async function POST(request: NextRequest) {
       receiptUrl: null,
     })
 
-    // deetz 케이스에서 발급한 링크로 결제한 건이면 그쪽 케이스에도 결제 완료를 반영한다.
-    // 실패해도 결제는 이미 승인됐으므로 응답을 막지 않는다.
-    if (order?.visa_application_id && order.order_no) {
-      await notifyVisaCasePayment({
-        applicationId: order.visa_application_id as string,
-        event: 'paid',
-        orderNo: order.order_no,
-        provider: 'paypal',
-        amountKrw: paidAmount,
-        occurredAt: paidAt,
-        meta: { paypalTransactionId: captureDetails?.id ?? null, sequence: paymentRow.sequence, customerEmail: order.customer_email ?? null },
-      })
-    }
-
     return NextResponse.json({
       success: true,
       orderNo: order?.order_no ?? null,
@@ -255,6 +338,7 @@ export async function POST(request: NextRequest) {
       installmentMonths: order?.installment_months ?? 1,
       paidAmount,
       totalAmount: order?.total_amount ?? paymentRow.amount,
+      documentIntakeReady,
       paypalTransactionId: captureDetails?.id ?? null,
     })
   } catch (error) {

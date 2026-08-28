@@ -25,6 +25,7 @@ type Result = {
   paidAmount?: number
   totalAmount?: number
   receiptUrl?: string | null
+  documentIntakeReady?: boolean
   error?: string
   code?: string
 }
@@ -66,6 +67,7 @@ export function SuccessClient() {
         paidAmount: Number(params.get('paidAmount') ?? '0'),
         totalAmount: Number(params.get('totalAmount') ?? '0'),
         receiptUrl: params.get('receiptUrl'),
+        documentIntakeReady: params.get('documentIntakeReady') === '1',
       })
       return
     }
@@ -150,6 +152,26 @@ export function SuccessClient() {
               <CheckCircle2 className="h-10 w-10 text-zinc-950" />
               <h1 className="mt-5 text-2xl font-bold tracking-tight text-zinc-950">{t.successTitle}</h1>
               <p className="mt-3 text-sm leading-6 text-zinc-600">{t.successBody}</p>
+              {result.documentIntakeReady ? (
+                <div className="mt-6 border border-zinc-950 bg-zinc-50 p-5 text-left">
+                  <p className="text-sm font-bold text-zinc-950">
+                    {{ ko: '비자 서류 정보를 제출해 주세요.', en: 'Submit your visa document information.', ja: 'ビザ書類情報をご提出ください。' }[lang]}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-zinc-600">
+                    {{
+                      ko: '결제에 사용한 이메일로 deetz에 로그인하면 작성할 수 있습니다. 입력 내용은 자동으로 임시 저장됩니다.',
+                      en: 'Log in to deetz with the email used for payment. Your entries are saved automatically.',
+                      ja: '決済時のメールアドレスでdeetzにログインしてください。入力内容は自動保存されます。',
+                    }[lang]}
+                  </p>
+                  <a
+                    href="https://deetz.kr/me/visa/documents"
+                    className="mt-4 inline-flex min-h-11 items-center bg-zinc-950 px-5 text-sm font-semibold text-white transition hover:bg-zinc-800"
+                  >
+                    {{ ko: '비자 서류 작성하기', en: 'Open document form', ja: '書類フォームを開く' }[lang]}
+                  </a>
+                </div>
+              ) : null}
               <dl className="mt-8 grid gap-3 border-t border-zinc-300 pt-6 text-sm">
                 <div className="flex justify-between gap-4">
                   <dt className="text-zinc-500">{t.paymentNo}</dt>
