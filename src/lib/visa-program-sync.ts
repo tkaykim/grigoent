@@ -1,11 +1,28 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { notifyVisaProgramEnrollment } from '@/lib/visa-payment-ref'
 
-const QUALIFYING_PRODUCTS = new Set([
+export const VISA_DOCUMENT_PRODUCT_SLUGS = [
   'training-and-placement',
   'monthly-training',
   'monthly-training-100',
-])
+] as const
+
+export type VisaDocumentProductSlug = (typeof VISA_DOCUMENT_PRODUCT_SLUGS)[number]
+
+const QUALIFYING_PRODUCTS = new Set<string>(VISA_DOCUMENT_PRODUCT_SLUGS)
+
+export async function loadVisaDocumentProductSlug(
+  supabase: SupabaseClient,
+  productId: string,
+): Promise<VisaDocumentProductSlug | null> {
+  const { data: product, error } = await supabase
+    .from('training_products')
+    .select('slug')
+    .eq('id', productId)
+    .maybeSingle()
+  if (error || !product || !QUALIFYING_PRODUCTS.has(product.slug as string)) return null
+  return product.slug as VisaDocumentProductSlug
+}
 
 export async function syncPaidProgramOrderToDeetz(
   supabase: SupabaseClient,
@@ -28,12 +45,8 @@ export async function syncPaidProgramOrderToDeetz(
   if (input.visaApplicationId || !input.customerName || !input.customerEmail) {
     return input.visaApplicationId
   }
-  const { data: product, error } = await supabase
-    .from('training_products')
-    .select('slug')
-    .eq('id', input.productId)
-    .maybeSingle()
-  if (error || !product || !QUALIFYING_PRODUCTS.has(product.slug as string)) return null
+  const productSlug = await loadVisaDocumentProductSlug(supabase, input.productId)
+  if (!productSlug) return null
 
   const visaApplicationId = await notifyVisaProgramEnrollment({
     externalTrainingOrderId: input.id,
@@ -41,7 +54,7 @@ export async function syncPaidProgramOrderToDeetz(
     provider: input.provider,
     amountKrw: input.amountKrw,
     occurredAt: input.occurredAt,
-    productSlug: product.slug as 'training-and-placement' | 'monthly-training' | 'monthly-training-100',
+    productSlug,
     customer: {
       name: input.customerName,
       email: input.customerEmail,

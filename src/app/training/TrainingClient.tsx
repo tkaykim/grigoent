@@ -797,6 +797,7 @@ export function TrainingClient({
                             installmentMonths: String(session.installmentMonths),
                             paidAmount: String(paid.paidAmount ?? session.amount),
                             totalAmount: String(paid.totalAmount ?? session.totalAmount),
+                            documentIntakeReady: paid.documentIntakeReady ? '1' : '0',
                           })
                           router.push(`/training/success?${query.toString()}`)
                         }}

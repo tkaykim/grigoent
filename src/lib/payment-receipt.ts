@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { foreignQuote } from '@/lib/paypal-fx'
+import { VISA_DOCUMENT_PRODUCT_SLUGS } from '@/lib/visa-program-sync'
 
 // 결제 완료 메일 발송 요청.
 //
@@ -58,12 +59,18 @@ export async function sendPaymentReceipt(
 
     const { data: product } = await supabase
       .from('training_products')
-      .select('title')
+      .select('title, slug')
       .eq('id', order.product_id)
       .maybeSingle()
 
     // PayPal 은 외화로 청구된다. 구매자가 카드 명세와 대조할 수 있게 실제 청구액을 함께 보낸다.
     const quote = input.provider === 'paypal' ? foreignQuote(input.paidAmount) : null
+    const documentIntakeUrl =
+      product?.slug &&
+      VISA_DOCUMENT_PRODUCT_SLUGS.includes(product.slug as (typeof VISA_DOCUMENT_PRODUCT_SLUGS)[number]) &&
+      input.paidAmount >= order.total_amount
+        ? 'https://deetz.kr/me/visa/documents'
+        : null
 
     const body = JSON.stringify({
       to: order.customer_email,
@@ -79,6 +86,7 @@ export async function sendPaymentReceipt(
       foreignCharge: quote ? { currency: quote.currency, amount: quote.amount } : null,
       paidAt: input.paidAt,
       receiptUrl: input.receiptUrl ?? null,
+      documentIntakeUrl,
       visaCaseUrl: order.visa_application_id ? 'https://deetz.kr/admin/visa' : null,
     })
 
