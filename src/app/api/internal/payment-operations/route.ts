@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { cancelPendingPayment, reconcileRefundPayment, refundPayment } from '@/lib/payment-refund'
 import { verifyPaymentCommand } from '@/lib/payment-command-auth'
+import { validatePaymentOperationActors } from '@/lib/payment-operation-actors'
 
 const bodySchema = z
   .object({
@@ -13,14 +14,14 @@ const bodySchema = z
     amount: z.number().int().positive().optional(),
     requestedBy: z.string().uuid().nullable().optional(),
     approvedBy: z.string().uuid().nullable().optional(),
+    executionMode: z.enum(['two_person', 'direct']).default('two_person'),
   })
   .superRefine((value, ctx) => {
     if (value.action === 'refund' && !value.amount) {
       ctx.addIssue({ code: 'custom', path: ['amount'], message: '환불 금액이 필요합니다.' })
     }
-    if (value.requestedBy && value.approvedBy && value.requestedBy === value.approvedBy) {
-      ctx.addIssue({ code: 'custom', path: ['approvedBy'], message: '요청자와 승인자는 달라야 합니다.' })
-    }
+    const actorError = validatePaymentOperationActors(value)
+    if (actorError) ctx.addIssue({ code: 'custom', path: ['approvedBy'], message: actorError })
   })
 
 export async function POST(request: NextRequest) {
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
         amount: input.amount,
         requestedBy: input.requestedBy,
         approvedBy: input.approvedBy,
+        executionMode: input.executionMode,
       })
     : await cancelPendingPayment({
         operationId: input.operationId,
