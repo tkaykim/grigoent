@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
+
+import type { PaymentOperationExecutionMode } from '@/lib/payment-operation-actors'
 import { calculateRefundQuote, currencyPrecision, extractPayPalCapture, extractTossCharge, matchTossCancel } from '@/lib/refund-calculation'
 import { tossSecretKey } from '@/lib/toss-keys'
 import { notifyVisaCasePayment } from '@/lib/visa-payment-ref'
@@ -272,6 +274,7 @@ export async function refundPayment(params: {
   amount?: number
   requestedBy?: string | null
   approvedBy?: string | null
+  executionMode?: PaymentOperationExecutionMode
 }): Promise<RefundResult> {
   const svc = getServiceRole()
   const reason = params.reason.trim().slice(0, 500)
@@ -350,6 +353,7 @@ export async function refundPayment(params: {
       reason,
       requested_by: params.requestedBy ?? null,
       approved_by: params.approvedBy ?? null,
+      execution_mode: params.executionMode ?? 'two_person',
       request_payload: {
         ledgerAmountKrw: quote.ledgerAmount,
         providerAmount: quote.providerAmount,

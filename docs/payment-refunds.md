@@ -16,6 +16,12 @@ grigoent는 `x-payment-timestamp`, `x-payment-signature`를 확인하고 5분이
 
 `PAYMENT_COMMAND_SECRET`은 32자 이상이어야 하며 두 앱에 같은 값을 등록한다.
 
+명령 본문의 `executionMode`가 `two_person`이면 요청자와 승인자가 달라야 한다.
+
+`executionMode=direct`는 deetz 서버의 직접 실행 허용 목록을 통과한 명령이며 요청자와 승인자가 동일하고 모두 존재할 때만 받는다.
+
+실행 방식과 두 실행자 ID는 `training_payment_refunds`에 함께 저장한다.
+
 ## 환불 원장
 
 `training_payment_refunds`는 부분환불을 포함한 모든 PG 환불을 건별로 보관한다.
