@@ -48,7 +48,7 @@ create unique index if not exists training_payment_refunds_one_active_per_paymen
 
 alter table public.training_payment_refunds enable row level security;
 
-revoke all on table public.training_payment_refunds from anon, authenticated;
+revoke all on table public.training_payment_refunds from anon, authenticated, service_role;
 grant select, insert, update on table public.training_payment_refunds to service_role;
 
 comment on table public.training_payment_refunds is
