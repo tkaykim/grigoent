@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 import type { PaymentOperationExecutionMode } from '@/lib/payment-operation-actors'
 import { calculateRefundQuote, currencyPrecision, extractPayPalCapture, extractTossCharge, matchTossCancel } from '@/lib/refund-calculation'
+import { buildTrainingPaymentRefundProjection } from '@/lib/payment-refund-projection'
 import { tossSecretKey } from '@/lib/toss-keys'
 import { notifyVisaCasePayment } from '@/lib/visa-payment-ref'
 
@@ -201,12 +202,10 @@ async function finalizeCompletedRefund(params: {
       .eq('id', params.ledgerId)
   }
 
-  const paymentPatch: Record<string, unknown> = {
-    status: params.fullPaymentRefund ? 'refunded' : 'paid',
-    updated_at: completedAt,
-    refund_lock_at: null,
-  }
-  if (params.fullPaymentRefund) paymentPatch.refunded_at = completedAt
+  const paymentPatch = buildTrainingPaymentRefundProjection({
+    fullPaymentRefund: params.fullPaymentRefund,
+    completedAt,
+  })
   const { error: paymentError } = await svc
     .from('training_order_payments')
     .update(paymentPatch)
