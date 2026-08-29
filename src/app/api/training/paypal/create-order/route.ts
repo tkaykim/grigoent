@@ -126,7 +126,11 @@ export async function POST(request: NextRequest) {
 
     await supabase
       .from('training_order_payments')
-      .update({ pg_provider: 'paypal', updated_at: new Date().toISOString() })
+      .update({
+        pg_provider: 'paypal',
+        provider_order_id: attempt.body.id,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', paymentRow.id)
 
     return NextResponse.json({

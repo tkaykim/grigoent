@@ -131,6 +131,12 @@ export async function POST(request: NextRequest) {
         documentIntakeReady,
       })
     }
+    if (['cancelled', 'refunded'].includes(paymentRow.status as string)) {
+      return NextResponse.json(
+        { success: false, error: '취소 또는 환불된 결제 요청입니다. 새 주문으로 진행해 주세요.' },
+        { status: 409 },
+      )
+    }
 
     // 프로덕션에서 sandbox 승인 금지 — 돈이 안 움직이는데 '결제 완료'가 되는 것을 막는다.
     if (
