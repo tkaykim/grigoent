@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { refundPayment } from '@/lib/payment-refund'
 import { PAYMENT_TEST_MAX_AMOUNT, PAYMENT_TEST_PRODUCT_SLUG } from '@/lib/training-package'
@@ -137,8 +138,10 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await refundPayment({
+      operationId: randomUUID(),
       paymentId: target.id,
       reason: '결제 점검 후 자동 취소',
+      amount: target.amount,
     })
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: result.status })

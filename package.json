@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build --no-lint",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "typecheck:payment-refunds": "tsc -p tsconfig.payment-refunds.json",
+    "test:payment-refunds": "node --test src/lib/refund-calculation.test.ts src/lib/payment-command-auth.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

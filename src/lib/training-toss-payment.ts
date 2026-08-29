@@ -390,6 +390,17 @@ export async function confirmTrainingTossPayment(input: {
 
   const order = await getOrderRow(supabase, payment.order_id)
   if (payment.status === 'paid' && order) return paidResult(supabase, payment, order, undefined, true)
+  if (['cancelled', 'refunded'].includes(payment.status)) {
+    return {
+      status: 409,
+      body: {
+        success: false,
+        state: 'failed',
+        charged: false,
+        error: '취소 또는 환불된 결제 요청입니다. 새 주문으로 진행해 주세요.',
+      },
+    }
+  }
 
   if (payment.amount !== input.amount) {
     console.error('[training/confirm] amount mismatch', { expected: payment.amount, received: input.amount })
@@ -472,6 +483,17 @@ export async function recoverTrainingTossPayment(input: {
   }
 
   if (payment.status === 'paid') return paidResult(supabase, payment, order, undefined, true)
+  if (['cancelled', 'refunded'].includes(payment.status)) {
+    return {
+      status: 409,
+      body: {
+        success: false,
+        state: 'failed',
+        charged: false,
+        error: '취소 또는 환불된 결제 요청입니다. 새 주문으로 진행해 주세요.',
+      },
+    }
+  }
 
   const lookup = await lookupTossPayment(input.orderId)
   if (!lookup.ok) {

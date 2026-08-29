@@ -8,10 +8,9 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 
-// 결제 주문 조회 + 취소·환불.
+// 결제 주문 조회 전용 화면.
 //
-// 환불은 PG(토스/PayPal)에 실제로 취소를 걸고, 성공했을 때만 DB를 바꾼다.
-// PayPal 은 외화 결제라 부분환불을 막아뒀다(원화 기준 금액이 환율 때문에 어긋난다).
+// 취소·전액환불·부분환불은 deetz 통합 결제 장부의 2인 승인 흐름에서만 실행한다.
 
 type Payment = {
   id: string
@@ -91,8 +90,6 @@ export default function AdminTrainingOrdersPage() {
   const [items, setItems] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [refundingId, setRefundingId] = useState<string | null>(null)
-  const [notice, setNotice] = useState('')
 
   const load = useCallback(async () => {
     try {
@@ -119,57 +116,6 @@ export default function AdminTrainingOrdersPage() {
     }
     load()
   }, [authLoading, isAdmin, load])
-
-  const refund = async (order: Order, payment: Payment, partial: boolean) => {
-    const max = payment.amount
-    let amount: number | undefined
-    if (partial) {
-      const input = window.prompt(
-        `부분환불 금액을 입력하세요 (최대 ${max.toLocaleString('ko-KR')}원)`,
-        String(max),
-      )
-      if (!input) return
-      amount = Number(input.replace(/[^0-9]/g, ''))
-      if (!amount || amount <= 0 || amount > max) {
-        window.alert('환불 금액을 확인해 주세요.')
-        return
-      }
-    }
-
-    const reason = window.prompt('취소 사유를 입력하세요.', '고객 요청')
-    if (!reason) return
-
-    const label = amount ? `${amount.toLocaleString('ko-KR')}원 부분환불` : `${krw(max)} 전액 환불`
-    if (
-      !window.confirm(
-        `${order.order_no} / ${order.customer_name}\n${label}\n\n실제로 결제가 취소됩니다. 진행할까요?`,
-      )
-    ) {
-      return
-    }
-
-    setRefundingId(payment.id)
-    setNotice('')
-    try {
-      const res = await fetch('/api/admin/training-orders/refund', {
-        method: 'POST',
-        headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId: payment.id, reason, amount }),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || '환불에 실패했습니다.')
-      setNotice(
-        `${order.order_no} 환불 완료 — ${krw(json.refundedAmount)}${
-          json.partial ? ' (부분환불)' : ''
-        }`,
-      )
-      await load()
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : '환불에 실패했습니다.')
-    } finally {
-      setRefundingId(null)
-    }
-  }
 
   if (!authLoading && !isAdmin) {
     return (
@@ -200,11 +146,15 @@ export default function AdminTrainingOrdersPage() {
             </div>
           </div>
 
-          {notice ? (
-            <p className="mb-4 border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800">
-              {notice}
-            </p>
-          ) : null}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
+            <p>취소·전액환불·부분환불은 deetz 통합 결제 장부에서 요청하고 다른 관리자가 승인합니다.</p>
+            <a
+              href="https://www.deetz.kr/admin/payments"
+              className="shrink-0 bg-sky-700 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-800"
+            >
+              통합 결제 장부 열기
+            </a>
+          </div>
           {error ? (
             <p className="mb-4 border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</p>
           ) : null}
@@ -295,26 +245,12 @@ export default function AdminTrainingOrdersPage() {
                             </a>
                           ) : null}
                           {payment.status === 'paid' ? (
-                            <>
-                              {payment.pg_provider === 'toss' ? (
-                                <button
-                                  type="button"
-                                  disabled={refundingId === payment.id}
-                                  onClick={() => refund(order, payment, true)}
-                                  className="border border-zinc-300 bg-white px-2.5 py-1.5 text-xs text-zinc-700 transition hover:border-zinc-500 disabled:opacity-50"
-                                >
-                                  부분환불
-                                </button>
-                              ) : null}
-                              <button
-                                type="button"
-                                disabled={refundingId === payment.id}
-                                onClick={() => refund(order, payment, false)}
-                                className="bg-red-600 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
-                              >
-                                {refundingId === payment.id ? '처리 중…' : '전액 환불'}
-                              </button>
-                            </>
+                            <a
+                              href="https://www.deetz.kr/admin/payments"
+                              className="bg-sky-700 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-800"
+                            >
+                              deetz에서 처리
+                            </a>
                           ) : null}
                         </div>
                       </div>
