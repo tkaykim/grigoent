@@ -633,12 +633,16 @@ export async function cancelPendingPayment(params: {
   }
 
   const now = new Date().toISOString()
-  const { error: updateError } = await svc
+  const { data: cancelled, error: updateError } = await svc
     .from('training_order_payments')
     .update({ status: 'cancelled', failure_reason: params.reason.slice(0, 500), updated_at: now })
     .eq('id', payment.id)
     .in('status', ['pending', 'failed'])
-  if (updateError) return { ok: false, status: 500, error: '결제 대기 건을 취소하지 못했습니다.' }
+    .select('id')
+    .maybeSingle()
+  if (updateError || !cancelled) {
+    return { ok: false, status: 409, error: '결제 상태가 변경되어 취소하지 않았습니다. 최신 상태를 다시 확인해 주세요.' }
+  }
 
   const { data: activePayments } = await svc
     .from('training_order_payments')
