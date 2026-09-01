@@ -61,6 +61,13 @@ type AppliedDiscount = {
 
 type PaymentMethod = 'card' | 'transfer' | 'paypal'
 
+function formatExplicitForeignQuote(quote: ForeignQuote): string {
+  return `${quote.currency} ${quote.amount.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
+}
+
 export type PersonalPaymentContext = {
   name: string
   email: string
@@ -624,7 +631,7 @@ export function TrainingClient({
                 {personalPayment?.paypalQuote ? (
                   <div className="mt-5 border border-sky-300 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-950">
                     <p className="font-semibold">{personalCopy.verified}</p>
-                    <p>{personalCopy.paypalCharge(formatForeign(personalPayment.paypalQuote))}</p>
+                    <p>{personalCopy.paypalCharge(formatExplicitForeignQuote(personalPayment.paypalQuote))}</p>
                   </div>
                 ) : null}
 
