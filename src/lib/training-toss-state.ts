@@ -1,9 +1,10 @@
-export type TossRecoveryAction = 'confirm' | 'finalize' | 'fail' | 'wait'
+export type TossRecoveryAction = 'confirm' | 'finalize' | 'fail' | 'abandon' | 'wait'
 
 export function tossRecoveryAction(status: string | null | undefined): TossRecoveryAction {
   if (status === 'IN_PROGRESS') return 'confirm'
   if (status === 'DONE') return 'finalize'
-  if (status === 'EXPIRED' || status === 'ABORTED' || status === 'CANCELED') return 'fail'
+  if (status === 'ABORTED') return 'abandon'
+  if (status === 'EXPIRED' || status === 'CANCELED') return 'fail'
   return 'wait'
 }
 

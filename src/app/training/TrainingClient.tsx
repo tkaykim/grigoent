@@ -61,6 +61,55 @@ type AppliedDiscount = {
 
 type PaymentMethod = 'card' | 'transfer' | 'paypal'
 
+export type PersonalPaymentContext = {
+  name: string
+  email: string
+  phone: string
+  nationality: string
+  preferredLang: TrainingLang
+  preferredMethod: PaymentMethod
+  paypalQuote: ForeignQuote | null
+}
+
+type PaymentLinkError = 'invalid_or_expired' | 'already_paid' | 'unavailable'
+
+const PERSONAL_PAYMENT_COPY: Record<
+  TrainingLang,
+  {
+    verified: string
+    paypalCharge: (amount: string) => string
+    agreeToContinue: string
+    invalid_or_expired: string
+    already_paid: string
+    unavailable: string
+  }
+> = {
+  ko: {
+    verified: '신청서에 등록된 정보가 자동으로 입력되었습니다.',
+    paypalCharge: (amount) => `해외 결제 금액은 ${amount}이며 PayPal에서 결제합니다.`,
+    agreeToContinue: '동의 항목을 확인하면 PayPal 결제를 준비합니다.',
+    invalid_or_expired: '결제 링크가 만료되었거나 올바르지 않습니다. 새 링크를 요청해 주세요.',
+    already_paid: '이미 결제가 완료된 신청입니다.',
+    unavailable: '신청 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  },
+  en: {
+    verified: 'Your application details have been filled in automatically.',
+    paypalCharge: (amount) => `Your international payment is ${amount} and will be processed by PayPal.`,
+    agreeToContinue: 'Review and accept the agreement to prepare your PayPal payment.',
+    invalid_or_expired: 'This payment link is invalid or has expired. Please request a new link.',
+    already_paid: 'Payment has already been completed for this application.',
+    unavailable: 'We could not load your application details. Please try again shortly.',
+  },
+  ja: {
+    verified: '申請時に登録された情報が自動入力されています。',
+    paypalCharge: (amount) => `海外決済の請求額は${amount}で、PayPalにてお支払いいただきます。`,
+    agreeToContinue: '同意事項をご確認いただくと、PayPal決済の準備が始まります。',
+    invalid_or_expired: '決済リンクが無効または期限切れです。新しいリンクをお受け取りください。',
+    already_paid: 'この申請のお支払いはすでに完了しています。',
+    unavailable: '申請情報を読み込めませんでした。しばらくしてからもう一度お試しください。',
+  },
+}
+
 function Field({
   label,
   required,
@@ -115,7 +164,7 @@ const RECOVERY_COPY: Record<
 
 type RecoveryResponse = {
   success: boolean
-  state: 'paid' | 'waiting' | 'failed'
+  state: 'paid' | 'waiting' | 'failed' | 'abandoned'
   orderNo?: string | null
   sequence?: number
   installmentMonths?: number
@@ -131,6 +180,8 @@ export function TrainingClient({
   plans,
   productSlug,
   paymentRef,
+  personalPayment,
+  paymentLinkError,
   copyOverride,
 }: {
   product: TrainingProduct | null
@@ -139,6 +190,10 @@ export function TrainingClient({
   productSlug?: string
   // deetz 비자 케이스에서 발급한 결제 링크 토큰(?ref=). 주문을 그 케이스에 연결한다.
   paymentRef?: string
+  // 검증된 개인 링크에서 deetz 신청 정보와 기본 결제 방법을 받아 자동 입력한다.
+  personalPayment?: PersonalPaymentContext
+  // ref가 있었지만 신청 정보를 안전하게 확인하지 못한 경우 일반 결제폼으로 우회하지 않는다.
+  paymentLinkError?: PaymentLinkError
   // 상품별 카피 덮어쓰기. 생략하면 트레이닝 패키지 기준값을 쓴다.
   // 화면 언어는 클라이언트에서 결정되므로 언어별 맵으로 받는다.
   copyOverride?: Record<
@@ -153,17 +208,21 @@ export function TrainingClient({
   const router = useRouter()
   // 사이트 전역 언어 상태를 그대로 쓴다 (헤더 언어 선택과 연동).
   const { language, setLanguage } = useLanguage()
-  const lang = (['ko', 'en', 'ja'] as const).includes(language as TrainingLang)
-    ? (language as TrainingLang)
-    : 'ko'
+  const [personalLang, setPersonalLang] = useState<TrainingLang | null>(personalPayment?.preferredLang ?? null)
+  const lang = personalLang ?? (
+    (['ko', 'en', 'ja'] as const).includes(language as TrainingLang)
+      ? (language as TrainingLang)
+      : 'ko'
+  )
   const t = TRAINING_COPY[lang]
+  const personalCopy = PERSONAL_PAYMENT_COPY[lang]
 
   const [planCode, setPlanCode] = useState(plans[0]?.code ?? '')
-  const [method, setMethod] = useState<PaymentMethod>('card')
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [nationality, setNationality] = useState('')
+  const [method, setMethod] = useState<PaymentMethod>(personalPayment?.preferredMethod ?? 'card')
+  const [name, setName] = useState(personalPayment?.name ?? '')
+  const [email, setEmail] = useState(personalPayment?.email ?? '')
+  const [phone, setPhone] = useState(personalPayment?.phone ?? '')
+  const [nationality, setNationality] = useState(personalPayment?.nationality ?? '')
   const [memo, setMemo] = useState('')
   const [agreed, setAgreed] = useState(false)
   const [discountInput, setDiscountInput] = useState('')
@@ -245,7 +304,7 @@ export function TrainingClient({
           return
         }
 
-        if (data.state === 'failed') {
+        if (data.state === 'failed' || data.state === 'abandoned') {
           clearStoredRecovery()
           setSession(null)
           const failure = trainingPaymentFailureCopy(data.code, lang, data.error, false)
@@ -343,7 +402,7 @@ export function TrainingClient({
     setSession(null)
   }
 
-  const startCheckout = async () => {
+  const startCheckout = async (agreementOverride?: boolean) => {
     if (!selected) {
       setError(t.planTitle)
       return
@@ -354,7 +413,19 @@ export function TrainingClient({
       const response = await fetch('/api/training/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planCode, productSlug, ref: paymentRef, discountCode: discount?.code, name, email, phone, nationality, memo, agreed, preferredLang: lang }),
+        body: JSON.stringify({
+          planCode,
+          productSlug,
+          ref: paymentRef,
+          discountCode: discount?.code,
+          name,
+          email,
+          phone,
+          nationality,
+          memo,
+          agreed: agreementOverride ?? agreed,
+          preferredLang: lang,
+        }),
       })
       const data = await response.json()
       if (!response.ok || !data.success) {
@@ -375,7 +446,10 @@ export function TrainingClient({
         <button
           key={value}
           type="button"
-          onClick={() => setLanguage(value)}
+          onClick={() => {
+            setPersonalLang(value)
+            setLanguage(value)
+          }}
           className={cn(
             'border px-3 py-1.5 text-xs font-semibold transition',
             value === lang
@@ -405,8 +479,32 @@ export function TrainingClient({
     )
   }
 
+  if (paymentLinkError) {
+    return (
+      <>
+        <Header />
+        <main className="bg-white pt-16">
+          <div className="mx-auto max-w-3xl px-4 py-24 text-center sm:px-6 lg:px-8">
+            <h1 className="text-2xl font-bold text-zinc-950">{personalCopy[paymentLinkError]}</h1>
+            <p className="mt-4 text-sm text-zinc-600">contact@deetz.kr</p>
+          </div>
+          <MerchantInfoFooter lang={lang} servicePeriod={copyOverride?.[lang]?.servicePeriod} />
+        </main>
+        <Footer />
+      </>
+    )
+  }
+
   const subtitle = productSubtitle(product, lang)
   const description = productDescription(product, lang)
+  const paymentMethodOptions = [
+    { value: 'card' as const, label: t.methodCard, desc: t.methodCardDesc, Icon: CreditCard },
+    { value: 'transfer' as const, label: t.methodTransfer, desc: t.methodTransferDesc, Icon: Building2 },
+    { value: 'paypal' as const, label: t.methodOverseas, desc: t.methodOverseasDesc, Icon: Globe },
+  ]
+  if (personalPayment) {
+    paymentMethodOptions.sort((a, b) => (a.value === 'paypal' ? -1 : b.value === 'paypal' ? 1 : 0))
+  }
 
   return (
     <>
@@ -523,7 +621,14 @@ export function TrainingClient({
                   </span>
                 </div>
 
-                <div className="mt-5 border-t border-zinc-200 pt-4">
+                {personalPayment?.paypalQuote ? (
+                  <div className="mt-5 border border-sky-300 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-950">
+                    <p className="font-semibold">{personalCopy.verified}</p>
+                    <p>{personalCopy.paypalCharge(formatForeign(personalPayment.paypalQuote))}</p>
+                  </div>
+                ) : null}
+
+                <div className={cn('mt-5 border-t border-zinc-200 pt-4', personalPayment && 'hidden')}>
                   {discount || discountOpen ? (
                     <p className="mb-2 text-sm font-semibold text-zinc-950">{t.discountTitle}</p>
                   ) : null}
@@ -599,44 +704,52 @@ export function TrainingClient({
                 <Field label={t.fieldName} required>
                   <input
                     value={name}
+                    readOnly={Boolean(personalPayment)}
                     onChange={(event) => {
                       setName(event.target.value)
                       setSession(null)
                     }}
-                    className={inputClass}
+                    className={cn(inputClass, personalPayment && 'cursor-default bg-zinc-100')}
                   />
                 </Field>
-                <Field label={t.fieldEmail} required>
+                <Field label={t.fieldEmail} required help={personalPayment ? personalCopy.verified : undefined}>
                   <input
                     type="email"
                     value={email}
+                    readOnly={Boolean(personalPayment)}
                     onChange={(event) => {
                       setEmail(event.target.value)
                       setSession(null)
                     }}
-                    className={inputClass}
+                    className={cn(inputClass, personalPayment && 'cursor-default bg-zinc-100')}
                     placeholder="name@example.com"
                   />
                 </Field>
-                <Field label={t.fieldPhone}>
-                  <input value={phone} onChange={(event) => setPhone(event.target.value)} className={inputClass} />
-                </Field>
-                <Field label={t.fieldNationality}>
-                  <input
-                    value={nationality}
-                    onChange={(event) => setNationality(event.target.value)}
-                    className={inputClass}
+                {!personalPayment ? (
+                  <>
+                    <Field label={t.fieldPhone}>
+                      <input value={phone} onChange={(event) => setPhone(event.target.value)} className={inputClass} />
+                    </Field>
+                    <Field label={t.fieldNationality}>
+                      <input
+                        value={nationality}
+                        onChange={(event) => setNationality(event.target.value)}
+                        className={inputClass}
+                      />
+                    </Field>
+                  </>
+                ) : null}
+              </div>
+              {!personalPayment ? (
+                <Field label={t.fieldMemo} help={t.fieldMemoHelp}>
+                  <textarea
+                    rows={3}
+                    value={memo}
+                    onChange={(event) => setMemo(event.target.value)}
+                    className="w-full resize-none border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-950 outline-none transition focus:border-zinc-950"
                   />
                 </Field>
-              </div>
-              <Field label={t.fieldMemo} help={t.fieldMemoHelp}>
-                <textarea
-                  rows={3}
-                  value={memo}
-                  onChange={(event) => setMemo(event.target.value)}
-                  className="w-full resize-none border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-950 outline-none transition focus:border-zinc-950"
-                />
-              </Field>
+              ) : null}
 
               {copyOverride?.[lang]?.terms ? (
                 <div className="border border-zinc-950 bg-zinc-50 p-5">
@@ -662,13 +775,19 @@ export function TrainingClient({
                 </div>
               ) : null}
 
+              {personalPayment ? (
+                <p className="text-sm leading-6 text-zinc-600">{personalCopy.agreeToContinue}</p>
+              ) : null}
+
               <label className="flex items-start gap-3 border border-zinc-300 bg-white p-4">
                 <input
                   type="checkbox"
                   checked={agreed}
                   onChange={(event) => {
-                    setAgreed(event.target.checked)
+                    const checked = event.target.checked
+                    setAgreed(checked)
                     setSession(null)
+                    if (checked && personalPayment) void startCheckout(true)
                   }}
                   className="mt-1 h-4 w-4"
                 />
@@ -697,8 +816,8 @@ export function TrainingClient({
               {recovery ? null : !session ? (
                 <button
                   type="button"
-                  onClick={startCheckout}
-                  disabled={pending}
+                  onClick={() => void startCheckout()}
+                  disabled={pending || (Boolean(personalPayment) && !agreed)}
                   className="inline-flex min-h-12 w-fit items-center gap-2 bg-zinc-950 px-6 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
                 >
                   {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
@@ -716,13 +835,7 @@ export function TrainingClient({
                   </p>
 
                   <div className="mt-5 grid gap-2 sm:grid-cols-3">
-                    {(
-                      [
-                        { value: 'card' as const, label: t.methodCard, desc: t.methodCardDesc, Icon: CreditCard },
-                        { value: 'transfer' as const, label: t.methodTransfer, desc: t.methodTransferDesc, Icon: Building2 },
-                        { value: 'paypal' as const, label: t.methodOverseas, desc: t.methodOverseasDesc, Icon: Globe },
-                      ]
-                    ).map((option) => (
+                    {paymentMethodOptions.map((option) => (
                       <button
                         key={option.value}
                         type="button"

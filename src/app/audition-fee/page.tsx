@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import { TrainingClient } from '@/app/training/TrainingClient'
+import type { PersonalPaymentContext } from '@/app/training/TrainingClient'
+import { foreignQuote } from '@/lib/paypal-fx'
 import { AUDITION_FEE_COPY } from '@/lib/training-package'
 import type { TrainingPlan, TrainingProduct } from '@/lib/training-package'
+import { resolveVisaPaymentContext } from '@/lib/visa-payment-ref'
 
 // 오디션 참석 확정비 결제 페이지.
 // 토스 카드사 심사 대상 URL(/training)과 분리된 별도 경로이며,
@@ -22,8 +25,10 @@ export default async function AuditionFeePage({
 }: {
   searchParams: Promise<{ ref?: string }>
 }) {
-  // deetz 케이스에서 발급한 결제 링크 토큰. 검증은 서버(checkout)에서만 한다.
+  // deetz 케이스에서 발급한 결제 링크 토큰.
+  // 결제 전에도 서버에서 검증해 신청 이메일·이름·언어를 자동 입력한다.
   const { ref } = await searchParams
+  const paymentContextResult = ref ? await resolveVisaPaymentContext(ref) : null
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -54,12 +59,23 @@ export default async function AuditionFeePage({
       } as TrainingProduct)
     : null
 
+  const firstPlan = plans[0] ?? null
+  const personalPayment: PersonalPaymentContext | undefined = paymentContextResult?.ok
+    ? {
+        ...paymentContextResult.context.customer,
+        preferredMethod: 'paypal',
+        paypalQuote: firstPlan ? foreignQuote(firstPlan.amount_per_charge) : null,
+      }
+    : undefined
+
   return (
     <TrainingClient
       product={product}
       plans={plans}
       productSlug={PRODUCT_SLUG}
       paymentRef={ref}
+      personalPayment={personalPayment}
+      paymentLinkError={ref && paymentContextResult && !paymentContextResult.ok ? paymentContextResult.reason : undefined}
       copyOverride={AUDITION_FEE_COPY}
     />
   )

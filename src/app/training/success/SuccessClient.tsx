@@ -17,7 +17,7 @@ import { trainingPaymentFailureCopy } from '@/lib/training-payment-failure'
 
 type Result = {
   success: boolean
-  state?: 'paid' | 'waiting' | 'failed'
+  state?: 'paid' | 'waiting' | 'failed' | 'abandoned'
   charged?: boolean
   orderNo?: string | null
   sequence?: number
@@ -85,7 +85,7 @@ export function SuccessClient() {
           body: JSON.stringify({ paymentKey, orderId, amount: Number(amount) }),
         })
         const data = (await response.json()) as Result
-        if (data.success || data.state === 'failed') clearRecovery()
+        if (data.success || data.state === 'failed' || data.state === 'abandoned') clearRecovery()
         setResult(data)
       } catch {
         setResult({
@@ -114,7 +114,7 @@ export function SuccessClient() {
         })
         const data = (await response.json()) as Result
         if (stopped) return
-        if (data.success || data.state === 'failed') clearRecovery()
+        if (data.success || data.state === 'failed' || data.state === 'abandoned') clearRecovery()
         setResult(data)
       } catch {
         // 화면은 확인 중 상태를 유지하고 서버 크론도 같은 주문을 계속 대사한다.

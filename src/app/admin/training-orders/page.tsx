@@ -38,6 +38,7 @@ type Order = {
   pg_provider: string | null
   visa_application_id: string | null
   memo: string | null
+  metadata: Record<string, unknown> | null
   created_at: string
   payments: Payment[]
 }
@@ -47,6 +48,7 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
   active: '결제 진행',
   completed: '결제 완료',
   failed: '결제 실패',
+  abandoned: '결제창 이탈',
   refunded: '환불됨',
 }
 
@@ -71,7 +73,28 @@ function formatKst(value: string | null): string {
 
 function effectiveOrderStatus(order: Order): string {
   if (order.paid_amount <= 0 && order.payments.some((payment) => payment.status === 'failed')) return 'failed'
+  if (order.paid_amount <= 0 && order.payments.some((payment) => payment.status === 'abandoned')) return 'abandoned'
   return order.status
+}
+
+function RequestAuditDetails({ metadata }: { metadata: Record<string, unknown> | null }) {
+  const audit = metadata?.request_audit
+  if (!audit || typeof audit !== 'object' || Array.isArray(audit)) return null
+
+  const values = audit as Record<string, unknown>
+  const fingerprint = typeof values.request_fingerprint === 'string' ? values.request_fingerprint : null
+  const userAgent = typeof values.user_agent === 'string' ? values.user_agent : null
+  const referrer = typeof values.referrer_path === 'string' ? values.referrer_path : null
+  if (!fingerprint && !userAgent && !referrer) return null
+
+  return (
+    <div className="mt-3 border border-zinc-200 bg-zinc-50 p-3 text-xs leading-5 text-zinc-600">
+      <p className="font-semibold text-zinc-800">접속 감사 정보</p>
+      {fingerprint ? <p title={fingerprint}>익명 접속 식별자 {fingerprint.slice(0, 16)}…</p> : null}
+      {referrer ? <p className="break-all">유입 {referrer}</p> : null}
+      {userAgent ? <p className="break-all" title={userAgent}>브라우저 {userAgent}</p> : null}
+    </div>
+  )
 }
 
 async function authHeaders(): Promise<Record<string, string>> {
@@ -198,6 +221,8 @@ export default function AdminTrainingOrdersPage() {
                     </p>
                   ) : null}
 
+                  <RequestAuditDetails metadata={order.metadata} />
+
                   <div className="mt-4 space-y-2">
                     {order.payments.map((payment) => (
                       <div
@@ -215,6 +240,8 @@ export default function AdminTrainingOrdersPage() {
                               ? '환불됨'
                               : payment.status === 'failed'
                                 ? '결제 실패'
+                                : payment.status === 'abandoned'
+                                  ? '결제창 이탈'
                                 : '대기'}
                           {payment.pg_provider ? (
                             <>

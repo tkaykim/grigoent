@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'query_failed' }, { status: 500 })
   }
 
-  const summary = { scanned: 0, paid: 0, failed: 0, waiting: 0, errors: 0, visaLinked: 0 }
+  const summary = { scanned: 0, paid: 0, failed: 0, abandoned: 0, waiting: 0, errors: 0, visaLinked: 0 }
   const rows = data ?? []
 
   // PG 호출 폭주를 막고 한 요청 실패가 다른 결제 복구를 막지 않게 5건씩 처리한다.
@@ -58,6 +58,8 @@ export async function GET(request: NextRequest) {
         summary.paid += 1
       } else if (result.value.body.state === 'failed') {
         summary.failed += 1
+      } else if (result.value.body.state === 'abandoned') {
+        summary.abandoned += 1
       } else {
         summary.waiting += 1
       }

@@ -126,7 +126,7 @@ function Inner({ pgOrderId, orderName, lang = 'ko', onSuccess, onError, onCancel
 
   const onApprove = async (
     data: { orderID: string },
-    actions?: { restart?: () => Promise<void> },
+    actions?: { restart?: () => void },
   ): Promise<void> => {
     setMessage(null)
     setDeclined(false)
@@ -221,8 +221,9 @@ export function PayPalCheckout(props: PayPalCheckoutProps) {
     )
   }
   const currency = (props.currency || 'USD').toUpperCase()
+  const locale = props.lang === 'ja' ? 'ja-JP' : props.lang === 'ko' ? 'ko-KR' : 'en-US'
   return (
-    <PayPalScriptProvider options={{ clientId, currency, intent: 'capture' }}>
+    <PayPalScriptProvider options={{ clientId, currency, intent: 'capture', locale }}>
       <Inner {...props} />
     </PayPalScriptProvider>
   )

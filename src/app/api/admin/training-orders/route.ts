@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   const { data: orders, error } = await svc
     .from('training_orders')
     .select(
-      'id, order_no, customer_name, customer_email, customer_phone, customer_nationality, currency, total_amount, paid_amount, status, pg_provider, visa_application_id, memo, created_at',
+      'id, order_no, customer_name, customer_email, customer_phone, customer_nationality, currency, total_amount, paid_amount, status, pg_provider, visa_application_id, memo, metadata, created_at',
     )
     .order('created_at', { ascending: false })
     .limit(200)
