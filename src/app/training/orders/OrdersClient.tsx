@@ -45,6 +45,7 @@ const COPY: Record<TrainingLang, {
   statusPaid: string
   statusPending: string
   statusFailed: string
+  statusAbandoned: string
   receipt: string
   contact: string
   back: string
@@ -67,6 +68,7 @@ const COPY: Record<TrainingLang, {
     statusPaid: '결제 완료',
     statusPending: '결제 대기',
     statusFailed: '결제 실패',
+    statusAbandoned: '결제창 이탈',
     receipt: '영수증',
     contact: '조회가 되지 않으면 고객센터 02-6229-9229 또는 contact@grigoent.co.kr 로 문의해 주세요.',
     back: '상품 페이지로',
@@ -89,6 +91,7 @@ const COPY: Record<TrainingLang, {
     statusPaid: 'Paid',
     statusPending: 'Not paid',
     statusFailed: 'Failed',
+    statusAbandoned: 'Checkout closed',
     receipt: 'Receipt',
     contact: 'If you cannot find your payment, contact us at 02-6229-9229 or contact@grigoent.co.kr.',
     back: 'Back to the product page',
@@ -111,6 +114,7 @@ const COPY: Record<TrainingLang, {
     statusPaid: 'お支払い済み',
     statusPending: '未払い',
     statusFailed: '失敗',
+    statusAbandoned: '決済画面を終了',
     receipt: '領収書',
     contact: '照会できない場合は 02-6229-9229 または contact@grigoent.co.kr までお問い合わせください。',
     back: '商品ページへ',
@@ -155,6 +159,7 @@ export function OrdersClient() {
   function statusLabel(status: string): string {
     if (status === 'paid') return t.statusPaid
     if (status === 'failed') return t.statusFailed
+    if (status === 'abandoned') return t.statusAbandoned
     return t.statusPending
   }
 

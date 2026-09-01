@@ -8,7 +8,7 @@ test('maps Toss states to recovery actions', () => {
   assert.equal(tossRecoveryAction('IN_PROGRESS'), 'confirm')
   assert.equal(tossRecoveryAction('DONE'), 'finalize')
   assert.equal(tossRecoveryAction('EXPIRED'), 'fail')
-  assert.equal(tossRecoveryAction('ABORTED'), 'fail')
+  assert.equal(tossRecoveryAction('ABORTED'), 'abandon')
   assert.equal(tossRecoveryAction('CANCELED'), 'fail')
   assert.equal(tossRecoveryAction('READY'), 'wait')
   assert.equal(tossRecoveryAction(null), 'wait')

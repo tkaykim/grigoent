@@ -53,7 +53,7 @@ export type TrainingTossResult = {
   status: number
   body: {
     success: boolean
-    state: 'paid' | 'waiting' | 'failed'
+    state: 'paid' | 'waiting' | 'failed' | 'abandoned'
     orderNo?: string | null
     sequence?: number
     installmentMonths?: number
@@ -201,7 +201,7 @@ async function finalizeApprovedPayment(
       updated_at: paidAt,
     })
     .eq('id', payment.id)
-    .in('status', ['pending', 'failed', 'paid'])
+    .in('status', ['pending', 'failed', 'abandoned', 'paid'])
   logPostPaymentFailure('payment_row_paid', payment.pg_order_id, paidUpdateError)
 
   const order = await getOrderRow(supabase, payment.order_id)
@@ -360,6 +360,42 @@ async function markPaymentFailed(
   }
 }
 
+async function markPaymentAbandoned(
+  supabase: SupabaseClient,
+  payment: PaymentRow,
+  tossData: TossPayment,
+  reason: string,
+  code?: string,
+): Promise<TrainingTossResult> {
+  const abandonedAt = new Date().toISOString()
+  const { error } = await supabase
+    .from('training_order_payments')
+    .update({
+      status: 'abandoned',
+      failure_reason: reason,
+      raw: tossData,
+      updated_at: abandonedAt,
+    })
+    .eq('id', payment.id)
+    .eq('status', 'pending')
+
+  if (error) throw error
+
+  const order = await getOrderRow(supabase, payment.order_id)
+  return {
+    status: 409,
+    body: {
+      success: false,
+      state: 'abandoned',
+      orderNo: order?.order_no ?? null,
+      charged: false,
+      error: reason,
+      code,
+      pgStatus: tossData.status ?? null,
+    },
+  }
+}
+
 export async function lookupTossPayment(orderId: string): Promise<{
   ok: boolean
   status: number
@@ -483,6 +519,20 @@ export async function recoverTrainingTossPayment(input: {
   }
 
   if (payment.status === 'paid') return paidResult(supabase, payment, order, undefined, true)
+  if (payment.status === 'abandoned') {
+    return {
+      status: 409,
+      body: {
+        success: false,
+        state: 'abandoned',
+        orderNo: order.order_no,
+        charged: false,
+        error: '결제창 인증이 완료되지 않아 결제가 종료되었습니다. 카드에는 청구되지 않았습니다.',
+        code: 'NOT_FOUND_PAYMENT',
+        pgStatus: 'ABORTED',
+      },
+    }
+  }
   if (['cancelled', 'refunded'].includes(payment.status)) {
     return {
       status: 409,
@@ -499,7 +549,7 @@ export async function recoverTrainingTossPayment(input: {
   if (!lookup.ok) {
     if (lookup.status === 404) {
       if (missingPaymentExpired(payment.created_at)) {
-        return markPaymentFailed(
+        return markPaymentAbandoned(
           supabase,
           payment,
           { status: 'ABORTED', code: 'NOT_FOUND_PAYMENT' },
@@ -540,6 +590,15 @@ export async function recoverTrainingTossPayment(input: {
       orderId: input.orderId,
       amount: lookup.data.totalAmount,
     })
+  }
+  if (action === 'abandon') {
+    return markPaymentAbandoned(
+      supabase,
+      payment,
+      lookup.data,
+      '결제창 인증을 완료하지 않고 종료했습니다. 카드에는 청구되지 않았습니다.',
+      pgStatus,
+    )
   }
   if (action === 'fail') {
     const message =

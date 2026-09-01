@@ -16,6 +16,22 @@ export type VisaPaymentRef = {
   productSlug: string
 }
 
+export type VisaPaymentContext = {
+  applicationId: string
+  productSlug: string
+  customer: {
+    name: string
+    email: string
+    phone: string
+    nationality: string
+    preferredLang: 'ko' | 'en' | 'ja'
+  }
+}
+
+export type VisaPaymentContextResult =
+  | { ok: true; context: VisaPaymentContext }
+  | { ok: false; reason: 'invalid_or_expired' | 'already_paid' | 'unavailable' }
+
 function sign(payload: string, key: string): string {
   return createHmac('sha256', key).update(payload).digest('base64url')
 }
@@ -52,6 +68,74 @@ export function verifyVisaPaymentRef(token: string | null | undefined): VisaPaym
     return { applicationId, productSlug }
   } catch {
     return null
+  }
+}
+
+// 개인 링크의 서명을 먼저 확인한 뒤 deetz 서버에서 신청 정보를 조회한다.
+// 이메일은 토큰 payload에 넣지 않고 양쪽 서버에서 application ID와 상품을 다시 대조한다.
+export async function resolveVisaPaymentContext(
+  token: string | null | undefined,
+): Promise<VisaPaymentContextResult> {
+  const verified = verifyVisaPaymentRef(token)
+  if (!verified || !token) return { ok: false, reason: 'invalid_or_expired' }
+
+  const base = (process.env.DEETZ_SITE_URL || 'https://deetz.kr').replace(/\/$/, '')
+  try {
+    const response = await fetch(`${base}/api/visa/payment-context?ref=${encodeURIComponent(token)}`, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
+    })
+    const data = (await response.json().catch(() => null)) as {
+      success?: boolean
+      reason?: string
+      applicationId?: string
+      productSlug?: string
+      customer?: {
+        name?: string
+        email?: string
+        phone?: string
+        nationality?: string
+        preferredLang?: string
+      }
+    } | null
+
+    if (!response.ok || !data?.success) {
+      return {
+        ok: false,
+        reason: response.status === 409 || data?.reason === 'already_paid' ? 'already_paid' : 'unavailable',
+      }
+    }
+
+    const email = String(data.customer?.email ?? '').trim().toLowerCase()
+    const preferredLang = data.customer?.preferredLang
+    if (
+      data.applicationId !== verified.applicationId ||
+      data.productSlug !== verified.productSlug ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+      (preferredLang !== 'ko' && preferredLang !== 'en' && preferredLang !== 'ja')
+    ) {
+      console.error('[visa-payment-ref] payment context mismatch', verified.applicationId)
+      return { ok: false, reason: 'unavailable' }
+    }
+
+    return {
+      ok: true,
+      context: {
+        applicationId: verified.applicationId,
+        productSlug: verified.productSlug,
+        customer: {
+          name: String(data.customer?.name ?? '').trim() || email.split('@')[0] || email,
+          email,
+          phone: String(data.customer?.phone ?? '').trim(),
+          nationality: String(data.customer?.nationality ?? '').trim(),
+          preferredLang,
+        },
+      },
+    }
+  } catch (error) {
+    console.error('[visa-payment-ref] payment context lookup failed', verified.applicationId, error)
+    return { ok: false, reason: 'unavailable' }
   }
 }
 

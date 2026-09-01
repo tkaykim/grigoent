@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { foreignQuote } from '@/lib/paypal-fx'
-import { verifyVisaPaymentRef } from '@/lib/visa-payment-ref'
+import { buildPaymentRequestAudit } from '@/lib/payment-request-audit'
+import { resolveVisaPaymentContext, verifyVisaPaymentRef } from '@/lib/visa-payment-ref'
 import { evaluateDiscount } from '@/lib/discount'
 import {
   TRAINING_PRODUCT_SLUG,
@@ -55,12 +56,47 @@ export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as Body
 
-    const name = (body.name ?? '').trim()
-    const email = (body.email ?? '').trim().toLowerCase()
-    const phone = (body.phone ?? '').trim()
-    const nationality = (body.nationality ?? '').trim()
-    const preferredLang = ['ko', 'en', 'ja'].includes(body.preferredLang ?? '') ? body.preferredLang! : 'ko'
+    let name = (body.name ?? '').trim()
+    let email = (body.email ?? '').trim().toLowerCase()
+    let phone = (body.phone ?? '').trim()
+    let nationality = (body.nationality ?? '').trim()
+    let preferredLang = ['ko', 'en', 'ja'].includes(body.preferredLang ?? '') ? body.preferredLang! : 'ko'
     const planCode = (body.planCode ?? '').trim()
+
+    const requestedSlug = (body.productSlug ?? '').trim() || TRAINING_PRODUCT_SLUG
+    if (!ALLOWED_PRODUCT_SLUGS.has(requestedSlug)) {
+      return NextResponse.json({ success: false, error: '판매 중인 상품을 찾을 수 없습니다.' }, { status: 404 })
+    }
+
+    // 개인 오디션 결제 링크는 deetz 신청 정보를 정본으로 사용한다.
+    // 브라우저에서 readOnly 필드를 조작해도 주문 이메일·언어가 바뀌지 않게 서버에서 다시 확인한다.
+    const ref = verifyVisaPaymentRef(body.ref)
+    let visaApplicationId = ref && ref.productSlug === requestedSlug ? ref.applicationId : null
+    if (requestedSlug === 'audition-fee' && body.ref) {
+      const contextResult = await resolveVisaPaymentContext(body.ref)
+      if (!contextResult.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              contextResult.reason === 'already_paid'
+                ? '이미 결제가 완료된 신청입니다.'
+                : '개인 결제 링크를 확인하지 못했습니다. 새 링크를 요청해 주세요.',
+          },
+          { status: contextResult.reason === 'already_paid' ? 409 : 401 },
+        )
+      }
+      if (contextResult.context.productSlug !== requestedSlug) {
+        return NextResponse.json({ success: false, error: '결제 상품이 일치하지 않습니다.' }, { status: 400 })
+      }
+      const customer = contextResult.context.customer
+      visaApplicationId = contextResult.context.applicationId
+      name = customer.name
+      email = customer.email
+      phone = customer.phone
+      nationality = customer.nationality
+      preferredLang = customer.preferredLang
+    }
 
     if (!name || name.length > 80) {
       return NextResponse.json({ success: false, error: '이름을 입력해 주세요.' }, { status: 400 })
@@ -71,16 +107,6 @@ export async function POST(request: NextRequest) {
     if (!body.agreed) {
       return NextResponse.json({ success: false, error: '결제 진행에 동의해 주세요.' }, { status: 400 })
     }
-
-    const requestedSlug = (body.productSlug ?? '').trim() || TRAINING_PRODUCT_SLUG
-    if (!ALLOWED_PRODUCT_SLUGS.has(requestedSlug)) {
-      return NextResponse.json({ success: false, error: '판매 중인 상품을 찾을 수 없습니다.' }, { status: 404 })
-    }
-
-    // 토큰이 있어도 결제는 막지 않는다. 검증에 실패하면 케이스 연결만 포기한다.
-    // (링크 만료 때문에 결제를 못 하게 만들면 매출을 잃는다 — 연결은 나중에 수기로도 붙일 수 있다.)
-    const ref = verifyVisaPaymentRef(body.ref)
-    const visaApplicationId = ref && ref.productSlug === requestedSlug ? ref.applicationId : null
 
     const supabase = getSupabase()
 
@@ -166,6 +192,7 @@ export async function POST(request: NextRequest) {
           installment_months: plan.installment_months,
           status: 'pending',
           memo: (body.memo ?? '').trim() || null,
+          metadata: { request_audit: buildPaymentRequestAudit(request.headers, now) },
           billing_customer_key: randomUUID(),
           next_billing_at: plan.installment_months > 1 ? `${dueDates[1]}T00:00:00+09:00` : null,
         })
