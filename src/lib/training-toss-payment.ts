@@ -306,6 +306,25 @@ async function finalizeApprovedPayment(
   }
 }
 
+// 같은 이메일·같은 상품으로 결제 완료(paid)된 다른 주문이 있는지 확인한다.
+async function hasPaidSiblingOrder(supabase: SupabaseClient, order: OrderRow): Promise<boolean> {
+  const email = (order.customer_email ?? '').trim().toLowerCase()
+  if (!email) return false
+  const { data, error } = await supabase
+    .from('training_orders')
+    .select('id, training_order_payments!inner(status)')
+    .eq('product_id', order.product_id)
+    .neq('id', order.id)
+    .ilike('customer_email', email)
+    .eq('training_order_payments.status', 'paid')
+    .limit(1)
+  if (error) {
+    console.error('[training/payment-recovery] sibling paid lookup failed', order.order_no, error)
+    return false
+  }
+  return (data ?? []).length > 0
+}
+
 async function markPaymentFailed(
   supabase: SupabaseClient,
   payment: PaymentRow,
@@ -331,7 +350,16 @@ async function markPaymentFailed(
 
   const order = await getOrderRow(supabase, payment.order_id)
   if (order) {
-    if (claimed && order.customer_email) {
+    // 같은 사람이 같은 상품을 이미 결제 완료했으면 실패 메일을 보내지 않는다.
+    // (첫 결제창을 닫고 바로 다시 결제해 성공한 경우, 30분 뒤 옛 시도가 만료 처리되며
+    //  "결제 실패" 메일이 성공 메일 뒤에 도착해 고객을 혼란시킨 사고 — 2026-09-04 hwanhee 건)
+    const alreadyPaidElsewhere = claimed && order.customer_email
+      ? await hasPaidSiblingOrder(supabase, order)
+      : false
+    if (alreadyPaidElsewhere) {
+      console.info('[training/payment-recovery] failure email skipped — sibling order already paid', order.order_no)
+    }
+    if (claimed && order.customer_email && !alreadyPaidElsewhere) {
       try {
         await sendTrainingPaymentFailureEmail({
           to: order.customer_email,
