@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     const ref = verifyVisaPaymentRef(body.ref)
     let visaApplicationId = ref && ref.productSlug === requestedSlug ? ref.applicationId : null
     if (requestedSlug === 'audition-fee' && body.ref) {
-      const contextResult = await resolveVisaPaymentContext(body.ref)
+      const contextResult = await resolveVisaPaymentContext(body.ref, 'full')
       if (!contextResult.ok) {
         return NextResponse.json(
           {

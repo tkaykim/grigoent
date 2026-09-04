@@ -7,6 +7,12 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 // 원본 구현은 deetz 레포 src/lib/visa/payment-link.ts — 두 파일의 포맷은 항상 같이 바꾼다.
 //
 // 공유 비밀 VISA_PAYMENT_LINK_SECRET 은 양쪽 Vercel 에 동일 값으로 넣는다.
+//
+// **링크에는 유효기간이 없다** (대표 결정 2026-09-04). 결제하려는 사람이 링크 만료로
+// 막히는 상황을 만들지 않는다. 대신 링크만으로는 개인정보를 볼 수 없게 분리했다 —
+// 화면 표시용(display)은 가려진 이름·이메일만 받고, 실제 개인정보(full)는
+// 공유 시크릿으로 서명한 서버 대 서버 요청에서만 받는다.
+// payload 네 번째 칸(과거 만료 시각)은 하위호환을 위해 읽지 않는다.
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const SLUG_RE = /^[a-z0-9-]{2,64}$/
@@ -57,14 +63,12 @@ export function verifyVisaPaymentRef(token: string | null | undefined): VisaPaym
     const payload = Buffer.from(token.slice(0, dot), 'base64url').toString('utf8')
     if (!safeEqual(token.slice(dot + 1), sign(payload, key))) return null
 
-    const [prefix, applicationId, productSlug, expiresRaw] = payload.split(':')
+    const [prefix, applicationId, productSlug] = payload.split(':')
     if (prefix !== 'vp') return null
     if (!UUID_RE.test(applicationId ?? '')) return null
     if (!SLUG_RE.test(productSlug ?? '')) return null
 
-    const expiresAt = Number(expiresRaw)
-    if (!Number.isFinite(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) return null
-
+    // 만료 판정 없음 — 옛 토큰(만료 시각 포함)도 그대로 통과시킨다.
     return { applicationId, productSlug }
   } catch {
     return null
@@ -73,22 +77,40 @@ export function verifyVisaPaymentRef(token: string | null | undefined): VisaPaym
 
 // 개인 링크의 서명을 먼저 확인한 뒤 deetz 서버에서 신청 정보를 조회한다.
 // 이메일은 토큰 payload에 넣지 않고 양쪽 서버에서 application ID와 상품을 다시 대조한다.
+//
+// 두 가지 모드가 있다.
+//  - 'display': 결제 화면 "본인 확인"용 **가려진** 이름·이메일. 링크만 있으면 누구나
+//               받을 수 있으므로 실제 개인정보를 담지 않는다.
+//  - 'full'   : 주문에 기록할 실제 이름·이메일·전화·국적. 공유 시크릿으로 ref 를 서명해야
+//               응답한다(서버 대 서버 전용). 브라우저로는 내려보내지 않는다.
+export type VisaPaymentContextMode = 'display' | 'full'
+
 export async function resolveVisaPaymentContext(
   token: string | null | undefined,
+  mode: VisaPaymentContextMode = 'full',
 ): Promise<VisaPaymentContextResult> {
   const verified = verifyVisaPaymentRef(token)
   if (!verified || !token) return { ok: false, reason: 'invalid_or_expired' }
 
   const base = (process.env.DEETZ_SITE_URL || 'https://deetz.kr').replace(/\/$/, '')
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  if (mode === 'full') {
+    const secret = process.env.VISA_PAYMENT_LINK_SECRET
+    if (!secret) return { ok: false, reason: 'unavailable' }
+    // 실제 개인정보를 요구하는 요청임을 증명한다(ref 자체를 서명).
+    headers['x-visa-signature'] = sign(token, secret)
+  }
+
   try {
     const response = await fetch(`${base}/api/visa/payment-context?ref=${encodeURIComponent(token)}`, {
-      headers: { Accept: 'application/json' },
+      headers,
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     })
     const data = (await response.json().catch(() => null)) as {
       success?: boolean
       reason?: string
+      masked?: boolean
       applicationId?: string
       productSlug?: string
       customer?: {
@@ -109,13 +131,22 @@ export async function resolveVisaPaymentContext(
 
     const email = String(data.customer?.email ?? '').trim().toLowerCase()
     const preferredLang = data.customer?.preferredLang
+    const langOk = preferredLang === 'ko' || preferredLang === 'en' || preferredLang === 'ja'
+    // full 에서만 진짜 이메일을 요구한다. display 응답의 이메일은 가려져 있어 형식 검사를 하지 않는다.
+    const emailOk = mode === 'full' ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) : email.length > 0
     if (
       data.applicationId !== verified.applicationId ||
       data.productSlug !== verified.productSlug ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-      (preferredLang !== 'ko' && preferredLang !== 'en' && preferredLang !== 'ja')
+      !emailOk ||
+      !langOk
     ) {
-      console.error('[visa-payment-ref] payment context mismatch', verified.applicationId)
+      console.error('[visa-payment-ref] payment context mismatch', verified.applicationId, mode)
+      return { ok: false, reason: 'unavailable' }
+    }
+
+    // full 을 요청했는데 deetz 가 가려진 값을 돌려주면(서명 거부) 주문에 쓰지 않는다.
+    if (mode === 'full' && data.masked) {
+      console.error('[visa-payment-ref] full context refused by deetz', verified.applicationId)
       return { ok: false, reason: 'unavailable' }
     }
 

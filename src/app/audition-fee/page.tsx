@@ -28,7 +28,7 @@ export default async function AuditionFeePage({
   // deetz 케이스에서 발급한 결제 링크 토큰.
   // 결제 전에도 서버에서 검증해 신청 이메일·이름·언어를 자동 입력한다.
   const { ref } = await searchParams
-  const paymentContextResult = ref ? await resolveVisaPaymentContext(ref) : null
+  const paymentContextResult = ref ? await resolveVisaPaymentContext(ref, 'display') : null
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
