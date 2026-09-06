@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { sendTrainingPaymentFailureEmail } from '@/lib/email'
-import { notifyVisaCasePayment } from '@/lib/visa-payment-ref'
+import { createVisaPaymentRef, notifyVisaCasePayment } from '@/lib/visa-payment-ref'
+import { trainingRetryPath } from '@/lib/training-checkout-client'
 import { loadVisaDocumentProductSlug, syncPaidProgramOrderToDeetz } from '@/lib/visa-program-sync'
 import { sendPaymentReceipt } from '@/lib/payment-receipt'
 import { TOSS_USE_LIVE, tossSecretKey } from '@/lib/toss-keys'
@@ -361,12 +362,19 @@ async function markPaymentFailed(
     }
     if (claimed && order.customer_email && !alreadyPaidElsewhere) {
       try {
+        const { data: product, error: productError } = await supabase
+          .from('training_products').select('slug').eq('id', order.product_id).single()
+        if (productError || !product) throw productError ?? new Error('Retry product not found')
+        const ref = order.visa_application_id
+          ? createVisaPaymentRef(order.visa_application_id, product.slug)
+          : undefined
         await sendTrainingPaymentFailureEmail({
           to: order.customer_email,
           name: order.customer_name ?? order.customer_email,
           lang: order.preferred_lang,
           orderNo: order.order_no,
           amount: payment.amount,
+          retryPath: trainingRetryPath(product.slug, ref, order.preferred_lang),
         })
       } catch (mailError) {
         console.error('[training/payment-recovery] failure email failed', order.order_no, mailError)

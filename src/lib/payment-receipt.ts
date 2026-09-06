@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { foreignQuote } from '@/lib/paypal-fx'
+import { paypalCapturedCharge } from '@/lib/paypal-fx'
 import { VISA_DOCUMENT_PRODUCT_SLUGS } from '@/lib/visa-program-sync'
 
 // 결제 완료 메일 발송 요청.
@@ -64,7 +64,16 @@ export async function sendPaymentReceipt(
       .maybeSingle()
 
     // PayPal 은 외화로 청구된다. 구매자가 카드 명세와 대조할 수 있게 실제 청구액을 함께 보낸다.
-    const quote = input.provider === 'paypal' ? foreignQuote(input.paidAmount) : null
+    let quote: { currency: string; amount: number } | null = null
+    if (input.provider === 'paypal') {
+      const { data: paidRows, error: paymentsError } = await supabase.from('training_order_payments')
+        .select('raw').eq('order_id', input.orderId).eq('status', 'paid').eq('pg_provider', 'paypal')
+      if (paymentsError) throw paymentsError
+      const charges = (paidRows ?? []).map(row => paypalCapturedCharge(row.raw))
+      if (charges.length > 0 && charges.every(charge => charge !== null)) {
+        quote = { currency: 'USD', amount: charges.reduce((sum, charge) => sum + Math.round(charge!.amount * 100), 0) / 100 }
+      }
+    }
     const documentIntakeUrl =
       product?.slug &&
       VISA_DOCUMENT_PRODUCT_SLUGS.includes(product.slug as (typeof VISA_DOCUMENT_PRODUCT_SLUGS)[number]) &&

@@ -206,12 +206,12 @@ export const TRAINING_COPY: Record<TrainingLang, {
     paymentNo: '결제번호',
     payOnce: (amount) => `${amount}을 결제합니다.`,
     payInstallment: (amount, months) => `${months}회 중 1회차 ${amount}을 결제합니다.`,
-    methodCard: '카드결제',
+    methodCard: '국내 발급 카드',
     methodCardDesc: '한국에서 발급된 신용·체크카드 (원화 결제)',
     methodTransfer: '계좌이체',
     methodTransferDesc: '국내 은행 실시간 계좌이체 (원화 결제)',
-    methodOverseas: 'PayPal',
-    methodOverseasDesc: '해외에서 발급된 카드 · PayPal 잔액',
+    methodOverseas: '해외 카드 · PayPal',
+    methodOverseasDesc: 'USD 결제 · PayPal에서 카드 또는 잔액 선택',
     methodHint:
       '체크카드는 할부가 불가능하므로 일시불을 선택해 주세요. 할부는 지원되는 국내 신용카드로만 가능합니다. 해외에서 발급된 카드는 카드결제가 아니라 PayPal 을 선택해 주세요.',
     paypalCurrencyNotice: (foreign, krw) =>
@@ -276,12 +276,12 @@ export const TRAINING_COPY: Record<TrainingLang, {
     paymentNo: 'Payment number',
     payOnce: (amount) => `You are paying ${amount}.`,
     payInstallment: (amount, months) => `You are paying ${amount}, the 1st of ${months} charges.`,
-    methodCard: 'Card',
+    methodCard: 'Korean-issued card',
     methodCardDesc: 'Cards issued in Korea, charged in KRW',
     methodTransfer: 'Bank transfer',
     methodTransferDesc: 'Real-time transfer from a Korean bank, charged in KRW',
-    methodOverseas: 'PayPal',
-    methodOverseasDesc: 'Cards issued outside Korea · PayPal balance',
+    methodOverseas: 'International card · PayPal',
+    methodOverseasDesc: 'Charged in USD · choose a card or balance in PayPal',
     methodHint:
       'Debit cards do not support installments, so choose a one-time payment. Installments require a supported Korean-issued credit card. If your card was issued outside Korea, choose PayPal rather than Card.',
     paypalCurrencyNotice: (foreign, krw) =>
@@ -346,12 +346,12 @@ export const TRAINING_COPY: Record<TrainingLang, {
     paymentNo: '決済番号',
     payOnce: (amount) => `${amount}をお支払いいただきます。`,
     payInstallment: (amount, months) => `${months}回のうち1回目の${amount}をお支払いいただきます。`,
-    methodCard: 'カード決済',
+    methodCard: '韓国発行カード',
     methodCardDesc: '韓国発行のクレジット・デビットカード（ウォン建て）',
     methodTransfer: '口座振替',
     methodTransferDesc: '韓国の銀行からのリアルタイム振替（ウォン建て）',
-    methodOverseas: 'PayPal',
-    methodOverseasDesc: '韓国外で発行されたカード · PayPal残高',
+    methodOverseas: '海外カード · PayPal',
+    methodOverseasDesc: 'USD建て · PayPalでカードまたは残高を選択',
     methodHint:
       'チェックカードは分割払いに対応していないため、一括払いを選択してください。分割払いには対応する韓国発行のクレジットカードが必要です。韓国外で発行されたカードをお使いの場合は、カード決済ではなく PayPal をお選びください。',
     paypalCurrencyNotice: (foreign, krw) =>

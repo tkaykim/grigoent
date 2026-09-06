@@ -9,7 +9,9 @@
 //
 // 시장 환율이 PAYPAL_KRW_PER_USD 아래로 내려가면 손실이 발생하므로 주기적으로 점검한다.
 
-export const PAYPAL_FOREIGN_CURRENCY = (process.env.PAYPAL_FOREIGN_CURRENCY || 'USD').toUpperCase()
+// This checkout's rate is KRW per USD. A currency environment override must
+// never relabel that USD amount as JPY/EUR/KRW.
+export const PAYPAL_FOREIGN_CURRENCY = 'USD' as const
 export const PAYPAL_KRW_PER_UNIT = Number(process.env.PAYPAL_KRW_PER_USD || '1350')
 
 export type ForeignQuote = {
@@ -19,15 +21,37 @@ export type ForeignQuote = {
   krwAmount: number
 }
 
-export function foreignQuote(krwAmount: number): ForeignQuote | null {
-  if (!Number.isFinite(krwAmount) || krwAmount <= 0) return null
-  if (!Number.isFinite(PAYPAL_KRW_PER_UNIT) || PAYPAL_KRW_PER_UNIT <= 0) return null
+export function foreignQuote(krwAmount: number, krwPerUsd = PAYPAL_KRW_PER_UNIT): ForeignQuote | null {
+  if (!Number.isSafeInteger(krwAmount) || krwAmount <= 0) return null
+  if (!Number.isFinite(krwPerUsd) || krwPerUsd <= 0) return null
   // 절상해서 원 단위 손실까지 제거한다.
-  const amount = Math.ceil(krwAmount / PAYPAL_KRW_PER_UNIT)
-  return { currency: PAYPAL_FOREIGN_CURRENCY, amount, krwPerUnit: PAYPAL_KRW_PER_UNIT, krwAmount }
+  const amount = Math.ceil(krwAmount / krwPerUsd)
+  if (!Number.isSafeInteger(amount)) return null
+  return { currency: PAYPAL_FOREIGN_CURRENCY, amount, krwPerUnit: krwPerUsd, krwAmount }
 }
 
 export function formatForeign(quote: ForeignQuote): string {
-  const symbol = quote.currency === 'USD' ? '$' : ''
-  return `${symbol}${quote.amount.toLocaleString('en-US')}${symbol ? '' : ` ${quote.currency}`}`
+  return `${quote.currency} ${quote.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+export function storedPaypalQuote(metadata: unknown, sequence: number, krwAmount: number): ForeignQuote | null {
+  const quote = (metadata as { paypal_quotes?: Record<string, ForeignQuote> } | null)?.paypal_quotes?.[String(sequence)]
+  if (!quote || quote.currency !== 'USD' || quote.krwAmount !== krwAmount ||
+      !Number.isFinite(quote.amount) || quote.amount <= 0 ||
+      !Number.isFinite(quote.krwPerUnit) || quote.krwPerUnit <= 0) return null
+  return quote
+}
+
+export function matchesPaypalAmount(amount: unknown, quote: Pick<ForeignQuote, 'currency' | 'amount'>): boolean {
+  const value = amount as { currency_code?: string; value?: string } | null
+  return value?.currency_code === quote.currency && typeof value.value === 'string' &&
+    /^\d+(\.\d{1,2})?$/.test(value.value) && Number(value.value) === quote.amount
+}
+
+export function paypalCapturedCharge(raw: unknown): { currency: string; amount: number } | null {
+  const capture = (raw as { purchase_units?: { payments?: { captures?: { status?: string; amount?: { currency_code?: string; value?: string } }[] } }[] } | null)
+    ?.purchase_units?.[0]?.payments?.captures?.[0]
+  const amount = Number(capture?.amount?.value)
+  if (capture?.status !== 'COMPLETED' || capture.amount?.currency_code !== 'USD' || !Number.isFinite(amount) || amount <= 0) return null
+  return { currency: 'USD', amount }
 }
