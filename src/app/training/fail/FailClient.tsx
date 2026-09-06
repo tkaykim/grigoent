@@ -11,12 +11,14 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { TRAINING_COPY, type TrainingLang } from '@/lib/training-package'
 import { PAYMENT_RECOVERY_STORAGE_KEY } from '@/lib/training-payment-recovery-client'
 import { trainingPaymentFailureCopy } from '@/lib/training-payment-failure'
+import { trainingRetryPath } from '@/lib/training-checkout-client'
 
 export function FailClient() {
   const params = useSearchParams()
   const { language } = useLanguage()
-  const lang = (['ko', 'en', 'ja'] as const).includes(language as TrainingLang)
-    ? (language as TrainingLang)
+  const requestedLang = params.get('lang') ?? language
+  const lang = (['ko', 'en', 'ja'] as const).includes(requestedLang as TrainingLang)
+    ? (requestedLang as TrainingLang)
     : 'ko'
   const t = TRAINING_COPY[lang]
 
@@ -40,7 +42,7 @@ export function FailClient() {
             <p className="mt-3 text-sm leading-6 text-zinc-600">{t.failContact}</p>
             {code ? <p className="mt-2 font-mono text-xs text-zinc-400">{code}</p> : null}
             <Link
-              href="/training"
+              href={trainingRetryPath(params.get('product'), params.get('ref'), lang)}
               className="mt-8 inline-flex min-h-11 items-center bg-zinc-950 px-5 text-sm font-semibold text-white transition hover:bg-zinc-800"
             >
               {t.retry}

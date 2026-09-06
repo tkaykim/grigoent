@@ -886,12 +886,13 @@ export function TrainingClient({
                         amount={session.amount}
                         orderId={session.pgOrderId}
                         orderName={session.orderName}
-                        customerName={name}
-                        customerEmail={email}
-                        customerMobilePhone={phone}
+                        // Personal-link fields are masked display values, not PG customer data.
+                        customerName={personalPayment ? '' : name}
+                        customerEmail={personalPayment ? '' : email}
+                        customerMobilePhone={personalPayment ? '' : phone}
                         customerKey={session.customerKey}
                         successUrl={`${origin}/training/success`}
-                        failUrl={`${origin}/training/fail`}
+                        failUrl={`${origin}/training/fail?${new URLSearchParams({ product: productSlug ?? 'training-and-placement', ...(paymentRef ? { ref: paymentRef } : {}), lang })}`}
                         submitLabel={t.paySubmit(formatKrw(session.amount, lang))}
                         lang={lang}
                         onPaymentStart={() => armPaymentRecovery(session)}

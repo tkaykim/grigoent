@@ -14,10 +14,13 @@ test('maps Toss states to recovery actions', () => {
   assert.equal(tossRecoveryAction(null), 'wait')
 })
 
-test('only expires a missing PG payment after two minutes', () => {
+test('keeps recovery alive through the payment window, not just two minutes', () => {
   const now = Date.parse('2026-08-24T07:00:00.000Z')
   assert.equal(missingPaymentExpired('2026-08-24T06:58:01.000Z', now), false)
-  assert.equal(missingPaymentExpired('2026-08-24T06:57:59.000Z', now), true)
+  assert.equal(missingPaymentExpired('2026-08-24T06:57:59.000Z', now), false)
+  assert.equal(missingPaymentExpired('2026-08-24T06:30:00.000Z', now), false)
+  assert.equal(missingPaymentExpired('2026-08-24T06:25:00.000Z', now), false)
+  assert.equal(missingPaymentExpired('2026-08-24T06:24:59.000Z', now), true)
   assert.equal(missingPaymentExpired(null, now), false)
   assert.equal(missingPaymentExpired('invalid', now), false)
 })

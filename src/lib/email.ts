@@ -393,6 +393,7 @@ export async function sendTrainingPaymentFailureEmail(params: {
   lang?: string | null
   orderNo: string
   amount: number
+  retryPath: string
 }) {
   const transporter = getTransporter()
   const lang: PaymentFailureLanguage =
@@ -400,7 +401,7 @@ export async function sendTrainingPaymentFailureEmail(params: {
   const copy = PAYMENT_FAILURE_COPY[lang]
   const name = params.name.trim() || 'customer'
   const amount = `${params.amount.toLocaleString('ko-KR')} KRW`
-  const retryUrl = 'https://www.grigoent.co.kr/training'
+  const retryUrl = new URL(params.retryPath, 'https://www.grigoent.co.kr').toString()
 
   const text = [
     copy.greeting(name),
@@ -431,7 +432,7 @@ export async function sendTrainingPaymentFailureEmail(params: {
     <div style="margin-top:24px;padding:16px 18px;background:#fff7ed;border:1px solid #fed7aa;">
       <p style="font-size:13px;color:#333;line-height:1.75;margin:0;">${escapeHtml(copy.orderLabel)}: <strong>${escapeHtml(params.orderNo)}</strong><br>${escapeHtml(copy.amountLabel)}: <strong>${escapeHtml(amount)}</strong></p>
     </div>
-    <a href="${retryUrl}" style="display:inline-block;margin-top:22px;background:#111;color:#fff;text-decoration:none;padding:12px 18px;font-size:13px;font-weight:700;">${escapeHtml(copy.retry)}</a>
+    <a href="${escapeHtml(retryUrl)}" style="display:inline-block;margin-top:22px;background:#111;color:#fff;text-decoration:none;padding:12px 18px;font-size:13px;font-weight:700;">${escapeHtml(copy.retry)}</a>
     <p style="font-size:13px;color:#666;line-height:1.75;margin:22px 0 0;">${escapeHtml(copy.contact)}</p>
   </div>
 </div>

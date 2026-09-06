@@ -1,12 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { PayPalButtons, PayPalScriptProvider, usePayPalScriptReducer } from '@paypal/react-paypal-js'
+import { DISPATCH_ACTION, PayPalButtons, PayPalScriptProvider, usePayPalScriptReducer } from '@paypal/react-paypal-js'
 import { Loader2 } from 'lucide-react'
 import type { TrainingLang } from '@/lib/training-package'
+import { paypalSdkLocale } from '@/lib/training-checkout-client'
 
 const COPY: Record<TrainingLang, {
   loading: string
+  loadFailed: string
+  retry: string
   processing: string
   createFailed: string
   captureFailed: string
@@ -20,6 +23,8 @@ const COPY: Record<TrainingLang, {
 }> = {
   ko: {
     loading: 'PayPal 불러오는 중…',
+    loadFailed: 'PayPal을 불러오지 못했습니다. 연결을 확인한 뒤 다시 시도해 주세요.',
+    retry: 'PayPal 다시 불러오기',
     processing: '결제를 처리하고 있습니다…',
     createFailed: 'PayPal 주문 생성에 실패했습니다.',
     captureFailed: 'PayPal 결제 승인에 실패했습니다.',
@@ -38,6 +43,8 @@ const COPY: Record<TrainingLang, {
   },
   en: {
     loading: 'Loading PayPal…',
+    loadFailed: 'PayPal could not load. Check your connection and try again.',
+    retry: 'Reload PayPal',
     processing: 'Processing your payment…',
     createFailed: 'Could not create the PayPal order.',
     captureFailed: 'Could not complete the PayPal payment.',
@@ -56,6 +63,8 @@ const COPY: Record<TrainingLang, {
   },
   ja: {
     loading: 'PayPalを読み込んでいます…',
+    loadFailed: 'PayPalを読み込めませんでした。接続を確認して再試行してください。',
+    retry: 'PayPalを再読み込み',
     processing: '決済を処理しています…',
     createFailed: 'PayPal注文の作成に失敗しました。',
     captureFailed: 'PayPal決済の承認に失敗しました。',
@@ -94,7 +103,7 @@ export type PayPalCheckoutProps = {
 
 function Inner({ pgOrderId, orderName, lang = 'ko', onSuccess, onError, onCancel }: PayPalCheckoutProps) {
   const c = COPY[lang]
-  const [{ isPending }] = usePayPalScriptReducer()
+  const [{ isPending, isRejected, options }, dispatch] = usePayPalScriptReducer()
   const [processing, setProcessing] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   // 결제수단 거절은 일반 오류와 다르게 보여준다.
@@ -163,6 +172,17 @@ function Inner({ pgOrderId, orderName, lang = 'ko', onSuccess, onError, onCancel
     }
   }
 
+  if (isRejected) {
+    return (
+      <div role="alert" className="border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+        <p>{c.loadFailed}</p>
+        <button type="button" className="mt-3 min-h-11 underline" onClick={() => dispatch({ type: DISPATCH_ACTION.RESET_OPTIONS, value: { ...options } })}>
+          {c.retry}
+        </button>
+      </div>
+    )
+  }
+
   if (isPending) {
     return (
       <div className="flex items-center justify-center gap-2 py-8 text-sm text-zinc-500">
@@ -221,7 +241,7 @@ export function PayPalCheckout(props: PayPalCheckoutProps) {
     )
   }
   const currency = (props.currency || 'USD').toUpperCase()
-  const locale = props.lang === 'ja' ? 'ja-JP' : props.lang === 'ko' ? 'ko-KR' : 'en-US'
+  const locale = paypalSdkLocale(props.lang ?? 'ko')
   return (
     <PayPalScriptProvider options={{ clientId, currency, intent: 'capture', locale }}>
       <Inner {...props} />

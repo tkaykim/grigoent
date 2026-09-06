@@ -42,6 +42,15 @@ function sign(payload: string, key: string): string {
   return createHmac('sha256', key).update(payload).digest('base64url')
 }
 
+export function createVisaPaymentRef(applicationId: string, productSlug: string): string {
+  const key = process.env.VISA_PAYMENT_LINK_SECRET
+  if (!key || !UUID_RE.test(applicationId) || !SLUG_RE.test(productSlug)) {
+    throw new Error('Cannot create visa payment reference')
+  }
+  const payload = `vp:${applicationId}:${productSlug}`
+  return `${Buffer.from(payload).toString('base64url')}.${sign(payload, key)}`
+}
+
 function safeEqual(a: string, b: string): boolean {
   const bufA = Buffer.from(a)
   const bufB = Buffer.from(b)

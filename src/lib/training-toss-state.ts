@@ -11,5 +11,8 @@ export function tossRecoveryAction(status: string | null | undefined): TossRecov
 export function missingPaymentExpired(createdAt: string | null | undefined, now = Date.now()): boolean {
   if (!createdAt) return false
   const timestamp = new Date(createdAt).getTime()
-  return Number.isFinite(timestamp) && now - timestamp > 2 * 60 * 1000
+  // Order creation precedes opening the PG window. A 404 after two minutes
+  // does not prove cancellation; keep recovery alive through the 30-minute
+  // Toss window plus a five-minute allowance for opening it.
+  return Number.isFinite(timestamp) && now - timestamp > 35 * 60 * 1000
 }

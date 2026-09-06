@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.payment-refunds.json",
+  "include": [
+    "next-env.d.ts",
+    "src/app/training/TrainingClient.tsx",
+    "src/app/training/fail/FailClient.tsx",
+    "src/components/payments/PayPalCheckout.tsx",
+    "src/lib/training-toss-payment.ts",
+    "src/lib/training-checkout-client.ts",
+    "src/lib/visa-payment-ref.ts"
+  ]
+}
