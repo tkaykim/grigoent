@@ -243,6 +243,7 @@ export function TrainingClient({
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [session, setSession] = useState<CheckoutSession | null>(null)
+  const [paypalPaymentPending, setPaypalPaymentPending] = useState(false)
   const [recovery, setRecovery] = useState<PendingTossRecovery | null>(null)
   const [recoveryNotice, setRecoveryNotice] = useState<{
     tone: 'checking' | 'waiting' | 'failed'
@@ -250,6 +251,7 @@ export function TrainingClient({
     orderNo: string
   } | null>(null)
   const recoveryRequestInFlight = useRef(false)
+  const checkoutRequestInFlight = useRef(false)
 
   const clearStoredRecovery = useCallback(() => {
     window.localStorage.removeItem(PAYMENT_RECOVERY_STORAGE_KEY)
@@ -356,6 +358,7 @@ export function TrainingClient({
 
   // 할인코드 확인. 금액은 서버가 계산한 값만 표시한다.
   const applyDiscount = async () => {
+    if (paypalPaymentPending) return
     const code = discountInput.trim()
     if (!code) return
     setDiscountPending(true)
@@ -401,6 +404,7 @@ export function TrainingClient({
   }, [discountNeedsEmail, email])
 
   const removeDiscount = () => {
+    if (paypalPaymentPending) return
     setDiscount(null)
     setDiscountInput('')
     setDiscountError(null)
@@ -410,11 +414,13 @@ export function TrainingClient({
   }
 
   const startCheckout = async (agreementOverride?: boolean) => {
+    if (paypalPaymentPending || checkoutRequestInFlight.current) return
     if (!selected) {
       setError(t.planTitle)
       return
     }
     setError(null)
+    checkoutRequestInFlight.current = true
     setPending(true)
     try {
       const response = await fetch('/api/training/checkout', {
@@ -443,6 +449,7 @@ export function TrainingClient({
     } catch {
       setError('Network error. Please try again in a moment.')
     } finally {
+      checkoutRequestInFlight.current = false
       setPending(false)
     }
   }
@@ -580,6 +587,7 @@ export function TrainingClient({
                   <button
                     key={plan.code}
                     type="button"
+                    disabled={paypalPaymentPending}
                     onClick={() => {
                       setPlanCode(plan.code)
                       setSession(null)
@@ -711,6 +719,7 @@ export function TrainingClient({
                 <Field label={t.fieldName} required>
                   <input
                     value={name}
+                    disabled={paypalPaymentPending}
                     readOnly={Boolean(personalPayment)}
                     onChange={(event) => {
                       setName(event.target.value)
@@ -722,6 +731,7 @@ export function TrainingClient({
                 <Field label={t.fieldEmail} required help={personalPayment ? personalCopy.verified : undefined}>
                   <input
                     type="email"
+                    disabled={paypalPaymentPending}
                     value={email}
                     readOnly={Boolean(personalPayment)}
                     onChange={(event) => {
@@ -789,6 +799,7 @@ export function TrainingClient({
               <label className="flex items-start gap-3 border border-zinc-300 bg-white p-4">
                 <input
                   type="checkbox"
+                  disabled={paypalPaymentPending}
                   checked={agreed}
                   onChange={(event) => {
                     const checked = event.target.checked
@@ -837,8 +848,8 @@ export function TrainingClient({
                   </p>
                   <p className="mt-1 text-sm text-zinc-600">
                     {session.installmentMonths > 1
-                      ? t.payInstallment(formatKrw(session.amount, lang), session.installmentMonths)
-                      : t.payOnce(formatKrw(session.amount, lang))}
+                      ? t.payInstallment(method === 'paypal' && session.paypalQuote ? formatForeign(session.paypalQuote) : formatKrw(session.amount, lang), session.installmentMonths)
+                      : t.payOnce(method === 'paypal' && session.paypalQuote ? formatForeign(session.paypalQuote) : formatKrw(session.amount, lang))}
                   </p>
 
                   <div className="mt-5 grid gap-2 sm:grid-cols-3">
@@ -846,6 +857,7 @@ export function TrainingClient({
                       <button
                         key={option.value}
                         type="button"
+                        disabled={paypalPaymentPending}
                         onClick={() => {
                           setMethod(option.value)
                           setError(null)
@@ -908,6 +920,7 @@ export function TrainingClient({
                         pgOrderId={session.pgOrderId}
                         orderName={session.orderName}
                         currency={session.paypalQuote?.currency}
+                        amount={session.paypalQuote?.amount ?? 0}
                         lang={lang}
                         onSuccess={(paid) => {
                           clearStoredRecovery()
@@ -923,6 +936,8 @@ export function TrainingClient({
                           router.push(`/training/success?${query.toString()}`)
                         }}
                         onError={(message) => setError(message)}
+                        onRestart={() => setSession(null)}
+                        onPaymentPending={setPaypalPaymentPending}
                       />
                     )}
                   </div>
@@ -930,6 +945,7 @@ export function TrainingClient({
                   <button
                     type="button"
                     onClick={() => setSession(null)}
+                    disabled={paypalPaymentPending}
                     className="mt-4 text-sm text-zinc-500 underline underline-offset-4 hover:text-zinc-900"
                   >
                     {t.editInfo}

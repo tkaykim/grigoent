@@ -1,6 +1,6 @@
 # Visa checkout incident — 2026-09-06
 
-Status: local fix; production deployment requires approval.
+Status: release prepared; user requested completion and reliable domestic/international checkout after the deployment question.
 
 ## Evidence
 
@@ -11,6 +11,7 @@ Status: local fix; production deployment requires approval.
 - Read-only requests using the production public client ID returned HTTP 400 for `en-US`, `ja-JP`, `ko-KR` and HTTP 200 for `en_US`, `ja_JP`, `ko_KR`.
 - `FailClient` and failure email both previously sent every customer to `/training`, losing the original product and signed application reference.
 - A direct fresh Toss lookup was unavailable with the local credentials (401); the transaction findings above are based on stored provider responses, not a fresh PG lookup.
+- Follow-up: pulled the actual Vercel production environment into an ignored local file and verified Toss lookup HTTP 200 (`EXPIRED`, no approval) and live PayPal authentication HTTP 200. The earlier local credentials were stale; production credentials are valid.
 
 ## Changes
 
@@ -19,6 +20,9 @@ Status: local fix; production deployment requires approval.
 - Omit masked display-only customer fields from Toss SDK optional fields. Actual customer details remain in the server-side order.
 - Keep missing-PG recovery eligible for 35 minutes instead of declaring abandonment after two minutes. This covers the 30-minute Toss window plus an opening allowance within the existing 40-minute cron scan window.
 - No schema migration, customer-data correction, payment execution or email sending was performed.
+- Follow-up hardening: KRW domestic payments and USD PayPal payments are explicitly labelled. The USD quote is saved per installment in `training_orders.metadata.paypal_quotes` and reused by checkout, order creation and capture checks. Currency overrides and the obsolete KRW-first PayPal request are removed; existing production policy remains USD with the same conversion rate.
+- Capture checks exact currency/value before charging and uses a stable PayPal idempotency key. Already completed orders are finalized from the PG lookup; timeouts/unknown outcomes are rechecked and kept pending instead of marked failed. The buyer can check the same order again while method/order edits are disabled.
+- Receipt foreign-charge amounts come from completed provider capture records, never the current exchange rate. Quotes missing from legacy unapproved checkout sessions require a new checkout; already created legacy provider orders retain amount verification.
 
 ## Verification
 
@@ -30,6 +34,8 @@ Status: local fix; production deployment requires approval.
 - Browser regression: `tests/visa-checkout-browser.cjs`, using localhost port 3196 and intercepted checkout responses. The live PayPal SDK is loaded, but approval and capture are never invoked.
 - Production-build browser results: actual PayPal buttons visible inside the provider iframe in English, Japanese and Korean; 390px layout without horizontal overflow; forced SDK load failure and reload recovery pass; original product/ref/language retry passes. Screenshots are in `tmp/visa-checkout-*-fixed.png` and `tmp/visa-checkout-en_US-reload.png`.
 - Local browser runs also log unrelated HTTP 404s and the intentionally blocked SDK request; this is not a claim of zero console errors across the application.
+- Follow-up verification: 26 unit/route regressions pass, including persisted quotes, currency overrides, rate drift, under/overpayments, wrong currencies, completed/lost/pending captures, decline retry and receipt amounts. All external requests and mail are stubbed in route tests. Scoped TypeScript passes.
+- Production-build browser checks also cover CARD and TRANSFER payloads (KRW 100,000, original retry product/language), using a stubbed Toss SDK and mocked order/recovery APIs. No live card authorization was attempted.
 
 ## Limits
 

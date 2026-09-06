@@ -10,6 +10,9 @@ const COPY: Record<TrainingLang, {
   loading: string
   loadFailed: string
   retry: string
+  refresh: string
+  checking: string
+  checkAgain: string
   processing: string
   createFailed: string
   captureFailed: string
@@ -25,6 +28,9 @@ const COPY: Record<TrainingLang, {
     loading: 'PayPal 불러오는 중…',
     loadFailed: 'PayPal을 불러오지 못했습니다. 연결을 확인한 뒤 다시 시도해 주세요.',
     retry: 'PayPal 다시 불러오기',
+    refresh: '결제 정보를 새로 준비합니다. 표시된 금액을 확인한 뒤 다시 진행해 주세요.',
+    checking: '결제 결과를 확인하고 있습니다. 다른 결제를 시작하지 말고 결과 확인을 눌러 주세요.',
+    checkAgain: '결제 결과 확인',
     processing: '결제를 처리하고 있습니다…',
     createFailed: 'PayPal 주문 생성에 실패했습니다.',
     captureFailed: 'PayPal 결제 승인에 실패했습니다.',
@@ -45,6 +51,9 @@ const COPY: Record<TrainingLang, {
     loading: 'Loading PayPal…',
     loadFailed: 'PayPal could not load. Check your connection and try again.',
     retry: 'Reload PayPal',
+    refresh: 'Please prepare a new checkout and review the displayed amount before continuing.',
+    checking: 'Your payment result is being checked. Do not start another payment. Check the result below.',
+    checkAgain: 'Check payment result',
     processing: 'Processing your payment…',
     createFailed: 'Could not create the PayPal order.',
     captureFailed: 'Could not complete the PayPal payment.',
@@ -65,6 +74,9 @@ const COPY: Record<TrainingLang, {
     loading: 'PayPalを読み込んでいます…',
     loadFailed: 'PayPalを読み込めませんでした。接続を確認して再試行してください。',
     retry: 'PayPalを再読み込み',
+    refresh: '決済情報を再作成し、表示金額を確認してから再度お進みください。',
+    checking: '決済結果を確認中です。別の決済を開始せず、下のボタンで結果をご確認ください。',
+    checkAgain: '決済結果を確認',
     processing: '決済を処理しています…',
     createFailed: 'PayPal注文の作成に失敗しました。',
     captureFailed: 'PayPal決済の承認に失敗しました。',
@@ -95,13 +107,16 @@ export type PayPalCheckoutProps = {
    * PayPal 은 KRW 를 지원하지 않으므로 기본값은 USD.
    */
   currency?: string
+  amount: number
   lang?: TrainingLang
   onSuccess: (result: { orderNo: string | null; sequence?: number; paidAmount?: number; totalAmount?: number; documentIntakeReady?: boolean }) => void
   onError?: (message: string) => void
   onCancel?: () => void
+  onRestart?: () => void
+  onPaymentPending?: (pending: boolean) => void
 }
 
-function Inner({ pgOrderId, orderName, lang = 'ko', onSuccess, onError, onCancel }: PayPalCheckoutProps) {
+function Inner({ pgOrderId, orderName, currency, amount, lang = 'ko', onSuccess, onError, onCancel, onRestart, onPaymentPending }: PayPalCheckoutProps) {
   const c = COPY[lang]
   const [{ isPending, isRejected, options }, dispatch] = usePayPalScriptReducer()
   const [processing, setProcessing] = useState(false)
@@ -109,6 +124,7 @@ function Inner({ pgOrderId, orderName, lang = 'ko', onSuccess, onError, onCancel
   // 결제수단 거절은 일반 오류와 다르게 보여준다.
   // "실패했습니다" 한 줄만 띄우면 결제자는 무엇을 바꿔야 할지 몰라 같은 카드로 계속 재시도한다.
   const [declined, setDeclined] = useState(false)
+  const [pendingApproval, setPendingApproval] = useState<string | null>(null)
 
   const createOrder = async (): Promise<string> => {
     setMessage(null)
@@ -121,7 +137,15 @@ function Inner({ pgOrderId, orderName, lang = 'ko', onSuccess, onError, onCancel
         body: JSON.stringify({ pgOrderId, description: orderName }),
       })
       const data = await response.json()
-      if (!response.ok || !data.success) throw new Error(data.error || c.createFailed)
+      if (data.code === 'CHECKOUT_REFRESH_REQUIRED') {
+        onRestart?.()
+        throw new Error(c.refresh)
+      }
+      if (!response.ok || !data.success) throw new Error(c.createFailed)
+      if (data.currency !== currency || data.chargedAmount !== amount) {
+        onRestart?.()
+        throw new Error(c.refresh)
+      }
       return data.id as string
     } catch (error) {
       const text = error instanceof Error ? error.message : c.createFailed
@@ -137,6 +161,7 @@ function Inner({ pgOrderId, orderName, lang = 'ko', onSuccess, onError, onCancel
     data: { orderID: string },
     actions?: { restart?: () => void },
   ): Promise<void> => {
+    onPaymentPending?.(true)
     setMessage(null)
     setDeclined(false)
     setProcessing(true)
@@ -147,11 +172,18 @@ function Inner({ pgOrderId, orderName, lang = 'ko', onSuccess, onError, onCancel
         body: JSON.stringify({ paypalOrderId: data.orderID, pgOrderId }),
       })
       const result = await response.json()
+      if (result.state === 'waiting') {
+        setPendingApproval(data.orderID)
+        setMessage(c.checking)
+        return
+      }
 
       // PayPal 이 결제자의 카드·잔액을 거절한 경우.
       // PayPal 권장 대응은 승인 단계로 되돌려 다른 결제수단을 고르게 하는 것이다.
       // restart 를 쓸 수 없는 환경이면 버튼을 다시 누르면 되도록 안내만 남긴다.
       if (!result?.success && result?.recoverable) {
+        setPendingApproval(null)
+        onPaymentPending?.(false)
         setDeclined(true)
         onError?.(c.declinedTitle)
         if (actions?.restart) {
@@ -161,10 +193,13 @@ function Inner({ pgOrderId, orderName, lang = 'ko', onSuccess, onError, onCancel
         return
       }
 
-      if (!response.ok || !result.success) throw new Error(result.error || c.captureFailed)
+      if (!response.ok || !result.success) throw new Error(c.captureFailed)
       onSuccess(result)
     } catch (error) {
-      const text = error instanceof Error ? error.message : c.captureFailed
+      // A lost response is not evidence of a failed charge. Recheck the same
+      // provider order with the same server idempotency key.
+      setPendingApproval(data.orderID)
+      const text = error instanceof TypeError ? c.checking : error instanceof Error ? error.message : c.checking
       setMessage(text)
       onError?.(text)
     } finally {
@@ -210,6 +245,11 @@ function Inner({ pgOrderId, orderName, lang = 'ko', onSuccess, onError, onCancel
       ) : null}
       {message ? <p className="mb-3 text-sm text-red-600">{message}</p> : null}
       {processing ? <p className="mb-3 text-sm text-zinc-500">{c.processing}</p> : null}
+      {pendingApproval ? (
+        <button type="button" disabled={processing} onClick={() => void onApprove({ orderID: pendingApproval })} className="min-h-12 w-full bg-zinc-950 p-3 text-white disabled:opacity-50">
+          {c.checkAgain}
+        </button>
+      ) : (
       <PayPalButtons
         style={{ layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal', height: 48 }}
         disabled={processing}
@@ -225,6 +265,7 @@ function Inner({ pgOrderId, orderName, lang = 'ko', onSuccess, onError, onCancel
           onCancel?.()
         }}
       />
+      )}
       <p className="mt-3 text-center text-xs text-zinc-500">
         {c.notice}
       </p>
@@ -239,6 +280,9 @@ export function PayPalCheckout(props: PayPalCheckoutProps) {
         {COPY[props.lang ?? 'ko'].notConfigured}
       </div>
     )
+  }
+  if (props.currency !== 'USD' || !Number.isFinite(props.amount) || props.amount <= 0) {
+    return <div role="alert" className="border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">{COPY[props.lang ?? 'ko'].refresh}</div>
   }
   const currency = (props.currency || 'USD').toUpperCase()
   const locale = paypalSdkLocale(props.lang ?? 'ko')

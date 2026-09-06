@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { PAYPAL_FOREIGN_CURRENCY, foreignQuote } from '@/lib/paypal-fx'
+import { storedPaypalQuote } from '@/lib/paypal-fx'
 
 // munchpeek_goods / theinashop 의 PayPal 연동과 동일한 방식(Client Credentials → Orders v2).
 // 다만 금액은 클라이언트 값을 쓰지 않고 우리 DB의 회차 청구 레코드에서만 가져온다.
@@ -10,14 +10,8 @@ const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET
 const IS_SANDBOX = process.env.NEXT_PUBLIC_PAYPAL_SANDBOX === 'true'
 const PAYPAL_API_URL = IS_SANDBOX ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com'
 
-// 환산 정책은 src/lib/paypal-fx.ts 에 모아둔다 (checkout 응답의 견적과 동일한 값을 쓰기 위함).
-//
-// PayPal 은 KRW 를 지원하지 않는다. 그래서 기본값은 외화다.
-// 예전에는 KRW 로 먼저 만들어 보고 거절되면 외화로 재시도했는데,
-// 그러면 결제 한 건마다 반드시 실패하는 주문 생성 요청이 한 번씩 PayPal 에 쌓인다.
-// 브라우저 SDK 도 외화로 로드되므로 통화를 처음부터 맞추는 편이 안전하다.
-// PayPal 이 KRW 를 지원하게 되면 PAYPAL_TRY_KRW=true 로 예전 동작을 켠다.
-const TRY_KRW_FIRST = process.env.PAYPAL_TRY_KRW === 'true'
+// Use the USD quote saved at checkout; never retry KRW or recalculate after
+// the customer has reviewed the charge.
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -52,14 +46,14 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabase()
     const { data: paymentRow } = await supabase
       .from('training_order_payments')
-      .select('id, amount, status')
+      .select('id, order_id, sequence, amount, status')
       .eq('pg_order_id', pgOrderId)
       .maybeSingle()
 
     if (!paymentRow) {
       return NextResponse.json({ success: false, error: '주문을 찾을 수 없습니다.' }, { status: 404 })
     }
-    if (paymentRow.status === 'paid') {
+    if (['paid', 'cancelled', 'refunded'].includes(paymentRow.status)) {
       return NextResponse.json({ success: false, error: '이미 결제가 완료된 건입니다.' }, { status: 409 })
     }
 
@@ -67,9 +61,10 @@ export async function POST(request: NextRequest) {
     if (!Number.isFinite(krwAmount) || krwAmount <= 0) {
       return NextResponse.json({ success: false, error: '결제 금액을 계산하지 못했습니다.' }, { status: 500 })
     }
-    const quote = foreignQuote(krwAmount)
+    const { data: order } = await supabase.from('training_orders').select('metadata').eq('id', paymentRow.order_id).maybeSingle()
+    const quote = storedPaypalQuote(order?.metadata, paymentRow.sequence, krwAmount)
     if (!quote) {
-      return NextResponse.json({ success: false, error: '환율 설정을 확인해 주세요.' }, { status: 500 })
+      return NextResponse.json({ success: false, code: 'CHECKOUT_REFRESH_REQUIRED', error: '결제 금액을 다시 확인해 주세요.' }, { status: 409 })
     }
     const foreignAmount = quote.amount
 
@@ -77,7 +72,7 @@ export async function POST(request: NextRequest) {
     const accessToken = await getAccessToken()
 
     const createWith = async (currency: string) => {
-      const value = currency === 'KRW' ? String(Math.round(krwAmount)) : foreignAmount.toFixed(2)
+      const value = foreignAmount.toFixed(2)
       const response = await fetch(`${PAYPAL_API_URL}/v2/checkout/orders`, {
         method: 'POST',
         headers: {
@@ -106,15 +101,8 @@ export async function POST(request: NextRequest) {
       return { response, body: await response.json() }
     }
 
-    let currency = TRY_KRW_FIRST ? 'KRW' : PAYPAL_FOREIGN_CURRENCY
-    let attempt = await createWith(currency)
-
-    // PayPal이 원화를 거절하면(CURRENCY_NOT_SUPPORTED) 외화 환산으로 한 번만 재시도한다.
-    if (!attempt.response.ok && currency === 'KRW') {
-      console.warn('[training/paypal] KRW rejected, retrying in foreign currency:', attempt.body)
-      currency = PAYPAL_FOREIGN_CURRENCY
-      attempt = await createWith(currency)
-    }
+    const currency = quote.currency
+    const attempt = await createWith(currency)
 
     if (!attempt.response.ok) {
       console.error('[training/paypal] create order failed:', attempt.body)
@@ -124,7 +112,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    await supabase
+    const { error: saveError } = await supabase
       .from('training_order_payments')
       .update({
         pg_provider: 'paypal',
@@ -132,15 +120,19 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', paymentRow.id)
+    if (saveError) {
+      console.error('[training/paypal] order reference save failed', paymentRow.id)
+      return NextResponse.json({ success: false, error: '결제 준비를 다시 시도해 주세요.' }, { status: 503 })
+    }
 
     return NextResponse.json({
       success: true,
       id: attempt.body.id,
       status: attempt.body.status,
       currency,
-      chargedAmount: currency === 'KRW' ? Math.round(krwAmount) : foreignAmount,
+      chargedAmount: foreignAmount,
       krwAmount,
-      appliedKrwPerUnit: currency === 'KRW' ? 1 : quote.krwPerUnit,
+      appliedKrwPerUnit: quote.krwPerUnit,
     })
   } catch (error) {
     console.error('[training/paypal] create order error:', error)

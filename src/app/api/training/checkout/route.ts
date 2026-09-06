@@ -161,6 +161,9 @@ export async function POST(request: NextRequest) {
     // 회차별 금액은 할인 후 총액을 나눠 담고, 나머지 원은 1회차에 붙인다.
     const perCharge = Math.floor(totalAmount / plan.installment_months)
     const firstCharge = totalAmount - perCharge * (plan.installment_months - 1)
+    const paypalQuotes = Object.fromEntries(Array.from({ length: plan.installment_months }, (_, index) =>
+      [String(index + 1), foreignQuote(index === 0 ? firstCharge : perCharge)],
+    ))
 
     const now = new Date()
     const dueDates = buildDueDates(now, plan.installment_months)
@@ -192,7 +195,7 @@ export async function POST(request: NextRequest) {
           installment_months: plan.installment_months,
           status: 'pending',
           memo: (body.memo ?? '').trim() || null,
-          metadata: { request_audit: buildPaymentRequestAudit(request.headers, now) },
+          metadata: { request_audit: buildPaymentRequestAudit(request.headers, now), paypal_quotes: paypalQuotes },
           billing_customer_key: randomUUID(),
           next_billing_at: plan.installment_months > 1 ? `${dueDates[1]}T00:00:00+09:00` : null,
         })
@@ -272,7 +275,7 @@ export async function POST(request: NextRequest) {
           : `${product.title} (${plan.label})`,
       customerKey: order.billing_customer_key,
       // PayPal은 원화를 지원하지 않아 외화로 청구된다. 사용자에게 미리 보여줄 견적.
-      paypalQuote: foreignQuote(firstCharge),
+      paypalQuote: paypalQuotes['1'],
     })
   } catch (error) {
     console.error('[training/checkout] unexpected error:', error)

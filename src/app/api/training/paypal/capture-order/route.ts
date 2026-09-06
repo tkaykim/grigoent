@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { notifyVisaCasePayment } from '@/lib/visa-payment-ref'
 import { loadVisaDocumentProductSlug, syncPaidProgramOrderToDeetz } from '@/lib/visa-program-sync'
 import { sendPaymentReceipt } from '@/lib/payment-receipt'
-import { foreignQuote } from '@/lib/paypal-fx'
+import { foreignQuote, matchesPaypalAmount, storedPaypalQuote } from '@/lib/paypal-fx'
 
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
 const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabase()
     const { data: paymentRow } = await supabase
       .from('training_order_payments')
-      .select('id, order_id, sequence, amount, status, paid_at')
+      .select('id, order_id, sequence, amount, status, paid_at, provider_order_id')
       .eq('pg_order_id', pgOrderId)
       .maybeSingle()
 
@@ -137,6 +137,9 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       )
     }
+    if (paymentRow.provider_order_id !== paypalOrderId) {
+      return NextResponse.json({ success: false, error: '결제 정보가 일치하지 않습니다.' }, { status: 400 })
+    }
 
     // 프로덕션에서 sandbox 승인 금지 — 돈이 안 움직이는데 '결제 완료'가 되는 것을 막는다.
     if (
@@ -165,7 +168,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '결제 정보를 확인하지 못했습니다.' }, { status: 400 })
     }
     const referenceId = lookupData?.purchase_units?.[0]?.reference_id
-    if (referenceId !== pgOrderId) {
+    if (referenceId !== pgOrderId || lookupData?.purchase_units?.length !== 1) {
       console.error('[training/paypal] reference_id mismatch — capture refused', {
         paypalOrderId,
         pgOrderId,
@@ -174,13 +177,54 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '결제 정보가 일치하지 않습니다.' }, { status: 400 })
     }
 
-    const captureResponse = await fetch(`${PAYPAL_API_URL}/v2/checkout/orders/${paypalOrderId}/capture`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-    })
-    const captureData = await captureResponse.json()
+    const { data: quoteOrder } = await supabase.from('training_orders').select('metadata').eq('id', paymentRow.order_id).maybeSingle()
+    // Existing provider orders created before quote snapshots still undergo
+    // an amount check. All new orders use the immutable checkout snapshot.
+    const expected = storedPaypalQuote(quoteOrder?.metadata, paymentRow.sequence, paymentRow.amount as number)
+      ?? (quoteOrder?.metadata?.paypal_quotes ? null : foreignQuote(paymentRow.amount as number))
+    if (!expected || !matchesPaypalAmount(lookupData.purchase_units[0].amount, expected)) {
+      return NextResponse.json({ success: false, code: 'PAYMENT_AMOUNT_MISMATCH', error: '결제 금액을 확인해야 합니다. 추가 결제를 진행하지 말고 문의해 주세요.' }, { status: 409 })
+    }
 
-    if (!captureResponse.ok || captureData.status !== 'COMPLETED') {
+    let captureOk = lookupData.status === 'COMPLETED'
+    let captureStatus = 200
+    let captureData = lookupData
+    if (!captureOk) {
+      try {
+        const captureResponse = await fetch(`${PAYPAL_API_URL}/v2/checkout/orders/${paypalOrderId}/capture`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}`, 'PayPal-Request-Id': paymentRow.id },
+          signal: AbortSignal.timeout(15000),
+        })
+        captureOk = captureResponse.ok
+        captureStatus = captureResponse.status
+        captureData = await captureResponse.json()
+      } catch {
+        captureOk = false
+        captureStatus = 503
+        captureData = { name: 'CAPTURE_RESULT_UNKNOWN' }
+      }
+      // A timeout or duplicate request can hide an already completed capture.
+      // Read the PG result before reporting failure or offering another charge.
+      if (!captureOk) {
+        try {
+          const retryLookup = await fetch(`${PAYPAL_API_URL}/v2/checkout/orders/${paypalOrderId}`, {
+            headers: { Authorization: `Bearer ${accessToken}` }, cache: 'no-store', signal: AbortSignal.timeout(8000),
+          })
+          const latest = await retryLookup.json()
+          if (retryLookup.ok && latest.status === 'COMPLETED') {
+            captureData = latest
+            captureOk = true
+          }
+        } catch { /* Keep the unknown outcome pending for a status recheck. */ }
+      }
+    }
+
+    if (!captureOk && (captureStatus >= 500 || captureStatus === 429 || captureData?.details?.some((detail: { issue?: string }) => detail.issue === 'ORDER_ALREADY_CAPTURED'))) {
+      return NextResponse.json({ success: false, state: 'waiting', code: 'PAYMENT_RESULT_PENDING' }, { status: 202 })
+    }
+
+    if (!captureOk || captureData.status !== 'COMPLETED') {
       console.error('[training/paypal] capture failed:', captureData)
 
       // PayPal 이 결제자의 카드·잔액을 거절한 경우(INSTRUMENT_DECLINED)는
@@ -214,31 +258,20 @@ export async function POST(request: NextRequest) {
             ? '결제수단이 거절되었습니다. 다른 결제수단으로 다시 시도해 주세요.'
             : 'PayPal 결제 승인에 실패했습니다.',
         },
-        { status: captureResponse.ok ? 400 : captureResponse.status },
+        { status: captureOk ? 400 : captureStatus },
       )
     }
 
     const captureDetails = captureData.purchase_units?.[0]?.payments?.captures?.[0]
     const paidAt = new Date().toISOString()
 
-    // 실제로 승인된 금액이 우리가 청구하려던 금액과 같은지 확인한다.
-    // 토스는 confirm 에서 대조하는데 PayPal 만 빠져 있었다.
-    // 다르면 결제는 이미 승인된 상태이므로 막지 않고, 기록에 남겨 대사할 수 있게 한다.
-    const capturedValue = Number(captureDetails?.amount?.value)
-    const capturedCurrency = captureDetails?.amount?.currency_code as string | undefined
-    const expected = foreignQuote(paymentRow.amount as number)
-    const amountMismatch =
-      Number.isFinite(capturedValue) &&
-      expected != null &&
-      capturedCurrency === expected.currency &&
-      Math.abs(capturedValue - expected.amount) > 0.01
+    // A provider anomaly after capture requires reconciliation, not another
+    // charge or a false success at the expected amount.
+    const amountMismatch = !matchesPaypalAmount(captureDetails?.amount, expected)
 
-    if (amountMismatch) {
-      console.error('[training/paypal] captured amount differs from expected', {
-        pgOrderId,
-        expected: `${expected!.amount} ${expected!.currency}`,
-        captured: `${capturedValue} ${capturedCurrency}`,
-      })
+    if (captureDetails?.status !== 'COMPLETED' || amountMismatch) {
+      console.error('[training/paypal] completed order requires reconciliation', pgOrderId)
+      return NextResponse.json({ success: false, state: 'waiting', code: 'PAYMENT_REVIEW_REQUIRED' }, { status: 202 })
     }
 
     const { error: paidUpdateError } = await supabase
@@ -248,9 +281,7 @@ export async function POST(request: NextRequest) {
         pg_provider: 'paypal',
         payment_key: captureDetails?.id ?? captureData.id ?? null,
         paid_at: paidAt,
-        failure_reason: amountMismatch
-          ? `금액 불일치: 예상 ${expected!.amount} ${expected!.currency} / 실제 ${capturedValue} ${capturedCurrency}`
-          : null,
+        failure_reason: null,
         raw: captureData,
         updated_at: paidAt,
       })
@@ -270,9 +301,7 @@ export async function POST(request: NextRequest) {
       .eq('status', 'paid')
 
     const paidAmount = (paidRows ?? []).reduce((sum, row) => sum + (row.amount as number), 0)
-    // 실제 승인액이 모자라면 완료로 올리지 않는다. 운영자가 대사하도록 남긴다.
-    const shortPaid = amountMismatch && Number.isFinite(capturedValue) && expected != null && capturedValue < expected.amount
-    const isComplete = order ? paidAmount >= order.total_amount && !shortPaid : false
+    const isComplete = order ? paidAmount >= order.total_amount : false
 
     const { error: orderUpdateError } = await supabase
       .from('training_orders')
