@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import { TrainingClient } from './TrainingClient'
+import type { PersonalPaymentContext } from './TrainingClient'
+import { foreignQuote } from '@/lib/paypal-fx'
 import { TRAINING_PRODUCT_SLUG, type TrainingPlan, type TrainingProduct } from '@/lib/training-package'
+import { resolveVisaPaymentContext } from '@/lib/visa-payment-ref'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,8 +26,11 @@ export default async function TrainingPage({
 }: {
   searchParams: Promise<{ ref?: string }>
 }) {
-  // deetz 케이스에서 발급한 결제 링크 토큰. 검증은 서버(checkout)에서만 한다.
+  // deetz 케이스에서 발급한 개인 결제 링크 토큰.
+  // 화면에서는 신청 정보(가려진 값)와 관리자가 정한 결제 금액을 보여 주고,
+  // 실제 청구 금액은 checkout 이 deetz 에서 다시 받아 확정한다.
   const { ref } = await searchParams
+  const paymentContextResult = ref ? await resolveVisaPaymentContext(ref, 'display') : null
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -55,5 +61,31 @@ export default async function TrainingPage({
       } as TrainingProduct)
     : null
 
-  return <TrainingClient product={product} plans={plans} paymentRef={ref} />
+  // 링크에 금액이 정해져 있으면 일시불 요금제 하나만, 그 금액으로 보여 준다.
+  const linkAmount = paymentContextResult?.ok ? paymentContextResult.context.amountKrw : null
+  if (linkAmount !== null) {
+    plans = plans
+      .filter((plan) => plan.installment_months === 1)
+      .slice(0, 1)
+      .map((plan) => ({ ...plan, amount_per_charge: linkAmount, total_amount: linkAmount }))
+  }
+
+  const firstPlan = plans[0] ?? null
+  const personalPayment: PersonalPaymentContext | undefined = paymentContextResult?.ok
+    ? {
+        ...paymentContextResult.context.customer,
+        preferredMethod: 'paypal',
+        paypalQuote: firstPlan ? foreignQuote(firstPlan.amount_per_charge) : null,
+      }
+    : undefined
+
+  return (
+    <TrainingClient
+      product={product}
+      plans={plans}
+      paymentRef={ref}
+      personalPayment={personalPayment}
+      paymentLinkError={ref && paymentContextResult && !paymentContextResult.ok ? paymentContextResult.reason : undefined}
+    />
+  )
 }
