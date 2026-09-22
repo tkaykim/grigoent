@@ -25,6 +25,9 @@ export type VisaPaymentRef = {
 export type VisaPaymentContext = {
   applicationId: string
   productSlug: string
+  // 관리자가 링크를 발급할 때 정한 결제 금액(원). 없으면 상품 요금제 금액으로 결제한다.
+  // 예: 오디션 참가비 10만원을 이미 낸 지원자의 프로그램 결제 = 3,900,000원.
+  amountKrw: number | null
   customer: {
     name: string
     email: string
@@ -94,6 +97,15 @@ export function verifyVisaPaymentRef(token: string | null | undefined): VisaPaym
 //               응답한다(서버 대 서버 전용). 브라우저로는 내려보내지 않는다.
 export type VisaPaymentContextMode = 'display' | 'full'
 
+// deetz 가 돌려준 링크 금액. 정수 원 단위, 1만원~2천만원만 받는다. 그 밖의 값은 무시하고
+// 요금제 금액으로 결제한다(이상한 값으로 결제가 만들어지는 것보다 안전하다).
+export const LINK_AMOUNT_MIN_KRW = 10_000
+export const LINK_AMOUNT_MAX_KRW = 20_000_000
+function parseLinkAmount(value: unknown): number | null {
+  const amount = typeof value === 'number' ? value : Number.NaN
+  return Number.isInteger(amount) && amount >= LINK_AMOUNT_MIN_KRW && amount <= LINK_AMOUNT_MAX_KRW ? amount : null
+}
+
 export async function resolveVisaPaymentContext(
   token: string | null | undefined,
   mode: VisaPaymentContextMode = 'full',
@@ -122,6 +134,7 @@ export async function resolveVisaPaymentContext(
       masked?: boolean
       applicationId?: string
       productSlug?: string
+      amountKrw?: unknown
       customer?: {
         name?: string
         email?: string
@@ -164,6 +177,7 @@ export async function resolveVisaPaymentContext(
       context: {
         applicationId: verified.applicationId,
         productSlug: verified.productSlug,
+        amountKrw: parseLinkAmount(data.amountKrw),
         customer: {
           name: String(data.customer?.name ?? '').trim() || email.split('@')[0] || email,
           email,

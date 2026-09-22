@@ -72,7 +72,9 @@ export async function POST(request: NextRequest) {
     // 브라우저에서 readOnly 필드를 조작해도 주문 이메일·언어가 바뀌지 않게 서버에서 다시 확인한다.
     const ref = verifyVisaPaymentRef(body.ref)
     let visaApplicationId = ref && ref.productSlug === requestedSlug ? ref.applicationId : null
-    if (requestedSlug === 'audition-fee' && body.ref) {
+    // 관리자가 링크에 정한 결제 금액. deetz 서버에서만 받아오므로 브라우저가 바꿀 수 없다.
+    let linkAmountKrw: number | null = null
+    if ((requestedSlug === 'audition-fee' || requestedSlug === TRAINING_PRODUCT_SLUG) && body.ref) {
       const contextResult = await resolveVisaPaymentContext(body.ref, 'full')
       if (!contextResult.ok) {
         return NextResponse.json(
@@ -91,6 +93,7 @@ export async function POST(request: NextRequest) {
       }
       const customer = contextResult.context.customer
       visaApplicationId = contextResult.context.applicationId
+      linkAmountKrw = requestedSlug === TRAINING_PRODUCT_SLUG ? contextResult.context.amountKrw : null
       name = customer.name
       email = customer.email
       phone = customer.phone
@@ -132,12 +135,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '결제 방식을 다시 선택해 주세요.' }, { status: 400 })
     }
     const plan = planRow as unknown as TrainingPlan
+    // 링크 금액은 일시불 1회 청구에만 쓴다.
+    if (linkAmountKrw !== null && plan.installment_months !== 1) {
+      return NextResponse.json({ success: false, error: '결제 방식을 다시 선택해 주세요.' }, { status: 400 })
+    }
+    // 링크 금액이 있으면 그 금액이 기준가다. 요금제보다 낮으면 차액을 할인으로 기록한다.
+    const listAmount = linkAmountKrw !== null ? Math.max(plan.total_amount, linkAmountKrw) : plan.total_amount
+    const baseAmount = linkAmountKrw ?? plan.total_amount
 
     // 할인 적용. 코드가 유효하지 않으면 결제를 막고 이유를 알린다
     // (조용히 정가로 진행하면 사용자는 할인이 먹은 줄 알고 결제한다).
-    let discountAmount = 0
+    let discountAmount = listAmount - baseAmount
     let discountCode: string | null = null
     if ((body.discountCode ?? '').trim()) {
+      // 금액을 정해 발급한 개인 링크에는 할인코드를 겹쳐 쓰지 않는다.
+      if (linkAmountKrw !== null) {
+        return NextResponse.json(
+          { success: false, error: '이 결제 링크에는 할인코드를 사용할 수 없습니다.' },
+          { status: 400 },
+        )
+      }
       const evaluated = await evaluateDiscount(supabase, {
         code: body.discountCode!,
         productSlug: requestedSlug,
@@ -151,7 +168,7 @@ export async function POST(request: NextRequest) {
       discountCode = evaluated.code.code
     }
 
-    const totalAmount = plan.total_amount - discountAmount
+    const totalAmount = listAmount - discountAmount
     if (totalAmount <= 0) {
       return NextResponse.json(
         { success: false, error: '할인 후 결제 금액이 0원이라 결제를 진행할 수 없습니다.' },
@@ -189,13 +206,17 @@ export async function POST(request: NextRequest) {
           pg_provider: 'toss',
           currency: plan.currency,
           total_amount: totalAmount,
-          original_amount: plan.total_amount,
+          original_amount: listAmount,
           discount_code: discountCode,
           discount_amount: discountAmount,
           installment_months: plan.installment_months,
           status: 'pending',
           memo: (body.memo ?? '').trim() || null,
-          metadata: { request_audit: buildPaymentRequestAudit(request.headers, now), paypal_quotes: paypalQuotes },
+          metadata: {
+            request_audit: buildPaymentRequestAudit(request.headers, now),
+            paypal_quotes: paypalQuotes,
+            ...(linkAmountKrw !== null ? { link_amount_krw: linkAmountKrw } : {}),
+          },
           billing_customer_key: randomUUID(),
           next_billing_at: plan.installment_months > 1 ? `${dueDates[1]}T00:00:00+09:00` : null,
         })
@@ -265,7 +286,7 @@ export async function POST(request: NextRequest) {
       pgOrderId: `${order.order_no}-1`,
       amount: firstCharge,
       totalAmount,
-      originalAmount: plan.total_amount,
+      originalAmount: listAmount,
       discountCode,
       discountAmount,
       installmentMonths: plan.installment_months,
