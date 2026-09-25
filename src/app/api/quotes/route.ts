@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
+import { assertAdminFromRequest } from '@/lib/admin-auth'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -9,7 +10,29 @@ function getSupabase() {
   return createClient(supabaseUrl, supabaseServiceKey)
 }
 
-export async function GET() {
+// 관리자가 수정할 수 있는 필드만 허용 (status·view_token·client_response 등은 서버 전용)
+const EDITABLE_FIELDS = [
+  'inquiry_id',
+  'client_name',
+  'client_email',
+  'client_phone',
+  'client_company',
+  'project_title',
+  'project_type',
+  'items',
+  'supply_amount',
+  'vat',
+  'total_amount',
+  'valid_until',
+  'notes',
+] as const
+
+export async function GET(req: NextRequest) {
+  const auth = await assertAdminFromRequest(req, 'quotes')
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error, detail: auth.detail }, { status: auth.status })
+  }
+
   try {
     const supabase = getSupabase()
     const { data, error } = await supabase
@@ -28,6 +51,11 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await assertAdminFromRequest(req, 'quotes')
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error, detail: auth.detail }, { status: auth.status })
+  }
+
   try {
     const supabase = getSupabase()
     const body = await req.json()
@@ -87,16 +115,26 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const auth = await assertAdminFromRequest(req, 'quotes')
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error, detail: auth.detail }, { status: auth.status })
+  }
+
   try {
     const supabase = getSupabase()
     const body = await req.json()
-    const { id, cc_emails, ...updates } = body
+    const { id } = body
 
     if (!id) {
       return NextResponse.json(
         { error: '견적서 ID가 필요합니다.' },
         { status: 400 }
       )
+    }
+
+    const updates: Record<string, unknown> = {}
+    for (const key of EDITABLE_FIELDS) {
+      if (key in body) updates[key] = body[key]
     }
 
     const { data, error } = await supabase

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import type { Quote } from '@/lib/types'
+import type { PublicQuote } from '@/lib/public-quote'
 import { PROJECT_TYPES } from '@/lib/types'
 import { CheckCircle, AlertCircle, XCircle, Loader2 } from 'lucide-react'
 
@@ -10,16 +10,11 @@ function formatKRW(amount: number | null | undefined): string {
   return (amount ?? 0).toLocaleString('ko-KR') + '원'
 }
 
-function getDocNumber(id: string): string {
-  const numericPart = id.replace(/\D/g, '').slice(-6)
-  return `GRG-${numericPart.padStart(6, '0')}`
-}
-
 export default function QuoteViewPage() {
   const params = useParams()
   const token = params.token as string
 
-  const [quote, setQuote] = useState<Quote | null>(null)
+  const [quote, setQuote] = useState<PublicQuote | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [responding, setResponding] = useState(false)
@@ -34,7 +29,7 @@ export default function QuoteViewPage() {
   const loadQuote = async () => {
     try {
       setLoading(true)
-      const res = await fetch(`/api/quotes/view?token=${token}`)
+      const res = await fetch(`/api/quotes/view?token=${encodeURIComponent(token)}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setQuote(data.quote)
@@ -96,7 +91,7 @@ export default function QuoteViewPage() {
     )
   }
 
-  const docNumber = getDocNumber(quote.id)
+  const docNumber = quote.doc_number
   const projectTypeLabel = PROJECT_TYPES.find(t => t.value === quote.project_type)?.label || quote.project_type
 
   return (

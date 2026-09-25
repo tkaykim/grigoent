@@ -9,8 +9,17 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { Quote } from '@/lib/types'
+import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { FileText, Plus, Send, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+
+// grigoent 세션은 localStorage → 서버 라우트엔 Bearer 토큰으로 신원 전달
+async function authFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const { data: { session } } = await supabase.auth.getSession()
+  const headers = new Headers(init.headers)
+  if (session?.access_token) headers.set('Authorization', `Bearer ${session.access_token}`)
+  return fetch(input, { ...init, headers })
+}
 
 function formatKRW(amount: number | null | undefined): string {
   return (amount ?? 0).toLocaleString('ko-KR') + '원'
@@ -46,7 +55,7 @@ export default function AdminQuotesPage() {
   const fetchQuotes = async () => {
     try {
       setLoadingQuotes(true)
-      const res = await fetch('/api/quotes')
+      const res = await authFetch('/api/quotes')
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setQuotes(data.quotes || [])

@@ -2,12 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateQuotePdf } from '@/lib/generate-quote-pdf'
 import { sendQuoteEmail } from '@/lib/email'
+import { assertAdminFromRequest } from '@/lib/admin-auth'
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await assertAdminFromRequest(req, 'quotes/send')
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error, detail: auth.detail }, { status: auth.status })
+  }
+
   try {
     const supabase = getSupabase()
     const { quoteId, ccEmails } = await req.json()
