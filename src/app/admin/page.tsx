@@ -1362,6 +1362,14 @@ export default function AdminPage() {
                       <Receipt className="w-4 h-4" />
                       견적서 관리 페이지로 이동
                     </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push('/admin/paperwork')}
+                      className="ml-2 inline-flex items-center gap-2"
+                    >
+                      <Receipt className="w-4 h-4" />
+                      담당자 발행 견적서·거래명세서
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
