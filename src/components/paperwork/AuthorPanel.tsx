@@ -74,6 +74,9 @@ export function AuthorPanel({ expired }: { expired: boolean }) {
                   <p className="text-xs text-zinc-500">{d.doc_no} · {won(d.total_amount)}{d.sent_to ? ` · ${d.sent_to} 발송` : ''}</p>
                 </div>
                 {d.url && d.status !== 'void' && <CopyButton text={d.url} label="링크" />}
+                {d.url && d.status !== 'void' && (
+                  <a href={`/paperwork/tax-invoice?doc=${d.url.split('/').pop()}`} className="rounded-md border border-zinc-300 px-2.5 py-1.5 text-xs font-medium">계산서 요청</a>
+                )}
                 {d.status !== 'void' && (
                   <Link href={`/paperwork/edit/${d.id}`} className="rounded-md border border-zinc-300 px-2.5 py-1.5 text-xs font-medium">수정</Link>
                 )}

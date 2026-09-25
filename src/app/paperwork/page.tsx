@@ -88,9 +88,14 @@ export default async function PaperworkPage({
       )}
 
       <section className="mt-6 rounded-xl border border-zinc-200 bg-white px-4 py-4 text-[13px] leading-6 text-zinc-600">
-        <p>
-          세금계산서 발행이 필요하시면 귀사 사업자등록증과 발행 금액을 <span className="font-semibold text-zinc-900">{COMPANY.taxInvoiceEmail}</span>로 보내주세요.
-        </p>
+        <p>세금계산서 발행이 필요하시면 아래에서 요청해 주세요.</p>
+        <a
+          href={`/paperwork/tax-invoice?${new URLSearchParams({ ...(project ? { project } : {}), ...(to ? { to } : {}) }).toString()}`}
+          className="mt-2 inline-flex rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700"
+        >
+          세금계산서 발행 요청
+        </a>
+        <p className="mt-2">메일로 보내셔도 됩니다: {COMPANY.taxInvoiceEmail}</p>
         {from && <p className="mt-1">담당: {from}</p>}
         <p className="mt-1">문의: {COMPANY.phone}</p>
       </section>
