@@ -4,9 +4,9 @@
 // 파일은 Supabase public 버킷 `company-paperwork`에 고정 경로로 두고, 교체는 같은 경로 덮어쓰기로 한다(재배포 불필요).
 
 export type PaperworkAccount = 'enter' | 'react'
-export type PaperworkItem = 'brn' | 'bank' | 'info'
+export type PaperworkShareItem = 'brn' | 'bank' | 'info'
 
-export const PAPERWORK_ITEMS: PaperworkItem[] = ['brn', 'bank', 'info']
+export const PAPERWORK_ITEMS: PaperworkShareItem[] = ['brn', 'bank', 'info']
 
 // ⚠️ 상호·주소는 사업자등록증 표기와 글자 단위로 일치해야 한다(2026-04-13 재발급본 기준).
 export const COMPANY = {
@@ -65,7 +65,7 @@ export function paperworkFileUrl(file: string, downloadName?: string): string {
 export function parsePaperworkParams(sp: Record<string, string | string[] | undefined>) {
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim() ?? ''
   const account: PaperworkAccount = one(sp.for) === 'react' ? 'react' : 'enter'
-  const requested = one(sp.items).split(',').filter((i): i is PaperworkItem => PAPERWORK_ITEMS.includes(i as PaperworkItem))
+  const requested = one(sp.items).split(',').filter((i): i is PaperworkShareItem => PAPERWORK_ITEMS.includes(i as PaperworkShareItem))
   const items = requested.length ? requested : PAPERWORK_ITEMS
   return {
     account,
@@ -78,7 +78,7 @@ export function parsePaperworkParams(sp: Record<string, string | string[] | unde
 
 export function buildPaperworkUrl(origin: string, opts: {
   account: PaperworkAccount
-  items: PaperworkItem[]
+  items: PaperworkShareItem[]
   to?: string
   project?: string
   from?: string

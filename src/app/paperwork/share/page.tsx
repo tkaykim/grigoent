@@ -4,14 +4,15 @@ import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { ExternalLink } from 'lucide-react'
 import { CopyButton } from '@/components/paperwork/CopyButton'
+import { AuthorPanel } from '@/components/paperwork/AuthorPanel'
 import {
   BANK_ACCOUNTS,
   buildPaperworkUrl,
   type PaperworkAccount,
-  type PaperworkItem,
+  type PaperworkShareItem,
 } from '@/lib/company-paperwork'
 
-const ITEM_LABELS: Record<PaperworkItem, string> = {
+const ITEM_LABELS: Record<PaperworkShareItem, string> = {
   brn: '사업자등록증',
   bank: '통장사본',
   info: '사업자 정보(복사용)',
@@ -22,7 +23,7 @@ const ITEM_LABELS: Record<PaperworkItem, string> = {
 function ShareBuilder() {
   const sp = useSearchParams()
   const [account, setAccount] = useState<PaperworkAccount>(sp.get('for') === 'react' ? 'react' : 'enter')
-  const [items, setItems] = useState<PaperworkItem[]>(['brn', 'bank', 'info'])
+  const [items, setItems] = useState<PaperworkShareItem[]>(['brn', 'bank', 'info'])
   const [to, setTo] = useState(sp.get('to') ?? '')
   const [project, setProject] = useState(sp.get('project') ?? '')
   const [from, setFrom] = useState(sp.get('from') ?? '')
@@ -46,7 +47,7 @@ function ShareBuilder() {
     ].join('\n')
   }, [items, to, project, url])
 
-  const toggle = (i: PaperworkItem) =>
+  const toggle = (i: PaperworkShareItem) =>
     setItems((cur) => (cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i]))
 
   return (
@@ -55,11 +56,15 @@ function ShareBuilder() {
       <h1 className="mt-2 text-2xl font-bold">거래 서류 보내기</h1>
       <p className="mt-2 text-sm leading-6 text-zinc-600">보낼 서류를 고르고, 만들어진 문구를 카톡이나 메일에 붙여 넣으세요.</p>
 
-      <section className="mt-6 space-y-5 rounded-xl border border-zinc-200 bg-white p-4">
+      <AuthorPanel expired={sp.get('expired') === '1'} />
+
+      <h2 className="mt-8 text-base font-bold">사업자등록증·통장사본 링크</h2>
+
+      <section className="mt-3 space-y-5 rounded-xl border border-zinc-200 bg-white p-4">
         <fieldset>
           <legend className="text-sm font-semibold">보낼 서류</legend>
           <div className="mt-2 flex flex-wrap gap-2">
-            {(Object.keys(ITEM_LABELS) as PaperworkItem[]).map((i) => (
+            {(Object.keys(ITEM_LABELS) as PaperworkShareItem[]).map((i) => (
               <label
                 key={i}
                 className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${items.includes(i) ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-300 text-zinc-700'}`}
