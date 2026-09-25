@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: '거래 서류 | 그리고엔터테인먼트',
   description: '사업자등록증·통장사본·사업자 정보를 확인하고 내려받을 수 있습니다.',
-  robots: { index: false, follow: false },
+  robots: { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false, noimageindex: true } },
   openGraph: {
     title: '그리고엔터테인먼트 거래 서류',
     description: '사업자등록증·통장사본·사업자 정보를 확인하고 내려받으세요.',

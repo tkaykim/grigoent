@@ -1,7 +1,9 @@
 // 거래 서류(사업자등록증·통장사본·사업자 정보) 정본.
 // 모든 사업부(GRIGO·deetz·원샷크루·REACT)는 같은 법인 (주)그리고엔터테인먼트로 청구한다.
 // 통장만 두 개다: REACT(영상 제작) 전용 계좌와 그 외 전부(엔터)의 계좌.
-// 파일은 Supabase public 버킷 `company-paperwork`에 고정 경로로 두고, 교체는 같은 경로 덮어쓰기로 한다(재배포 불필요).
+// 파일은 Supabase private 버킷 `company-paperwork`의 `<PREFIX>/<file>` 에 두고 /paperwork/files/<file> 로만 내보낸다.
+// 검색 노출 방지: 원본 주소를 페이지에 노출하지 않고, 프록시 응답에 X-Robots-Tag noindex + robots.txt 차단.
+// 교체는 같은 경로 덮어쓰기(재배포 불필요).
 
 export type PaperworkAccount = 'enter' | 'react'
 export type PaperworkShareItem = 'brn' | 'bank' | 'info'
@@ -55,11 +57,13 @@ export const BUSINESS_REGISTRATION = {
   downloadName: '그리고엔터테인먼트_사업자등록증.pdf',
 }
 
-const BUCKET = 'company-paperwork'
+export const PAPERWORK_BUCKET = 'company-paperwork'
+export const PAPERWORK_STORAGE_PREFIX = '28185c248386e460'
+export const PAPERWORK_FILES = ['business-registration.pdf', 'bank-account-enter.pdf', 'bank-account-react.pdf'] as const
 
-export function paperworkFileUrl(file: string, downloadName?: string): string {
-  const base = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${file}`
-  return downloadName ? `${base}?download=${encodeURIComponent(downloadName)}` : base
+// 페이지용 주소(같은 도메인 프록시). download=true 면 첨부로 내려받는다.
+export function paperworkFileUrl(file: string, download = false): string {
+  return `/paperwork/files/${file}${download ? '?download=1' : ''}`
 }
 
 export function parsePaperworkParams(sp: Record<string, string | string[] | undefined>) {
