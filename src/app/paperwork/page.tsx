@@ -54,7 +54,7 @@ export default async function PaperworkPage({
             title="사업자등록증"
             desc={`${COMPANY.name} · ${COMPANY.businessNumber}`}
             viewUrl={paperworkFileUrl(BUSINESS_REGISTRATION.file)}
-            downloadUrl={paperworkFileUrl(BUSINESS_REGISTRATION.file, BUSINESS_REGISTRATION.downloadName)}
+            downloadUrl={paperworkFileUrl(BUSINESS_REGISTRATION.file, true)}
           />
         )}
         {show('bank') && (
@@ -64,7 +64,7 @@ export default async function PaperworkPage({
             desc={`${bank.bank} ${bank.number} · 예금주 ${bank.holder}`}
             copyText={`${bank.bank} ${bank.number} (예금주 ${bank.holder})`}
             viewUrl={paperworkFileUrl(bank.file)}
-            downloadUrl={paperworkFileUrl(bank.file, bank.downloadName)}
+            downloadUrl={paperworkFileUrl(bank.file, true)}
           />
         )}
       </div>

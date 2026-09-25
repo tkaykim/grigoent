@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer'
-import { BANK_ACCOUNTS, BUSINESS_REGISTRATION, COMPANY, paperworkFileUrl } from '@/lib/company-paperwork'
+import { BANK_ACCOUNTS, BUSINESS_REGISTRATION, COMPANY } from '@/lib/company-paperwork'
+import { isPaperworkFile, loadPaperworkFile } from '@/lib/paperwork-files'
 import { DOC_TYPE_LABELS, type PaperworkDocRow } from '@/lib/paperwork-docs'
 import { paperworkPdfFilename } from '@/lib/paperwork-pdf'
 
@@ -25,9 +26,8 @@ function esc(v: string): string {
 const won = (v: number) => `${Math.round(v).toLocaleString('ko-KR')}원`
 
 async function fetchAttachment(file: string, filename: string) {
-  const res = await fetch(paperworkFileUrl(file))
-  if (!res.ok) throw new Error(`첨부 파일을 불러오지 못했습니다: ${filename}`)
-  return { filename, content: Buffer.from(await res.arrayBuffer()), contentType: 'application/pdf' }
+  if (!isPaperworkFile(file)) throw new Error(`알 수 없는 첨부 파일: ${file}`)
+  return { filename, content: await loadPaperworkFile(file), contentType: 'application/pdf' }
 }
 
 export async function sendPaperworkEmail(opts: {

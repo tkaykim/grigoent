@@ -77,12 +77,12 @@ export default async function PaperworkDocumentPage({ params }: { params: Promis
 
       <h2 className="mt-8 text-sm font-semibold text-zinc-700">사업자 서류</h2>
       <div className="mt-2 grid gap-2 sm:grid-cols-2">
-        <a href={paperworkFileUrl(BUSINESS_REGISTRATION.file, BUSINESS_REGISTRATION.downloadName)} className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-sm hover:bg-zinc-50">
+        <a href={paperworkFileUrl(BUSINESS_REGISTRATION.file, true)} className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-sm hover:bg-zinc-50">
           <FileText className="h-5 w-5 text-zinc-600" />
           <span className="flex-1 font-medium">사업자등록증</span>
           <Download className="h-4 w-4 text-zinc-400" />
         </a>
-        <a href={paperworkFileUrl(bank.file, bank.downloadName)} className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-sm hover:bg-zinc-50">
+        <a href={paperworkFileUrl(bank.file, true)} className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-sm hover:bg-zinc-50">
           <Landmark className="h-5 w-5 text-zinc-600" />
           <span className="flex-1 font-medium">통장사본</span>
           <Download className="h-4 w-4 text-zinc-400" />

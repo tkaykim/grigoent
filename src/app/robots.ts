@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 const SITE = "https://grigoent.co.kr";
-const DISALLOW = ["/api/", "/admin", "/mypage", "/signin", "/signup", "/proposals", "/report"];
+const DISALLOW = ["/api/", "/admin", "/mypage", "/signin", "/signup", "/proposals", "/report", "/paperwork/files/", "/paperwork/d/"];
 
 export default function robots(): MetadataRoute.Robots {
   return {
